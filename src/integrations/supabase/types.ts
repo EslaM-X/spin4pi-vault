@@ -14,7 +14,188 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      jackpot: {
+        Row: {
+          id: string
+          last_win_amount: number | null
+          last_winner_id: string | null
+          total_pi: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          last_win_amount?: number | null
+          last_winner_id?: string | null
+          total_pi?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          last_win_amount?: number | null
+          last_winner_id?: string | null
+          total_pi?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jackpot_last_winner_id_fkey"
+            columns: ["last_winner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nft_assets: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          owner_id: string | null
+          price_pi: number
+          utility: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          owner_id?: string | null
+          price_pi: number
+          utility: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          owner_id?: string | null
+          price_pi?: number
+          utility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nft_assets_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          memo: string | null
+          payment_id: string
+          profile_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          memo?: string | null
+          payment_id: string
+          profile_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          memo?: string | null
+          payment_id?: string
+          profile_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_free_spin: string | null
+          pi_username: string
+          total_spins: number | null
+          total_winnings: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_free_spin?: string | null
+          pi_username: string
+          total_spins?: number | null
+          total_winnings?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_free_spin?: string | null
+          pi_username?: string
+          total_spins?: number | null
+          total_winnings?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      spins: {
+        Row: {
+          cost: number | null
+          created_at: string | null
+          id: string
+          profile_id: string | null
+          result: string
+          reward_amount: number | null
+          spin_type: string
+        }
+        Insert: {
+          cost?: number | null
+          created_at?: string | null
+          id?: string
+          profile_id?: string | null
+          result: string
+          reward_amount?: number | null
+          spin_type: string
+        }
+        Update: {
+          cost?: number | null
+          created_at?: string | null
+          id?: string
+          profile_id?: string | null
+          result?: string
+          reward_amount?: number | null
+          spin_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spins_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

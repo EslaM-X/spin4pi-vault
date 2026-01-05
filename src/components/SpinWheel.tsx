@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 interface SpinWheelProps {
   onSpinComplete: (result: string) => void;
@@ -20,11 +21,14 @@ const SEGMENTS = [
 
 export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning }: SpinWheelProps) {
   const [rotation, setRotation] = useState(0);
+  const { playSpinSound, playTickSound } = useSoundEffects();
+  const lastSegmentRef = useRef(0);
 
   const handleSpin = () => {
     if (isSpinning) return;
     
     setIsSpinning(true);
+    playSpinSound();
     
     // Random rotation between 5-10 full spins + random segment
     const spins = 5 + Math.random() * 5;
@@ -40,6 +44,24 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning }: SpinWhe
       setIsSpinning(false);
     }, 4000);
   };
+
+  // Play tick sound when passing segments
+  useEffect(() => {
+    if (!isSpinning) return;
+    
+    const segmentAngle = 360 / SEGMENTS.length;
+    const checkInterval = setInterval(() => {
+      const normalizedRotation = rotation % 360;
+      const currentSegment = Math.floor(normalizedRotation / segmentAngle);
+      
+      if (currentSegment !== lastSegmentRef.current) {
+        playTickSound();
+        lastSegmentRef.current = currentSegment;
+      }
+    }, 50);
+    
+    return () => clearInterval(checkInterval);
+  }, [isSpinning, rotation, playTickSound]);
 
   return (
     <div className="relative flex flex-col items-center">

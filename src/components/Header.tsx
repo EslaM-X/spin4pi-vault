@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { LogIn, User, Wallet } from "lucide-react";
 import logo from "@/assets/spin4pi-logo.png";
+import { SoundControls } from "./SoundControls";
 
 interface HeaderProps {
   isLoggedIn: boolean;
@@ -27,7 +28,10 @@ export function Header({ isLoggedIn, username, balance, onLogin }: HeaderProps) 
         </motion.div>
         
         {/* Right side */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          {/* Sound Controls */}
+          <SoundControls />
+          
           {isLoggedIn ? (
             <>
               {/* Balance */}

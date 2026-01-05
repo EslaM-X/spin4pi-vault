@@ -1,24 +1,33 @@
 import { useCallback, useRef } from "react";
+import { useSoundSettings } from "@/contexts/SoundSettingsContext";
 
 // Web Audio API-based sound effects
 export function useSoundEffects() {
   const audioContextRef = useRef<AudioContext | null>(null);
+  const masterGainRef = useRef<GainNode | null>(null);
+  const { getEffectiveVolume } = useSoundSettings();
 
   const getAudioContext = useCallback(() => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      masterGainRef.current = audioContextRef.current.createGain();
+      masterGainRef.current.connect(audioContextRef.current.destination);
     }
-    return audioContextRef.current;
-  }, []);
+    // Update volume
+    if (masterGainRef.current) {
+      masterGainRef.current.gain.value = getEffectiveVolume();
+    }
+    return { ctx: audioContextRef.current, masterGain: masterGainRef.current! };
+  }, [getEffectiveVolume]);
 
   // Generate a spinning/whoosh sound
   const playSpinSound = useCallback(() => {
-    const ctx = getAudioContext();
+    const { ctx, masterGain } = getAudioContext();
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
     
     oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
+    gainNode.connect(masterGain);
     
     oscillator.type = "sawtooth";
     oscillator.frequency.setValueAtTime(200, ctx.currentTime);
@@ -35,12 +44,12 @@ export function useSoundEffects() {
 
   // Generate a tick sound for wheel segments
   const playTickSound = useCallback(() => {
-    const ctx = getAudioContext();
+    const { ctx, masterGain } = getAudioContext();
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
     
     oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
+    gainNode.connect(masterGain);
     
     oscillator.type = "square";
     oscillator.frequency.setValueAtTime(800, ctx.currentTime);
@@ -54,7 +63,7 @@ export function useSoundEffects() {
 
   // Generate a win sound with ascending tones
   const playWinSound = useCallback(() => {
-    const ctx = getAudioContext();
+    const { ctx, masterGain } = getAudioContext();
     
     const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
     
@@ -63,7 +72,7 @@ export function useSoundEffects() {
       const gainNode = ctx.createGain();
       
       oscillator.connect(gainNode);
-      gainNode.connect(ctx.destination);
+      gainNode.connect(masterGain);
       
       oscillator.type = "sine";
       oscillator.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.15);
@@ -79,7 +88,7 @@ export function useSoundEffects() {
 
   // Generate a big win/jackpot sound
   const playJackpotSound = useCallback(() => {
-    const ctx = getAudioContext();
+    const { ctx, masterGain } = getAudioContext();
     
     // Fanfare-style ascending notes
     const notes = [
@@ -95,7 +104,7 @@ export function useSoundEffects() {
       const gainNode = ctx.createGain();
       
       oscillator.connect(gainNode);
-      gainNode.connect(ctx.destination);
+      gainNode.connect(masterGain);
       
       oscillator.type = "triangle";
       oscillator.frequency.setValueAtTime(freq, ctx.currentTime + time);
@@ -114,7 +123,7 @@ export function useSoundEffects() {
       const gainNode = ctx.createGain();
       
       oscillator.connect(gainNode);
-      gainNode.connect(ctx.destination);
+      gainNode.connect(masterGain);
       
       oscillator.type = "sine";
       oscillator.frequency.setValueAtTime(2000 + Math.random() * 2000, ctx.currentTime + 0.6 + i * 0.1);
@@ -129,13 +138,13 @@ export function useSoundEffects() {
 
   // Generate a lose sound
   const playLoseSound = useCallback(() => {
-    const ctx = getAudioContext();
+    const { ctx, masterGain } = getAudioContext();
     
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
     
     oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
+    gainNode.connect(masterGain);
     
     oscillator.type = "sine";
     oscillator.frequency.setValueAtTime(400, ctx.currentTime);

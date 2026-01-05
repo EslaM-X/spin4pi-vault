@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Header } from "@/components/Header";
@@ -9,21 +9,49 @@ import { ResultModal } from "@/components/ResultModal";
 import { Leaderboard } from "@/components/Leaderboard";
 import { Features } from "@/components/Features";
 import { Footer } from "@/components/Footer";
+import { useGameData } from "@/hooks/useGameData";
+import { useSpin } from "@/hooks/useSpin";
+
+const SPIN_COSTS: Record<string, number> = {
+  free: 0,
+  basic: 0.1,
+  pro: 0.25,
+  vault: 1,
+};
 
 const Index = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
   const [balance, setBalance] = useState(0);
-  const [jackpot, setJackpot] = useState(156.78);
-  const [isSpinning, setIsSpinning] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
   const [canFreeSpin, setCanFreeSpin] = useState(true);
   const [freeSpinTimer, setFreeSpinTimer] = useState("Available!");
+  const [pendingSpinType, setPendingSpinType] = useState<string | null>(null);
+
+  // Fetch game data from backend
+  const { jackpot, leaderboard, isLoading, refreshData } = useGameData();
+
+  // Handle spin result from backend
+  const handleSpinResult = useCallback((result: string, rewardAmount: number) => {
+    setLastResult(result);
+    setShowResult(true);
+    
+    // Update local balance with winnings
+    if (rewardAmount > 0) {
+      setBalance(prev => prev + rewardAmount);
+    }
+    
+    // Refresh leaderboard data
+    refreshData();
+  }, [refreshData]);
+
+  const { spin, isSpinning, setIsSpinning, completeAnimation } = useSpin({
+    onSpinComplete: handleSpinResult,
+  });
 
   // Simulate Pi login
   const handleLogin = () => {
-    // In production, this would use Pi.authenticate
     toast.success("Connecting to Pi Network...");
     setTimeout(() => {
       setIsLoggedIn(true);
@@ -33,25 +61,9 @@ const Index = () => {
     }, 1500);
   };
 
-  // Handle spin completion
-  const handleSpinComplete = (result: string) => {
-    setLastResult(result);
-    setShowResult(true);
-    
-    // Update jackpot
-    setJackpot(prev => prev + 0.005);
-    
-    // Handle rewards
-    if (result === "0.01_PI") {
-      setBalance(prev => prev + 0.01);
-    } else if (result === "0.05_PI") {
-      setBalance(prev => prev + 0.05);
-    }
-  };
-
-  // Handle spin button click
-  const handleSpin = (type: string, cost: number) => {
-    if (!isLoggedIn) {
+  // Handle spin button click - initiates spin with backend
+  const handleSpin = async (type: string, cost: number) => {
+    if (!isLoggedIn || !username) {
       toast.error("Please login with Pi first!");
       return;
     }
@@ -61,18 +73,39 @@ const Index = () => {
         toast.error("Daily free spin not available yet!");
         return;
       }
-      setCanFreeSpin(false);
-      setFreeSpinTimer("23:59:59");
-      toast.info("Using daily free spin!");
     } else {
       if (balance < cost) {
         toast.error("Insufficient Pi balance!");
         return;
       }
+      // Deduct cost immediately
       setBalance(prev => prev - cost);
-      setJackpot(prev => prev + cost * 0.05);
-      toast.info(`Spinning for ${cost} π...`);
     }
+
+    setPendingSpinType(type);
+    toast.info(type === "free" ? "Using daily free spin!" : `Spinning for ${cost} π...`);
+    
+    // Call backend for spin result
+    const result = await spin(username, type);
+    
+    if (result) {
+      if (type === "free") {
+        setCanFreeSpin(false);
+        setFreeSpinTimer("23:59:59");
+      }
+    } else {
+      // Refund if spin failed
+      if (type !== "free") {
+        setBalance(prev => prev + cost);
+      }
+      setPendingSpinType(null);
+    }
+  };
+
+  // Handle wheel animation completion
+  const handleWheelComplete = (result: string) => {
+    completeAnimation();
+    setPendingSpinType(null);
   };
 
   // Timer effect for free spin
@@ -156,14 +189,14 @@ const Index = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
           >
             <SpinWheel 
-              onSpinComplete={handleSpinComplete}
+              onSpinComplete={handleWheelComplete}
               isSpinning={isSpinning}
               setIsSpinning={setIsSpinning}
             />
           </motion.div>
           
           {/* Leaderboard */}
-          <Leaderboard />
+          <Leaderboard entries={leaderboard} isLoading={isLoading} />
         </div>
 
         {/* Spin Options */}

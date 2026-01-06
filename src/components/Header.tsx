@@ -1,16 +1,20 @@
 import { motion } from "framer-motion";
 import { LogIn, User, Wallet } from "lucide-react";
+import { Link } from "react-router-dom";
 import logo from "@/assets/spin4pi-logo.png";
 import { SoundControls } from "./SoundControls";
+import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 
 interface HeaderProps {
   isLoggedIn: boolean;
   username: string | null;
   balance: number;
   onLogin: () => void;
+  isLoading?: boolean;
+  shortcuts?: Array<{ key: string; action: string }>;
 }
 
-export function Header({ isLoggedIn, username, balance, onLogin }: HeaderProps) {
+export function Header({ isLoggedIn, username, balance, onLogin, isLoading, shortcuts = [] }: HeaderProps) {
   return (
     <motion.header
       className="fixed top-0 left-0 right-0 z-40 bg-dark-space/80 backdrop-blur-lg border-b border-border"
@@ -24,11 +28,16 @@ export function Header({ isLoggedIn, username, balance, onLogin }: HeaderProps) 
           className="flex items-center gap-3"
           whileHover={{ scale: 1.02 }}
         >
-          <img src={logo} alt="Spin4Pi" className="h-12 w-auto" />
+          <Link to="/">
+            <img src={logo} alt="Spin4Pi" className="h-12 w-auto" />
+          </Link>
         </motion.div>
         
         {/* Right side */}
         <div className="flex items-center gap-3">
+          {/* Keyboard Shortcuts */}
+          {shortcuts.length > 0 && <KeyboardShortcutsHelp shortcuts={shortcuts} />}
+          
           {/* Sound Controls */}
           <SoundControls />
           
@@ -43,24 +52,27 @@ export function Header({ isLoggedIn, username, balance, onLogin }: HeaderProps) 
                 <span className="font-display font-bold text-gold">{balance.toFixed(2)} π</span>
               </motion.div>
               
-              {/* User */}
-              <motion.div
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pi-purple/20 to-card rounded-full border border-pi-purple/30"
-                whileHover={{ scale: 1.02 }}
-              >
-                <User className="w-4 h-4 text-pi-purple-glow" />
-                <span className="font-medium text-foreground">{username}</span>
-              </motion.div>
+              {/* User - Links to Profile */}
+              <Link to="/profile">
+                <motion.div
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pi-purple/20 to-card rounded-full border border-pi-purple/30 cursor-pointer"
+                  whileHover={{ scale: 1.02 }}
+                >
+                  <User className="w-4 h-4 text-pi-purple-glow" />
+                  <span className="font-medium text-foreground">{username}</span>
+                </motion.div>
+              </Link>
             </>
           ) : (
             <motion.button
               onClick={onLogin}
-              className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-pi-purple to-pi-purple-dark text-foreground font-display font-bold rounded-full hover:scale-105 transition-transform"
-              whileHover={{ scale: 1.05 }}
+              disabled={isLoading}
+              className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-pi-purple to-pi-purple-dark text-foreground font-display font-bold rounded-full hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+              whileHover={{ scale: isLoading ? 1 : 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
               <LogIn className="w-5 h-5" />
-              <span>Login with Pi</span>
+              <span>{isLoading ? 'Connecting...' : 'Login with Pi'}</span>
             </motion.button>
           )}
         </div>

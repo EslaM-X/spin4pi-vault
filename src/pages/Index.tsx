@@ -11,6 +11,9 @@ import { Features } from "@/components/Features";
 import { Footer } from "@/components/Footer";
 import { useGameData } from "@/hooks/useGameData";
 import { useSpin } from "@/hooks/useSpin";
+import { usePiAuth } from "@/hooks/usePiAuth";
+import { usePiPayment } from "@/hooks/usePiPayment";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 const SPIN_COSTS: Record<string, number> = {
   free: 0,
@@ -20,14 +23,26 @@ const SPIN_COSTS: Record<string, number> = {
 };
 
 const Index = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [username, setUsername] = useState<string | null>(null);
   const [balance, setBalance] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
-  const [canFreeSpin, setCanFreeSpin] = useState(true);
-  const [freeSpinTimer, setFreeSpinTimer] = useState("Available!");
   const [pendingSpinType, setPendingSpinType] = useState<string | null>(null);
+  const [freeSpinTimer, setFreeSpinTimer] = useState("Available!");
+
+  // Pi Network authentication
+  const { 
+    user, 
+    profile, 
+    isLoading: isAuthLoading, 
+    authenticate, 
+    refreshProfile,
+    canFreeSpin,
+    getNextFreeSpinTime,
+    isAuthenticated,
+  } = usePiAuth();
+
+  // Pi Network payments
+  const { createPayment, isPaying } = usePiPayment();
 
   // Fetch game data from backend
   const { jackpot, leaderboard, isLoading, refreshData } = useGameData();
@@ -42,34 +57,34 @@ const Index = () => {
       setBalance(prev => prev + rewardAmount);
     }
     
-    // Refresh leaderboard data
+    // Refresh profile and leaderboard data
     refreshData();
-  }, [refreshData]);
+    refreshProfile();
+  }, [refreshData, refreshProfile]);
 
   const { spin, isSpinning, setIsSpinning, completeAnimation } = useSpin({
     onSpinComplete: handleSpinResult,
   });
 
-  // Simulate Pi login
-  const handleLogin = () => {
-    toast.success("Connecting to Pi Network...");
-    setTimeout(() => {
-      setIsLoggedIn(true);
-      setUsername("PiUser_" + Math.floor(Math.random() * 10000));
-      setBalance(5.25);
-      toast.success("Welcome to Spin4Pi!");
-    }, 1500);
+  // Handle Pi login
+  const handleLogin = async () => {
+    const result = await authenticate();
+    if (result) {
+      // Store username for profile page
+      localStorage.setItem('pi_username', result.username);
+      setBalance(5.25); // Demo balance - in production, fetch from backend
+    }
   };
 
   // Handle spin button click - initiates spin with backend
   const handleSpin = async (type: string, cost: number) => {
-    if (!isLoggedIn || !username) {
+    if (!isAuthenticated || !user) {
       toast.error("Please login with Pi first!");
       return;
     }
     
     if (type === "free") {
-      if (!canFreeSpin) {
+      if (!canFreeSpin()) {
         toast.error("Daily free spin not available yet!");
         return;
       }
@@ -78,7 +93,23 @@ const Index = () => {
         toast.error("Insufficient Pi balance!");
         return;
       }
-      // Deduct cost immediately
+      
+      // Create Pi payment for paid spins
+      const paymentResult = await createPayment(
+        cost,
+        `Spin4Pi ${type} spin`,
+        user.username,
+        { spin_type: type }
+      );
+      
+      if (!paymentResult.success) {
+        if (paymentResult.error !== 'cancelled') {
+          toast.error("Payment failed. Please try again.");
+        }
+        return;
+      }
+      
+      // Deduct cost after successful payment
       setBalance(prev => prev - cost);
     }
 
@@ -86,21 +117,36 @@ const Index = () => {
     toast.info(type === "free" ? "Using daily free spin!" : `Spinning for ${cost} π...`);
     
     // Call backend for spin result
-    const result = await spin(username, type);
+    const result = await spin(user.username, type);
     
-    if (result) {
-      if (type === "free") {
-        setCanFreeSpin(false);
-        setFreeSpinTimer("23:59:59");
-      }
-    } else {
-      // Refund if spin failed
-      if (type !== "free") {
-        setBalance(prev => prev + cost);
-      }
+    if (!result) {
+      // Refund if spin failed (only for paid spins - payment already completed)
       setPendingSpinType(null);
     }
   };
+
+  // Handle free spin shortcut
+  const handleFreeSpin = useCallback(() => {
+    if (canFreeSpin()) {
+      handleSpin('free', 0);
+    }
+  }, [canFreeSpin]);
+
+  // Handle any spin shortcut
+  const handleQuickSpin = useCallback(() => {
+    if (canFreeSpin()) {
+      handleSpin('free', 0);
+    } else {
+      handleSpin('basic', SPIN_COSTS.basic);
+    }
+  }, [canFreeSpin]);
+
+  // Keyboard shortcuts
+  const { shortcuts } = useKeyboardShortcuts({
+    onSpin: handleQuickSpin,
+    onFreeSpin: handleFreeSpin,
+    canSpin: !isSpinning && !isPaying && isAuthenticated,
+  });
 
   // Handle wheel animation completion
   const handleWheelComplete = (result: string) => {
@@ -110,29 +156,19 @@ const Index = () => {
 
   // Timer effect for free spin
   useEffect(() => {
-    if (!canFreeSpin) {
-      const interval = setInterval(() => {
-        setFreeSpinTimer(prev => {
-          const parts = prev.split(':');
-          let hours = parseInt(parts[0]);
-          let mins = parseInt(parts[1]);
-          let secs = parseInt(parts[2]);
-          
-          if (secs > 0) secs--;
-          else if (mins > 0) { mins--; secs = 59; }
-          else if (hours > 0) { hours--; mins = 59; secs = 59; }
-          else {
-            setCanFreeSpin(true);
-            return "Available!";
-          }
-          
-          return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-        });
-      }, 1000);
-      
-      return () => clearInterval(interval);
+    const interval = setInterval(() => {
+      setFreeSpinTimer(getNextFreeSpinTime());
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [getNextFreeSpinTime]);
+
+  // Update username in localStorage when user changes
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('pi_username', user.username);
     }
-  }, [canFreeSpin]);
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-background overflow-hidden">
@@ -141,10 +177,12 @@ const Index = () => {
       <div className="fixed inset-0 bg-gradient-radial from-pi-purple/10 via-transparent to-transparent pointer-events-none" />
       
       <Header 
-        isLoggedIn={isLoggedIn} 
-        username={username} 
+        isLoggedIn={isAuthenticated} 
+        username={user?.username || null} 
         balance={balance} 
-        onLogin={handleLogin} 
+        onLogin={handleLogin}
+        isLoading={isAuthLoading}
+        shortcuts={shortcuts}
       />
       
       <main className="container mx-auto px-4 pt-24 pb-12">
@@ -203,8 +241,8 @@ const Index = () => {
         <div className="mb-20">
           <SpinButtons 
             onSpin={handleSpin}
-            disabled={isSpinning}
-            canFreeSpin={canFreeSpin}
+            disabled={isSpinning || isPaying}
+            canFreeSpin={canFreeSpin()}
             freeSpinTimer={freeSpinTimer}
           />
         </div>

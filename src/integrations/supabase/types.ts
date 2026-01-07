@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      deposits: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          created_at: string
+          id: string
+          payment_id: string
+          profile_id: string
+          status: string | null
+          txid: string | null
+        }
+        Insert: {
+          amount: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          payment_id: string
+          profile_id: string
+          status?: string | null
+          txid?: string | null
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          payment_id?: string
+          profile_id?: string
+          status?: string | null
+          txid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deposits_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jackpot: {
         Row: {
           id: string
@@ -87,6 +128,45 @@ export type Database = {
           },
         ]
       }
+      nft_ownership: {
+        Row: {
+          id: string
+          is_equipped: boolean | null
+          nft_asset_id: string
+          profile_id: string
+          purchased_at: string
+        }
+        Insert: {
+          id?: string
+          is_equipped?: boolean | null
+          nft_asset_id: string
+          profile_id: string
+          purchased_at?: string
+        }
+        Update: {
+          id?: string
+          is_equipped?: boolean | null
+          nft_asset_id?: string
+          profile_id?: string
+          purchased_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nft_ownership_nft_asset_id_fkey"
+            columns: ["nft_asset_id"]
+            isOneToOne: false
+            referencedRelation: "nft_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nft_ownership_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -134,29 +214,94 @@ export type Database = {
           id: string
           last_free_spin: string | null
           pi_username: string
+          referral_code: string | null
+          referral_count: number | null
+          referral_earnings: number | null
+          referred_by: string | null
           total_spins: number | null
           total_winnings: number | null
           updated_at: string | null
+          wallet_balance: number | null
         }
         Insert: {
           created_at?: string | null
           id?: string
           last_free_spin?: string | null
           pi_username: string
+          referral_code?: string | null
+          referral_count?: number | null
+          referral_earnings?: number | null
+          referred_by?: string | null
           total_spins?: number | null
           total_winnings?: number | null
           updated_at?: string | null
+          wallet_balance?: number | null
         }
         Update: {
           created_at?: string | null
           id?: string
           last_free_spin?: string | null
           pi_username?: string
+          referral_code?: string | null
+          referral_count?: number | null
+          referral_earnings?: number | null
+          referred_by?: string | null
           total_spins?: number | null
           total_winnings?: number | null
           updated_at?: string | null
+          wallet_balance?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_rewards: {
+        Row: {
+          created_at: string
+          id: string
+          referred_id: string
+          referrer_id: string
+          reward_amount: number
+          reward_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referred_id: string
+          referrer_id: string
+          reward_amount: number
+          reward_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referred_id?: string
+          referrer_id?: string
+          reward_amount?: number
+          reward_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_rewards_referred_id_fkey"
+            columns: ["referred_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_rewards_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       spins: {
         Row: {

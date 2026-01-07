@@ -1,1 +1,34 @@
 project_id = "mvqqnrpfhwaeimiyzppc"
+
+[functions.spin-result]
+verify_jwt = false
+
+[functions.daily-spin]
+verify_jwt = false
+
+[functions.get-leaderboard]
+verify_jwt = false
+
+[functions.approve-payment]
+verify_jwt = false
+
+[functions.complete-payment]
+verify_jwt = false
+
+[functions.deposit-pi]
+verify_jwt = false
+
+[functions.complete-deposit]
+verify_jwt = false
+
+[functions.purchase-nft]
+verify_jwt = false
+
+[functions.equip-nft]
+verify_jwt = false
+
+[functions.apply-referral]
+verify_jwt = false
+
+[functions.get-nfts]
+verify_jwt = false

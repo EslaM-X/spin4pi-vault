@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { SpinWheel } from "@/components/SpinWheel";
 import { JackpotCounter } from "@/components/JackpotCounter";
@@ -9,11 +10,13 @@ import { ResultModal } from "@/components/ResultModal";
 import { Leaderboard } from "@/components/Leaderboard";
 import { Features } from "@/components/Features";
 import { Footer } from "@/components/Footer";
+import { ReferralPanel } from "@/components/ReferralPanel";
 import { useGameData } from "@/hooks/useGameData";
 import { useSpin } from "@/hooks/useSpin";
 import { usePiAuth } from "@/hooks/usePiAuth";
 import { usePiPayment } from "@/hooks/usePiPayment";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { supabase } from "@/integrations/supabase/client";
 
 const SPIN_COSTS: Record<string, number> = {
   free: 0,
@@ -23,11 +26,15 @@ const SPIN_COSTS: Record<string, number> = {
 };
 
 const Index = () => {
+  const [searchParams] = useSearchParams();
   const [balance, setBalance] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
   const [pendingSpinType, setPendingSpinType] = useState<string | null>(null);
   const [freeSpinTimer, setFreeSpinTimer] = useState("Available!");
+  const [referralCode, setReferralCode] = useState<string>("");
+  const [referralCount, setReferralCount] = useState(0);
+  const [referralEarnings, setReferralEarnings] = useState(0);
 
   // Pi Network authentication
   const { 
@@ -47,6 +54,40 @@ const Index = () => {
   // Fetch game data from backend
   const { jackpot, leaderboard, isLoading, refreshData } = useGameData();
 
+  // Apply referral code on login
+  const applyReferral = useCallback(async (piUsername: string) => {
+    const refCode = searchParams.get('ref');
+    try {
+      const { data } = await supabase.functions.invoke('apply-referral', {
+        body: { pi_username: piUsername, referral_code: refCode }
+      });
+      if (data) {
+        setReferralCode(data.referral_code || '');
+        if (data.referral_applied) {
+          toast.success('Referral bonus applied! +0.25 π added to your wallet');
+        }
+      }
+    } catch (error) {
+      console.error('Referral error:', error);
+    }
+  }, [searchParams]);
+
+  // Fetch wallet balance and referral data from profile
+  const fetchWalletData = useCallback(async (piUsername: string) => {
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('wallet_balance, referral_code, referral_count, referral_earnings')
+      .eq('pi_username', piUsername)
+      .maybeSingle();
+    
+    if (profileData) {
+      setBalance(Number(profileData.wallet_balance) || 0);
+      setReferralCode(profileData.referral_code || '');
+      setReferralCount(profileData.referral_count || 0);
+      setReferralEarnings(Number(profileData.referral_earnings) || 0);
+    }
+  }, []);
+
   // Handle spin result from backend
   const handleSpinResult = useCallback((result: string, rewardAmount: number) => {
     setLastResult(result);
@@ -60,7 +101,8 @@ const Index = () => {
     // Refresh profile and leaderboard data
     refreshData();
     refreshProfile();
-  }, [refreshData, refreshProfile]);
+    if (user) fetchWalletData(user.username);
+  }, [refreshData, refreshProfile, user, fetchWalletData]);
 
   const { spin, isSpinning, setIsSpinning, completeAnimation } = useSpin({
     onSpinComplete: handleSpinResult,
@@ -70,11 +112,18 @@ const Index = () => {
   const handleLogin = async () => {
     const result = await authenticate();
     if (result) {
-      // Store username for profile page
       localStorage.setItem('pi_username', result.username);
-      setBalance(5.25); // Demo balance - in production, fetch from backend
+      await applyReferral(result.username);
+      await fetchWalletData(result.username);
     }
   };
+
+  // Handle deposit success
+  const handleDepositSuccess = useCallback(() => {
+    if (user) {
+      fetchWalletData(user.username);
+    }
+  }, [user, fetchWalletData]);
 
   // Handle spin button click - initiates spin with backend
   const handleSpin = async (type: string, cost: number) => {
@@ -90,7 +139,7 @@ const Index = () => {
       }
     } else {
       if (balance < cost) {
-        toast.error("Insufficient Pi balance!");
+        toast.error("Insufficient Pi balance! Deposit more Pi to continue.");
         return;
       }
       
@@ -167,8 +216,9 @@ const Index = () => {
   useEffect(() => {
     if (user) {
       localStorage.setItem('pi_username', user.username);
+      fetchWalletData(user.username);
     }
-  }, [user]);
+  }, [user, fetchWalletData]);
 
   return (
     <div className="min-h-screen bg-background overflow-hidden">
@@ -181,6 +231,7 @@ const Index = () => {
         username={user?.username || null} 
         balance={balance} 
         onLogin={handleLogin}
+        onDepositSuccess={handleDepositSuccess}
         isLoading={isAuthLoading}
         shortcuts={shortcuts}
       />
@@ -233,8 +284,19 @@ const Index = () => {
             />
           </motion.div>
           
-          {/* Leaderboard */}
-          <Leaderboard entries={leaderboard} isLoading={isLoading} />
+          {/* Sidebar */}
+          <div className="flex flex-col gap-6">
+            <Leaderboard entries={leaderboard} isLoading={isLoading} />
+            
+            {/* Referral Panel - Only show when logged in */}
+            {isAuthenticated && referralCode && (
+              <ReferralPanel 
+                referralCode={referralCode}
+                referralCount={referralCount}
+                referralEarnings={referralEarnings}
+              />
+            )}
+          </div>
         </div>
 
         {/* Spin Options */}

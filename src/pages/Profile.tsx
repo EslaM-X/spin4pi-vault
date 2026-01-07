@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trophy, Zap, Coins, Clock, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Trophy, Zap, Coins, Clock, TrendingUp, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ReferralPanel } from '@/components/ReferralPanel';
 import { supabase } from '@/integrations/supabase/client';
 
 interface SpinHistory {
@@ -29,6 +30,10 @@ interface ProfileStats {
   total_winnings: number;
   best_win: number;
   win_rate: number;
+  wallet_balance: number;
+  referral_code: string;
+  referral_count: number;
+  referral_earnings: number;
   recent_spins: SpinHistory[];
 }
 
@@ -39,7 +44,6 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Get username from localStorage or session
     const storedUsername = localStorage.getItem('pi_username');
     if (!storedUsername) {
       navigate('/');
@@ -52,7 +56,6 @@ const Profile = () => {
   const fetchProfileData = async (piUsername: string) => {
     setIsLoading(true);
     try {
-      // Fetch profile
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
@@ -64,7 +67,6 @@ const Profile = () => {
         return;
       }
 
-      // Fetch spin history
       const { data: spins } = await supabase
         .from('spins')
         .select('*')
@@ -85,6 +87,10 @@ const Profile = () => {
         win_rate: spinHistory.length > 0 
           ? (winningSpins.length / spinHistory.length) * 100 
           : 0,
+        wallet_balance: Number(profile.wallet_balance) || 0,
+        referral_code: profile.referral_code || '',
+        referral_count: profile.referral_count || 0,
+        referral_earnings: Number(profile.referral_earnings) || 0,
         recent_spins: spinHistory,
       });
     } catch (error) {
@@ -115,21 +121,23 @@ const Profile = () => {
     icon: Icon, 
     label, 
     value, 
-    suffix = '' 
+    suffix = '',
+    highlight = false
   }: { 
     icon: React.ElementType; 
     label: string; 
     value: number | string; 
     suffix?: string;
+    highlight?: boolean;
   }) => (
-    <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+    <Card className={`bg-card/50 backdrop-blur-sm border-border/50 ${highlight ? 'border-gold/50' : ''}`}>
       <CardContent className="p-4 flex items-center gap-4">
-        <div className="p-3 rounded-full bg-primary/20">
-          <Icon className="w-6 h-6 text-primary" />
+        <div className={`p-3 rounded-full ${highlight ? 'bg-gold/20' : 'bg-primary/20'}`}>
+          <Icon className={`w-6 h-6 ${highlight ? 'text-gold' : 'text-primary'}`} />
         </div>
         <div>
           <p className="text-sm text-muted-foreground">{label}</p>
-          <p className="text-2xl font-bold text-foreground">
+          <p className={`text-2xl font-bold ${highlight ? 'text-gold' : 'text-foreground'}`}>
             {typeof value === 'number' ? value.toFixed(2) : value}{suffix}
           </p>
         </div>
@@ -139,12 +147,10 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Background */}
       <div className="fixed inset-0 bg-stars opacity-50 pointer-events-none" />
       <div className="fixed inset-0 bg-gradient-radial from-pi-purple/10 via-transparent to-transparent pointer-events-none" />
 
       <div className="container mx-auto px-4 py-8 relative">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -168,11 +174,11 @@ const Profile = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+          className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8"
         >
           {isLoading ? (
             <>
-              {[...Array(4)].map((_, i) => (
+              {[...Array(5)].map((_, i) => (
                 <Card key={i} className="bg-card/50">
                   <CardContent className="p-4">
                     <Skeleton className="h-16 w-full" />
@@ -182,6 +188,13 @@ const Profile = () => {
             </>
           ) : (
             <>
+              <StatCard 
+                icon={Wallet} 
+                label="Wallet Balance" 
+                value={stats?.wallet_balance || 0}
+                suffix=" π"
+                highlight
+              />
               <StatCard 
                 icon={Zap} 
                 label="Total Spins" 
@@ -209,73 +222,91 @@ const Profile = () => {
           )}
         </motion.div>
 
-        {/* Spin History */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card className="bg-card/50 backdrop-blur-sm border-border/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-primary" />
-                Spin History
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="space-y-2">
-                  {[...Array(5)].map((_, i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
-                  ))}
-                </div>
-              ) : stats?.recent_spins?.length ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Result</TableHead>
-                      <TableHead className="text-right">Cost</TableHead>
-                      <TableHead className="text-right">Reward</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {stats.recent_spins.map((spin) => (
-                      <TableRow key={spin.id}>
-                        <TableCell className="text-muted-foreground">
-                          {formatDate(spin.created_at)}
-                        </TableCell>
-                        <TableCell className="capitalize">
-                          {spin.spin_type}
-                        </TableCell>
-                        <TableCell className={getResultColor(spin.result)}>
-                          {spin.result}
-                        </TableCell>
-                        <TableCell className="text-right text-muted-foreground">
-                          {spin.cost > 0 ? `-${spin.cost} π` : 'Free'}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className={spin.reward_amount > 0 ? 'text-green-400' : 'text-muted-foreground'}>
-                            {spin.reward_amount > 0 ? `+${spin.reward_amount} π` : '-'}
-                          </span>
-                        </TableCell>
-                      </TableRow>
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Spin History */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="lg:col-span-2"
+          >
+            <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-primary" />
+                  Spin History
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="space-y-2">
+                    {[...Array(5)].map((_, i) => (
+                      <Skeleton key={i} className="h-12 w-full" />
                     ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Zap className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No spins yet. Start spinning to see your history!</p>
-                  <Button asChild className="mt-4">
-                    <Link to="/">Go Spin!</Link>
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
+                  </div>
+                ) : stats?.recent_spins?.length ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Result</TableHead>
+                        <TableHead className="text-right">Cost</TableHead>
+                        <TableHead className="text-right">Reward</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {stats.recent_spins.map((spin) => (
+                        <TableRow key={spin.id}>
+                          <TableCell className="text-muted-foreground">
+                            {formatDate(spin.created_at)}
+                          </TableCell>
+                          <TableCell className="capitalize">
+                            {spin.spin_type}
+                          </TableCell>
+                          <TableCell className={getResultColor(spin.result)}>
+                            {spin.result}
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {spin.cost > 0 ? `-${spin.cost} π` : 'Free'}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span className={spin.reward_amount > 0 ? 'text-green-400' : 'text-muted-foreground'}>
+                              {spin.reward_amount > 0 ? `+${spin.reward_amount} π` : '-'}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Zap className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No spins yet. Start spinning to see your history!</p>
+                    <Button asChild className="mt-4">
+                      <Link to="/">Go Spin!</Link>
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Referral Panel */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            {stats?.referral_code && (
+              <ReferralPanel 
+                referralCode={stats.referral_code}
+                referralCount={stats.referral_count}
+                referralEarnings={stats.referral_earnings}
+              />
+            )}
+          </motion.div>
+        </div>
       </div>
     </div>
   );

@@ -11,6 +11,7 @@ import { Leaderboard } from "@/components/Leaderboard";
 import { Features } from "@/components/Features";
 import { Footer } from "@/components/Footer";
 import { ReferralPanel } from "@/components/ReferralPanel";
+import { DailyRewardButton } from "@/components/DailyRewardButton";
 import { useGameData } from "@/hooks/useGameData";
 import { useSpin } from "@/hooks/useSpin";
 import { usePiAuth } from "@/hooks/usePiAuth";
@@ -262,6 +263,21 @@ const Index = () => {
           >
             Spin Smart. Unlock Pi Value.
           </motion.p>
+          
+          {/* Daily Reward Button */}
+          {isAuthenticated && user && (
+            <motion.div
+              className="mt-6"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <DailyRewardButton 
+                piUsername={user.username}
+                onRewardClaimed={() => fetchWalletData(user.username)}
+              />
+            </motion.div>
+          )}
         </motion.section>
 
         {/* Jackpot */}

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { LogIn, User, Wallet, Sparkles, Plus } from "lucide-react";
+import { LogIn, User, Wallet, Sparkles, Plus, ArrowUpRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import logo from "@/assets/spin4pi-logo.png";
 import { SoundControls } from "./SoundControls";
 import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 import { DepositModal } from "./DepositModal";
+import { WithdrawModal } from "./WithdrawModal";
 import { Button } from "./ui/button";
 
 interface HeaderProps {
@@ -20,6 +21,7 @@ interface HeaderProps {
 
 export function Header({ isLoggedIn, username, balance, onLogin, onDepositSuccess, isLoading, shortcuts = [] }: HeaderProps) {
   const [showDeposit, setShowDeposit] = useState(false);
+  const [showWithdraw, setShowWithdraw] = useState(false);
 
   return (
     <>
@@ -63,7 +65,7 @@ export function Header({ isLoggedIn, username, balance, onLogin, onDepositSucces
             
             {isLoggedIn ? (
               <>
-                {/* Balance with Deposit Button */}
+                {/* Balance with Deposit/Withdraw Buttons */}
                 <motion.div
                   className="flex items-center gap-1 px-3 py-2 bg-gradient-to-r from-card to-muted rounded-full border border-gold/30"
                   whileHover={{ scale: 1.02 }}
@@ -75,8 +77,19 @@ export function Header({ isLoggedIn, username, balance, onLogin, onDepositSucces
                     variant="ghost"
                     className="h-6 w-6 ml-1 hover:bg-gold/20"
                     onClick={() => setShowDeposit(true)}
+                    title="Deposit Pi"
                   >
                     <Plus className="w-3 h-3 text-gold" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 hover:bg-primary/20"
+                    onClick={() => setShowWithdraw(true)}
+                    title="Withdraw Pi"
+                    disabled={balance <= 0}
+                  >
+                    <ArrowUpRight className="w-3 h-3 text-primary" />
                   </Button>
                 </motion.div>
                 
@@ -114,6 +127,19 @@ export function Header({ isLoggedIn, username, balance, onLogin, onDepositSucces
           onClose={() => setShowDeposit(false)}
           username={username}
           onSuccess={() => {
+            onDepositSuccess?.();
+          }}
+        />
+      )}
+
+      {/* Withdraw Modal */}
+      {username && (
+        <WithdrawModal
+          isOpen={showWithdraw}
+          onClose={() => setShowWithdraw(false)}
+          piUsername={username}
+          currentBalance={balance}
+          onWithdrawSuccess={() => {
             onDepositSuccess?.();
           }}
         />

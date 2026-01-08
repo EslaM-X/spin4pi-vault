@@ -5,8 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Reward probabilities (House Edge ~40%)
-const REWARDS = [
+// Base reward probabilities (House Edge ~40%)
+const BASE_REWARDS = [
   { label: "LOSE", chance: 45, amount: 0 },
   { label: "0.01_PI", chance: 25, amount: 0.01 },
   { label: "0.05_PI", chance: 15, amount: 0.05 },
@@ -22,6 +22,102 @@ const SPIN_COSTS: Record<string, number> = {
   pro: 0.25,
   vault: 1,
 };
+
+// NFT boost effects by utility type
+const NFT_BOOSTS: Record<string, { loseReduction: number; multiplier: number; jackpotBoost: number }> = {
+  'luck_boost': { loseReduction: 5, multiplier: 1, jackpotBoost: 0 },        // Lucky Clover
+  'multiplier': { loseReduction: 0, multiplier: 1.5, jackpotBoost: 0 },      // Golden Multiplier
+  'vip_access': { loseReduction: 3, multiplier: 1.2, jackpotBoost: 1 },      // VIP Pass
+  'discount': { loseReduction: 0, multiplier: 1, jackpotBoost: 0 },          // Discount Token (cost handled separately)
+  'jackpot_boost': { loseReduction: 0, multiplier: 1, jackpotBoost: 2 },     // Jackpot Hunter
+  'loss_protection': { loseReduction: 10, multiplier: 1, jackpotBoost: 0 },  // Pi Shield
+};
+
+interface EquippedBoosts {
+  totalLoseReduction: number;
+  totalMultiplier: number;
+  totalJackpotBoost: number;
+  hasDiscount: boolean;
+}
+
+async function getEquippedBoosts(supabase: any, profileId: string): Promise<EquippedBoosts> {
+  const boosts: EquippedBoosts = {
+    totalLoseReduction: 0,
+    totalMultiplier: 1,
+    totalJackpotBoost: 0,
+    hasDiscount: false,
+  };
+
+  try {
+    // Get equipped NFT ownership records
+    const { data: equippedNfts } = await supabase
+      .from('nft_ownership')
+      .select('nft_asset_id')
+      .eq('profile_id', profileId)
+      .eq('is_equipped', true);
+
+    if (equippedNfts && equippedNfts.length > 0) {
+      // Get the NFT assets for equipped items
+      const nftIds = equippedNfts.map((n: { nft_asset_id: string }) => n.nft_asset_id);
+      const { data: nftAssets } = await supabase
+        .from('nft_assets')
+        .select('utility')
+        .in('id', nftIds);
+
+      if (nftAssets) {
+        for (const nft of nftAssets) {
+          const utility = nft.utility;
+          if (utility && NFT_BOOSTS[utility]) {
+            const boost = NFT_BOOSTS[utility];
+            boosts.totalLoseReduction += boost.loseReduction;
+            boosts.totalMultiplier *= boost.multiplier;
+            boosts.totalJackpotBoost += boost.jackpotBoost;
+            if (utility === 'discount') {
+              boosts.hasDiscount = true;
+            }
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching equipped NFTs:', error);
+  }
+
+  return boosts;
+}
+
+function applyBoostsToRewards(boosts: EquippedBoosts) {
+  // Clone base rewards
+  const rewards = BASE_REWARDS.map(r => ({ ...r }));
+  
+  // Apply lose reduction (cap at 30% reduction max)
+  const loseReduction = Math.min(boosts.totalLoseReduction, 30);
+  if (loseReduction > 0) {
+    const loseIndex = rewards.findIndex(r => r.label === "LOSE");
+    if (loseIndex !== -1) {
+      const reducedChance = rewards[loseIndex].chance - loseReduction;
+      rewards[loseIndex].chance = Math.max(reducedChance, 15); // Minimum 15% lose chance
+      
+      // Distribute reduced chance to winning outcomes
+      const distribution = loseReduction / 3;
+      rewards.forEach(r => {
+        if (r.label.includes('_PI')) {
+          r.chance += distribution;
+        }
+      });
+    }
+  }
+  
+  // Apply jackpot boost
+  if (boosts.totalJackpotBoost > 0) {
+    const jackpotIndex = rewards.findIndex(r => r.label === "JACKPOT_ENTRY");
+    if (jackpotIndex !== -1) {
+      rewards[jackpotIndex].chance += boosts.totalJackpotBoost;
+    }
+  }
+  
+  return rewards;
+}
 
 Deno.serve(async (req: Request) => {
   // Handle CORS preflight
@@ -91,12 +187,16 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Calculate result
+    // Get equipped NFT boosts
+    const boosts = await getEquippedBoosts(supabase, profile.id);
+    const boostedRewards = applyBoostsToRewards(boosts);
+    
+    // Calculate result with boosted probabilities
     const roll = Math.random() * 100;
     let acc = 0;
-    let result = REWARDS[0];
+    let result = boostedRewards[0];
 
-    for (const r of REWARDS) {
+    for (const r of boostedRewards) {
       acc += r.chance;
       if (roll <= acc) {
         result = r;
@@ -104,7 +204,17 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const cost = SPIN_COSTS[spin_type] || 0;
+    // Apply cost (with discount if applicable)
+    let cost = SPIN_COSTS[spin_type] || 0;
+    if (boosts.hasDiscount && cost > 0) {
+      cost = cost * 0.9; // 10% discount
+    }
+    
+    // Apply multiplier to Pi rewards
+    let finalRewardAmount = result.amount;
+    if (result.amount > 0 && boosts.totalMultiplier > 1) {
+      finalRewardAmount = result.amount * boosts.totalMultiplier;
+    }
 
     // Record the spin
     const { error: spinError } = await supabase
@@ -114,7 +224,7 @@ Deno.serve(async (req: Request) => {
         spin_type,
         cost,
         result: result.label,
-        reward_amount: result.amount,
+        reward_amount: finalRewardAmount,
       });
 
     if (spinError) {
@@ -124,7 +234,7 @@ Deno.serve(async (req: Request) => {
     // Update profile
     const updates: Record<string, unknown> = {
       total_spins: (profile.total_spins || 0) + 1,
-      total_winnings: (profile.total_winnings || 0) + result.amount,
+      total_winnings: (profile.total_winnings || 0) + finalRewardAmount,
     };
 
     if (spin_type === 'free') {
@@ -153,14 +263,20 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    console.log(`Spin result for ${pi_username}: ${result.label} (type: ${spin_type})`);
+    console.log(`Spin result for ${pi_username}: ${result.label} (type: ${spin_type}, boosts: ${JSON.stringify(boosts)})`);
 
     return new Response(
       JSON.stringify({
         success: true,
         result: result.label,
-        reward_amount: result.amount,
+        reward_amount: finalRewardAmount,
         profile_id: profile.id,
+        boosts_applied: {
+          multiplier: boosts.totalMultiplier,
+          lose_reduction: boosts.totalLoseReduction,
+          jackpot_boost: boosts.totalJackpotBoost,
+          discount_applied: boosts.hasDiscount,
+        }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

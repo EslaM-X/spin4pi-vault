@@ -7,6 +7,7 @@ import { SoundSettingsProvider } from "@/contexts/SoundSettingsContext";
 import Index from "./pages/Index";
 import Profile from "./pages/Profile";
 import Marketplace from "./pages/Marketplace";
+import WithdrawalHistory from "./pages/WithdrawalHistory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/marketplace" element={<Marketplace />} />
+            <Route path="/withdrawals" element={<WithdrawalHistory />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

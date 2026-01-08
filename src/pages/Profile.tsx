@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trophy, Zap, Coins, Clock, TrendingUp, Wallet } from 'lucide-react';
+import { ArrowLeft, Trophy, Zap, Coins, Clock, TrendingUp, Wallet, ArrowUpRight, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,6 +14,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ReferralPanel } from '@/components/ReferralPanel';
+import { NotificationSettings } from '@/components/NotificationSettings';
 import { supabase } from '@/integrations/supabase/client';
 
 interface SpinHistory {
@@ -42,6 +43,7 @@ const Profile = () => {
   const [username, setUsername] = useState<string | null>(null);
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     const storedUsername = localStorage.getItem('pi_username');
@@ -161,11 +163,26 @@ const Profile = () => {
               <ArrowLeft className="w-5 h-5" />
             </Link>
           </Button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-3xl font-display font-bold text-foreground">
               Your Profile
             </h1>
             <p className="text-muted-foreground">@{username}</p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/withdrawals" className="gap-2">
+                <ArrowUpRight className="w-4 h-4" />
+                <span className="hidden sm:inline">Withdrawals</span>
+              </Link>
+            </Button>
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={() => setShowNotifications(true)}
+            >
+              <Bell className="w-4 h-4" />
+            </Button>
           </div>
         </motion.div>
 
@@ -308,6 +325,15 @@ const Profile = () => {
           </motion.div>
         </div>
       </div>
+
+      {/* Notification Settings Modal */}
+      {username && (
+        <NotificationSettings
+          isOpen={showNotifications}
+          onClose={() => setShowNotifications(false)}
+          piUsername={username}
+        />
+      )}
     </div>
   );
 };

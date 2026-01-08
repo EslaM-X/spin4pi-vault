@@ -12,6 +12,7 @@ import { Features } from "@/components/Features";
 import { Footer } from "@/components/Footer";
 import { ReferralPanel } from "@/components/ReferralPanel";
 import { DailyRewardButton } from "@/components/DailyRewardButton";
+import { ActiveBoostsIndicator } from "@/components/ActiveBoostsIndicator";
 import { useGameData } from "@/hooks/useGameData";
 import { useSpin } from "@/hooks/useSpin";
 import { usePiAuth } from "@/hooks/usePiAuth";
@@ -287,18 +288,28 @@ const Index = () => {
 
         {/* Main Game Area */}
         <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-12 mb-16">
-          {/* Wheel */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            <SpinWheel 
-              onSpinComplete={handleWheelComplete}
-              isSpinning={isSpinning}
-              setIsSpinning={setIsSpinning}
-            />
-          </motion.div>
+          {/* Wheel with Boosts */}
+          <div className="flex flex-col items-center gap-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              <SpinWheel 
+                onSpinComplete={handleWheelComplete}
+                isSpinning={isSpinning}
+                setIsSpinning={setIsSpinning}
+              />
+            </motion.div>
+            
+            {/* Active Boosts Indicator - Shows below the wheel */}
+            {isAuthenticated && (
+              <ActiveBoostsIndicator 
+                piUsername={user?.username || null}
+                isSpinning={isSpinning}
+              />
+            )}
+          </div>
           
           {/* Sidebar */}
           <div className="flex flex-col gap-6">

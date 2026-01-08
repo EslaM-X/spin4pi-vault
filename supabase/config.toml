@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.daily-login]
 verify_jwt = false
+
+[functions.send-streak-reminder]
+verify_jwt = false

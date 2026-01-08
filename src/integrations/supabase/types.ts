@@ -213,11 +213,14 @@ export type Database = {
           created_at: string | null
           id: string
           last_free_spin: string | null
+          last_login_date: string | null
+          login_streak: number | null
           pi_username: string
           referral_code: string | null
           referral_count: number | null
           referral_earnings: number | null
           referred_by: string | null
+          total_login_rewards: number | null
           total_spins: number | null
           total_winnings: number | null
           updated_at: string | null
@@ -227,11 +230,14 @@ export type Database = {
           created_at?: string | null
           id?: string
           last_free_spin?: string | null
+          last_login_date?: string | null
+          login_streak?: number | null
           pi_username: string
           referral_code?: string | null
           referral_count?: number | null
           referral_earnings?: number | null
           referred_by?: string | null
+          total_login_rewards?: number | null
           total_spins?: number | null
           total_winnings?: number | null
           updated_at?: string | null
@@ -241,11 +247,14 @@ export type Database = {
           created_at?: string | null
           id?: string
           last_free_spin?: string | null
+          last_login_date?: string | null
+          login_streak?: number | null
           pi_username?: string
           referral_code?: string | null
           referral_count?: number | null
           referral_earnings?: number | null
           referred_by?: string | null
+          total_login_rewards?: number | null
           total_spins?: number | null
           total_winnings?: number | null
           updated_at?: string | null
@@ -334,6 +343,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "spins_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      withdrawals: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          payment_id: string | null
+          profile_id: string
+          status: string | null
+          txid: string | null
+        }
+        Insert: {
+          amount: number
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          payment_id?: string | null
+          profile_id: string
+          status?: string | null
+          txid?: string | null
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          payment_id?: string | null
+          profile_id?: string
+          status?: string | null
+          txid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawals_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"

@@ -4,14 +4,23 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trophy, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AchievementBadges } from '@/components/AchievementBadges';
+import { AchievementUnlockModal } from '@/components/AchievementUnlockModal';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+
+interface UnlockedAchievement {
+  name: string;
+  reward_pi: number;
+}
 
 const Achievements = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [username, setUsername] = useState<string | null>(null);
   const [profileId, setProfileId] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState(false);
+  const [unlockedAchievements, setUnlockedAchievements] = useState<UnlockedAchievement[]>([]);
 
   useEffect(() => {
     const storedUsername = localStorage.getItem('pi_username');
@@ -47,13 +56,7 @@ const Achievements = () => {
       if (error) throw error;
 
       if (data?.new_achievements?.length > 0) {
-        for (const achievement of data.new_achievements) {
-          toast.success(`🏆 Achievement Unlocked: ${achievement.name}!`, {
-            description: achievement.reward_pi > 0 ? `+${achievement.reward_pi} π reward` : undefined
-          });
-        }
-        // Refresh to show new achievements
-        window.location.reload();
+        setUnlockedAchievements(data.new_achievements);
       } else {
         toast.info('No new achievements yet. Keep spinning!');
       }
@@ -63,6 +66,12 @@ const Achievements = () => {
     } finally {
       setIsChecking(false);
     }
+  };
+
+  const handleCloseModal = () => {
+    setUnlockedAchievements([]);
+    // Refresh achievements list
+    queryClient.invalidateQueries({ queryKey: ['user-achievements', profileId] });
   };
 
   return (
@@ -109,6 +118,14 @@ const Achievements = () => {
           {profileId && <AchievementBadges profileId={profileId} />}
         </motion.div>
       </div>
+
+      {/* Achievement Unlock Modal */}
+      {unlockedAchievements.length > 0 && (
+        <AchievementUnlockModal
+          achievements={unlockedAchievements}
+          onClose={handleCloseModal}
+        />
+      )}
     </div>
   );
 };

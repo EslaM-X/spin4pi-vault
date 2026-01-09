@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.check-achievements]
 verify_jwt = false
+
+[functions.end-tournament]
+verify_jwt = false

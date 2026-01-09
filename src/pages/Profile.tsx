@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trophy, Zap, Coins, Clock, TrendingUp, Wallet, ArrowUpRight, Bell, Award } from 'lucide-react';
+import { ArrowLeft, Trophy, Zap, Coins, Clock, TrendingUp, Wallet, ArrowUpRight, Bell, Award, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -174,6 +174,18 @@ const Profile = () => {
             <p className="text-muted-foreground">@{username}</p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/achievements" className="gap-2">
+                <Award className="w-4 h-4" />
+                <span className="hidden sm:inline">Achievements</span>
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/vip" className="gap-2">
+                <Crown className="w-4 h-4" />
+                <span className="hidden sm:inline">VIP</span>
+              </Link>
+            </Button>
             <Button variant="outline" size="sm" asChild>
               <Link to="/withdrawals" className="gap-2">
                 <ArrowUpRight className="w-4 h-4" />

@@ -13,6 +13,8 @@ import { Footer } from "@/components/Footer";
 import { ReferralPanel } from "@/components/ReferralPanel";
 import { DailyRewardButton } from "@/components/DailyRewardButton";
 import { ActiveBoostsIndicator } from "@/components/ActiveBoostsIndicator";
+import { TournamentPanel } from "@/components/TournamentPanel";
+import { VIPStatus } from "@/components/VIPStatus";
 import { useGameData } from "@/hooks/useGameData";
 import { useSpin } from "@/hooks/useSpin";
 import { usePiAuth } from "@/hooks/usePiAuth";
@@ -37,9 +39,11 @@ const Index = () => {
   const [referralCode, setReferralCode] = useState<string>("");
   const [referralCount, setReferralCount] = useState(0);
   const [referralEarnings, setReferralEarnings] = useState(0);
+  const [totalSpins, setTotalSpins] = useState(0);
+  const [profileId, setProfileId] = useState<string>("");
 
   // Pi Network authentication
-  const { 
+  const {
     user, 
     profile, 
     isLoading: isAuthLoading, 
@@ -78,15 +82,17 @@ const Index = () => {
   const fetchWalletData = useCallback(async (piUsername: string) => {
     const { data: profileData } = await supabase
       .from('profiles')
-      .select('wallet_balance, referral_code, referral_count, referral_earnings')
+      .select('id, wallet_balance, referral_code, referral_count, referral_earnings, total_spins')
       .eq('pi_username', piUsername)
       .maybeSingle();
     
     if (profileData) {
+      setProfileId(profileData.id);
       setBalance(Number(profileData.wallet_balance) || 0);
       setReferralCode(profileData.referral_code || '');
       setReferralCount(profileData.referral_count || 0);
       setReferralEarnings(Number(profileData.referral_earnings) || 0);
+      setTotalSpins(profileData.total_spins || 0);
     }
   }, []);
 
@@ -312,7 +318,23 @@ const Index = () => {
           </div>
           
           {/* Sidebar */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6 w-full lg:w-80">
+            {/* VIP Status - Compact */}
+            {isAuthenticated && (
+              <div className="flex items-center justify-center lg:justify-start">
+                <VIPStatus totalSpins={totalSpins} compact />
+              </div>
+            )}
+            
+            {/* Tournament Panel */}
+            {isAuthenticated && profileId && (
+              <TournamentPanel 
+                profileId={profileId}
+                walletBalance={balance}
+                onRefresh={() => user && fetchWalletData(user.username)}
+              />
+            )}
+            
             <Leaderboard entries={leaderboard} isLoading={isLoading} />
             
             {/* Referral Panel - Only show when logged in */}

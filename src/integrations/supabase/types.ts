@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          created_at: string | null
+          description: string
+          icon: string
+          id: string
+          name: string
+          requirement_type: string
+          requirement_value: number
+          reward_pi: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          icon: string
+          id?: string
+          name: string
+          requirement_type: string
+          requirement_value: number
+          reward_pi?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          icon?: string
+          id?: string
+          name?: string
+          requirement_type?: string
+          requirement_value?: number
+          reward_pi?: number | null
+        }
+        Relationships: []
+      }
       deposits: {
         Row: {
           amount: number
@@ -349,6 +382,153 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tournament_entries: {
+        Row: {
+          id: string
+          joined_at: string | null
+          profile_id: string
+          spin_count: number | null
+          total_winnings: number | null
+          tournament_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string | null
+          profile_id: string
+          spin_count?: number | null
+          total_winnings?: number | null
+          tournament_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string | null
+          profile_id?: string
+          spin_count?: number | null
+          total_winnings?: number | null
+          tournament_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_entries_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_entries_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournaments: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          end_time: string
+          entry_fee: number | null
+          id: string
+          name: string
+          prize_pool: number | null
+          start_time: string
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          end_time: string
+          entry_fee?: number | null
+          id?: string
+          name: string
+          prize_pool?: number | null
+          start_time: string
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          end_time?: string
+          entry_fee?: number | null
+          id?: string
+          name?: string
+          prize_pool?: number | null
+          start_time?: string
+          status?: string | null
+        }
+        Relationships: []
+      }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          earned_at: string | null
+          id: string
+          profile_id: string
+        }
+        Insert: {
+          achievement_id: string
+          earned_at?: string | null
+          id?: string
+          profile_id: string
+        }
+        Update: {
+          achievement_id?: string
+          earned_at?: string | null
+          id?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_achievements_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vip_tiers: {
+        Row: {
+          bonus_multiplier: number | null
+          created_at: string | null
+          exclusive_rewards: string[] | null
+          id: string
+          level: number
+          min_total_spins: number
+          name: string
+          spin_discount: number | null
+        }
+        Insert: {
+          bonus_multiplier?: number | null
+          created_at?: string | null
+          exclusive_rewards?: string[] | null
+          id?: string
+          level: number
+          min_total_spins: number
+          name: string
+          spin_discount?: number | null
+        }
+        Update: {
+          bonus_multiplier?: number | null
+          created_at?: string | null
+          exclusive_rewards?: string[] | null
+          id?: string
+          level?: number
+          min_total_spins?: number
+          name?: string
+          spin_discount?: number | null
+        }
+        Relationships: []
       }
       withdrawals: {
         Row: {

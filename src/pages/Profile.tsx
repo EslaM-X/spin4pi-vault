@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trophy, Zap, Coins, Clock, TrendingUp, Wallet, ArrowUpRight, Bell } from 'lucide-react';
+import { ArrowLeft, Trophy, Zap, Coins, Clock, TrendingUp, Wallet, ArrowUpRight, Bell, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/table';
 import { ReferralPanel } from '@/components/ReferralPanel';
 import { NotificationSettings } from '@/components/NotificationSettings';
+import { AchievementBadges } from '@/components/AchievementBadges';
+import { VIPStatus } from '@/components/VIPStatus';
 import { supabase } from '@/integrations/supabase/client';
 
 interface SpinHistory {
@@ -27,6 +29,7 @@ interface SpinHistory {
 }
 
 interface ProfileStats {
+  profile_id: string;
   total_spins: number;
   total_winnings: number;
   best_win: number;
@@ -83,6 +86,7 @@ const Profile = () => {
         : 0;
 
       setStats({
+        profile_id: profile.id,
         total_spins: profile.total_spins || 0,
         total_winnings: profile.total_winnings || 0,
         best_win: bestWin,
@@ -238,6 +242,37 @@ const Profile = () => {
             </>
           )}
         </motion.div>
+
+        {/* VIP Status & Achievements Row */}
+        <div className="grid lg:grid-cols-2 gap-6 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+          >
+            <VIPStatus totalSpins={stats?.total_spins || 0} />
+          </motion.div>
+          
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card className="bg-card/50 backdrop-blur-sm border-border/50 h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="w-5 h-5 text-gold" />
+                  Achievements
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {stats?.profile_id && (
+                  <AchievementBadges profileId={stats.profile_id} compact />
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Spin History */}

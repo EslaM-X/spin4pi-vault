@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.send-streak-reminder]
 verify_jwt = false
+
+[functions.check-achievements]
+verify_jwt = false

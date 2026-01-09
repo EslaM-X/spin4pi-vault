@@ -157,6 +157,55 @@ export function useSoundEffects() {
     oscillator.stop(ctx.currentTime + 0.5);
   }, [getAudioContext]);
 
+  // Generate an achievement unlock sound
+  const playAchievementSound = useCallback(() => {
+    const { ctx, masterGain } = getAudioContext();
+    
+    // Magical ascending chime
+    const notes = [
+      { freq: 587.33, time: 0 },    // D5
+      { freq: 739.99, time: 0.1 },  // F#5
+      { freq: 880, time: 0.2 },     // A5
+      { freq: 1174.66, time: 0.35 }, // D6
+    ];
+    
+    notes.forEach(({ freq, time }) => {
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(masterGain);
+      
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(freq, ctx.currentTime + time);
+      
+      gainNode.gain.setValueAtTime(0, ctx.currentTime + time);
+      gainNode.gain.linearRampToValueAtTime(0.35, ctx.currentTime + time + 0.03);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + time + 0.6);
+      
+      oscillator.start(ctx.currentTime + time);
+      oscillator.stop(ctx.currentTime + time + 0.7);
+    });
+
+    // Add sparkle effect
+    for (let i = 0; i < 5; i++) {
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(masterGain);
+      
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(1500 + Math.random() * 1500, ctx.currentTime + 0.4 + i * 0.08);
+      
+      gainNode.gain.setValueAtTime(0.08, ctx.currentTime + 0.4 + i * 0.08);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4 + i * 0.08 + 0.15);
+      
+      oscillator.start(ctx.currentTime + 0.4 + i * 0.08);
+      oscillator.stop(ctx.currentTime + 0.4 + i * 0.08 + 0.2);
+    }
+  }, [getAudioContext]);
+
   // Play sound based on result
   const playResultSound = useCallback((result: string) => {
     if (result === "LOSE") {
@@ -174,6 +223,7 @@ export function useSoundEffects() {
     playWinSound,
     playJackpotSound,
     playLoseSound,
+    playAchievementSound,
     playResultSound,
   };
 }

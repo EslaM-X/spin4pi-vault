@@ -383,6 +383,51 @@ export type Database = {
           },
         ]
       }
+      staking: {
+        Row: {
+          amount: number
+          apy: number
+          boost_multiplier: number
+          created_at: string
+          end_date: string
+          id: string
+          profile_id: string
+          rewards_earned: number | null
+          start_date: string
+          status: string
+          tier: string
+          withdrawn_at: string | null
+        }
+        Insert: {
+          amount: number
+          apy?: number
+          boost_multiplier?: number
+          created_at?: string
+          end_date: string
+          id?: string
+          profile_id: string
+          rewards_earned?: number | null
+          start_date?: string
+          status?: string
+          tier: string
+          withdrawn_at?: string | null
+        }
+        Update: {
+          amount?: number
+          apy?: number
+          boost_multiplier?: number
+          created_at?: string
+          end_date?: string
+          id?: string
+          profile_id?: string
+          rewards_earned?: number | null
+          start_date?: string
+          status?: string
+          tier?: string
+          withdrawn_at?: string | null
+        }
+        Relationships: []
+      }
       tournament_entries: {
         Row: {
           id: string

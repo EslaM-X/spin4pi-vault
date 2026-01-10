@@ -7,8 +7,8 @@ import { SoundControls } from "./SoundControls";
 import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 import { DepositModal } from "./DepositModal";
 import { WithdrawModal } from "./WithdrawModal";
+import { MobileMenu } from "./MobileMenu";
 import { Button } from "./ui/button";
-
 interface HeaderProps {
   isLoggedIn: boolean;
   username: string | null;
@@ -17,12 +17,12 @@ interface HeaderProps {
   onDepositSuccess?: () => void;
   isLoading?: boolean;
   shortcuts?: Array<{ key: string; action: string }>;
+  isAdmin?: boolean;
 }
 
-export function Header({ isLoggedIn, username, balance, onLogin, onDepositSuccess, isLoading, shortcuts = [] }: HeaderProps) {
+export function Header({ isLoggedIn, username, balance, onLogin, onDepositSuccess, isLoading, shortcuts = [], isAdmin = false }: HeaderProps) {
   const [showDeposit, setShowDeposit] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
-
   return (
     <>
       <motion.header
@@ -44,6 +44,8 @@ export function Header({ isLoggedIn, username, balance, onLogin, onDepositSucces
           
           {/* Right side */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Mobile Menu */}
+            <MobileMenu isLoggedIn={isLoggedIn} isAdmin={isAdmin} />
             {/* Navigation Links */}
             {isLoggedIn && (
               <Link to="/marketplace">

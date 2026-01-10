@@ -11,8 +11,8 @@ import WithdrawalHistory from "./pages/WithdrawalHistory";
 import Achievements from "./pages/Achievements";
 import VIPBenefits from "./pages/VIPBenefits";
 import Legal from "./pages/Legal";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
-
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -30,6 +30,7 @@ const App = () => (
             <Route path="/achievements" element={<Achievements />} />
             <Route path="/vip" element={<VIPBenefits />} />
             <Route path="/legal" element={<Legal />} />
+            <Route path="/admin" element={<Admin />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

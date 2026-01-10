@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.end-tournament]
 verify_jwt = false
+
+[functions.cron-end-tournaments]
+verify_jwt = false

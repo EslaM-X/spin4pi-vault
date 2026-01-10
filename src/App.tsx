@@ -10,6 +10,7 @@ import Marketplace from "./pages/Marketplace";
 import WithdrawalHistory from "./pages/WithdrawalHistory";
 import Achievements from "./pages/Achievements";
 import VIPBenefits from "./pages/VIPBenefits";
+import Legal from "./pages/Legal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/withdrawals" element={<WithdrawalHistory />} />
             <Route path="/achievements" element={<Achievements />} />
             <Route path="/vip" element={<VIPBenefits />} />
+            <Route path="/legal" element={<Legal />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -15,6 +15,8 @@ import { DailyRewardButton } from "@/components/DailyRewardButton";
 import { ActiveBoostsIndicator } from "@/components/ActiveBoostsIndicator";
 import { TournamentPanel } from "@/components/TournamentPanel";
 import { VIPStatus } from "@/components/VIPStatus";
+import StakingPanel from "@/components/StakingPanel";
+import PiAdsReward from "@/components/PiAdsReward";
 import { useGameData } from "@/hooks/useGameData";
 import { useSpin } from "@/hooks/useSpin";
 import { usePiAuth } from "@/hooks/usePiAuth";
@@ -41,6 +43,8 @@ const Index = () => {
   const [referralEarnings, setReferralEarnings] = useState(0);
   const [totalSpins, setTotalSpins] = useState(0);
   const [profileId, setProfileId] = useState<string>("");
+  const [showAdReward, setShowAdReward] = useState(false);
+  const [adRewardType, setAdRewardType] = useState<'free_spin' | 'bonus_pi' | 'boost'>('free_spin');
 
   // Pi Network authentication
   const {
@@ -125,6 +129,23 @@ const Index = () => {
       await fetchWalletData(result.username);
     }
   };
+
+  // Handle balance update from staking
+  const handleBalanceUpdate = useCallback((newBalance: number) => {
+    setBalance(newBalance);
+  }, []);
+
+  // Handle ad reward completion
+  const handleAdComplete = useCallback(() => {
+    if (adRewardType === 'bonus_pi') {
+      setBalance(prev => prev + 0.001);
+      toast.success('+0.001 π bonus added!');
+    } else if (adRewardType === 'free_spin') {
+      toast.success('Free spin unlocked!');
+    } else if (adRewardType === 'boost') {
+      toast.success('2x boost activated for next spin!');
+    }
+  }, [adRewardType]);
 
   // Handle deposit success
   const handleDepositSuccess = useCallback(() => {
@@ -337,6 +358,15 @@ const Index = () => {
             
             <Leaderboard entries={leaderboard} isLoading={isLoading} />
             
+            {/* Staking Panel */}
+            {isAuthenticated && user && (
+              <StakingPanel
+                username={user.username}
+                walletBalance={balance}
+                onBalanceUpdate={handleBalanceUpdate}
+              />
+            )}
+            
             {/* Referral Panel - Only show when logged in */}
             {isAuthenticated && referralCode && (
               <ReferralPanel 
@@ -369,6 +399,14 @@ const Index = () => {
         isOpen={showResult}
         onClose={() => setShowResult(false)}
         result={lastResult}
+      />
+
+      {/* Pi Ads Reward Modal */}
+      <PiAdsReward
+        isOpen={showAdReward}
+        onClose={() => setShowAdReward(false)}
+        onAdComplete={handleAdComplete}
+        rewardType={adRewardType}
       />
     </div>
   );

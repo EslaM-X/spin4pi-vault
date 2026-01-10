@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { FileText, Shield, MessageCircle, Twitter } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export function Footer() {
   return (
@@ -19,14 +20,14 @@ export function Footer() {
           <div>
             <h4 className="font-display font-bold text-lg mb-4 text-gold">Legal</h4>
             <div className="space-y-3">
-              <a href="#terms" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm">
+              <Link to="/legal" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm">
                 <FileText className="w-4 h-4" />
                 Terms of Use
-              </a>
-              <a href="#privacy" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm">
+              </Link>
+              <Link to="/legal" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm">
                 <Shield className="w-4 h-4" />
                 Privacy Policy
-              </a>
+              </Link>
             </div>
           </div>
           

@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Sparkles, X, Coins } from "lucide-react";
+import { Trophy, Sparkles, X, Coins, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { usePiShare } from "@/hooks/usePiShare";
 
 interface Achievement {
   name: string;
@@ -17,8 +18,8 @@ interface AchievementUnlockModalProps {
 export function AchievementUnlockModal({ achievements, onClose }: AchievementUnlockModalProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { playAchievementSound } = useSoundEffects();
+  const { shareAchievement } = usePiShare();
   const [showConfetti, setShowConfetti] = useState(false);
-
   useEffect(() => {
     if (achievements.length > 0) {
       playAchievementSound();
@@ -41,6 +42,9 @@ export function AchievementUnlockModal({ achievements, onClose }: AchievementUnl
     }
   };
 
+  const handleShare = () => {
+    shareAchievement(currentAchievement.name, currentAchievement.reward_pi);
+  };
   return (
     <AnimatePresence>
       <motion.div
@@ -195,12 +199,21 @@ export function AchievementUnlockModal({ achievements, onClose }: AchievementUnl
               </motion.div>
             )}
 
-            {/* Action button */}
+            {/* Action buttons */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7 }}
+              className="space-y-2"
             >
+              <Button
+                onClick={handleShare}
+                variant="outline"
+                className="w-full gap-2 border-pi-purple/50 hover:bg-pi-purple/20"
+              >
+                <Share2 className="w-4 h-4" />
+                Share Achievement
+              </Button>
               <Button
                 onClick={handleNext}
                 className="w-full bg-gradient-to-r from-gold to-amber-600 hover:from-gold-dark hover:to-amber-700 text-background font-bold"

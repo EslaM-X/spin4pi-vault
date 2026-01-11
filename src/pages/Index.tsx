@@ -47,8 +47,11 @@ const Index = () => {
   const [showAdReward, setShowAdReward] = useState(false);
   const [adRewardType, setAdRewardType] = useState<'free_spin' | 'bonus_pi' | 'boost'>('free_spin');
   const [targetResult, setTargetResult] = useState<string | null>(null);
+  const [piPrice, setPiPrice] = useState<number>(0);
+  const [piPriceTrend, setPiPriceTrend] = useState<'up'|'down'|'neutral'>('neutral');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isBlur, setIsBlur] = useState(false);
 
-  // Pi Network authentication
   const {
     user, 
     profile, 
@@ -61,13 +64,10 @@ const Index = () => {
     isAuthenticated,
   } = usePiAuth();
 
-  // Pi Network payments
   const { createPayment, isPaying } = usePiPayment();
 
-  // Fetch game data from backend
   const { jackpot, leaderboard, isLoading, refreshData } = useGameData();
 
-  // Apply referral code on login
   const applyReferral = useCallback(async (piUsername: string) => {
     const refCode = searchParams.get('ref');
     if (!refCode) return;
@@ -87,7 +87,6 @@ const Index = () => {
     }
   }, [searchParams]);
 
-  // Fetch wallet balance and referral data from profile
   const fetchWalletData = useCallback(async (piUsername: string) => {
     const { data: profileData } = await supabase
       .from('profiles')
@@ -105,28 +104,20 @@ const Index = () => {
     }
   }, []);
 
-  // Handle spin result from backend
   const handleSpinResult = useCallback((result: string, rewardAmount: number) => {
     setLastResult(result);
     setLastReward(rewardAmount);
     setShowResult(true);
-    
-    // Update local balance with winnings
-    if (rewardAmount > 0) {
-      setBalance(prev => prev + rewardAmount);
-    }
-    
-    // Refresh profile and leaderboard data
+    if (rewardAmount > 0) setBalance(prev => prev + rewardAmount);
     refreshData();
     refreshProfile();
     if (user) fetchWalletData(user.username);
   }, [refreshData, refreshProfile, user, fetchWalletData]);
 
-  const { spin, isSpinning, setIsSpinning, completeAnimation, lastResult: spinResult } = useSpin({
+  const { spin, isSpinning, setIsSpinning, completeAnimation } = useSpin({
     onSpinComplete: handleSpinResult,
   });
 
-  // Handle Pi login
   const handleLogin = async () => {
     const result = await authenticate();
     if (result) {
@@ -137,7 +128,6 @@ const Index = () => {
     }
   };
 
-  // Handle logout
   const handleLogout = () => {
     logout();
     localStorage.removeItem('pi_username');
@@ -150,323 +140,147 @@ const Index = () => {
     toast.info('Disconnected from Pi Network');
   };
 
-  // Handle balance update from staking
-  const handleBalanceUpdate = useCallback((newBalance: number) => {
-    setBalance(newBalance);
-  }, []);
+  const handleSpinClick = async (type: string, cost: number) => {
+    if (!isAuthenticated || !user) return toast.error("Please login with Pi first!");
+    if (isSpinning) return toast.error("Spin in progress!");
+    if (type === "free" && !canFreeSpin()) return toast.error("Daily free spin not ready!");
+    if (type !== "free" && balance < cost) return toast.error("Insufficient Pi balance!");
 
-  // Handle ad reward completion
-  const handleAdComplete = useCallback(() => {
-    if (adRewardType === 'bonus_pi') {
-      setBalance(prev => prev + 0.001);
-      toast.success('+0.001 π bonus added!');
-    } else if (adRewardType === 'free_spin') {
-      toast.success('Free spin unlocked!');
-    } else if (adRewardType === 'boost') {
-      toast.success('2x boost activated for next spin!');
-    }
-  }, [adRewardType]);
-
-  // Handle deposit success
-  const handleDepositSuccess = useCallback(() => {
-    if (user) {
-      fetchWalletData(user.username);
-    }
-  }, [user, fetchWalletData]);
-
-  // Handle spin button click - initiates spin with backend
-  const handleSpin = async (type: string, cost: number) => {
-    if (!isAuthenticated || !user) {
-      toast.error("Please login with Pi first!");
-      return;
-    }
-
-    if (isSpinning) {
-      toast.error("Spin in progress!");
-      return;
-    }
-    
-    if (type === "free") {
-      if (!canFreeSpin()) {
-        toast.error("Daily free spin not available yet!");
-        return;
-      }
-      // Show ad before free spin
-      setAdRewardType('free_spin');
-      setShowAdReward(true);
-    } else {
-      if (balance < cost) {
-        toast.error("Insufficient Pi balance! Deposit more Pi to continue.");
-        return;
-      }
-      
-      // Create Pi payment for paid spins
-      const paymentResult = await createPayment(
-        cost,
-        `Spin4Pi ${type} spin`,
-        user.username,
-        { spin_type: type }
-      );
-      
-      if (!paymentResult.success) {
-        if (paymentResult.error !== 'cancelled') {
-          toast.error("Payment failed. Please try again.");
-        }
-        return;
-      }
-      
-      // Deduct cost after successful payment
+    if (type !== "free") {
+      const paymentResult = await createPayment(cost, `Spin4Pi ${type} spin`, user.username, { spin_type: type });
+      if (!paymentResult.success) return;
       setBalance(prev => prev - cost);
     }
 
     setPendingSpinType(type);
     setIsSpinning(true);
-    
-    // Call backend for spin result
+
     const result = await spin(user.username, type);
-    
-    if (result) {
-      // Set the target result for the wheel animation
-      setTargetResult(result.result);
-    } else {
-      // Spin failed, reset state
-      setIsSpinning(false);
-      setPendingSpinType(null);
-      // Refund would be handled by payment system
-    }
-  };
-
-  // Handle free spin after ad
-  const handleFreeSpinAfterAd = async () => {
-    if (!user) return;
-    
-    setPendingSpinType('free');
-    setIsSpinning(true);
-    
-    const result = await spin(user.username, 'free');
-    
-    if (result) {
-      setTargetResult(result.result);
-    } else {
+    if (result) setTargetResult(result.result);
+    else {
       setIsSpinning(false);
       setPendingSpinType(null);
     }
   };
 
-  // Handle wheel animation completion
-  const handleWheelComplete = (result: string) => {
-    completeAnimation();
-    setPendingSpinType(null);
-    setTargetResult(null);
-  };
-
-  // Handle free spin shortcut
-  const handleFreeSpin = useCallback(() => {
-    if (canFreeSpin()) {
-      handleSpin('free', 0);
-    }
-  }, [canFreeSpin]);
-
-  // Handle any spin shortcut
-  const handleQuickSpin = useCallback(() => {
-    if (canFreeSpin()) {
-      handleSpin('free', 0);
-    } else if (balance >= SPIN_COSTS.basic) {
-      handleSpin('basic', SPIN_COSTS.basic);
-    } else {
-      toast.error('Insufficient balance for spin');
-    }
-  }, [canFreeSpin, balance]);
-
-  // Keyboard shortcuts
-  const { shortcuts } = useKeyboardShortcuts({
-    onSpin: handleQuickSpin,
-    onFreeSpin: handleFreeSpin,
-    canSpin: !isSpinning && !isPaying && isAuthenticated,
-  });
-
-  // Timer effect for free spin
+  // Pi Price fetch every 5s
   useEffect(() => {
-    const interval = setInterval(() => {
-      setFreeSpinTimer(getNextFreeSpinTime());
-    }, 1000);
-    
+    let lastPrice = 0;
+    const fetchPrice = async () => {
+      try {
+        const res = await fetch("https://www.okx.com/price/pi-network-pi");
+        const json = await res.json();
+        const price = parseFloat(json.data?.last) || 0;
+        setPiPrice(price);
+        if (price > lastPrice) setPiPriceTrend('up');
+        else if (price < lastPrice) setPiPriceTrend('down');
+        else setPiPriceTrend('neutral');
+        lastPrice = price;
+      } catch (err) { console.error(err); }
+    };
+    fetchPrice();
+    const interval = setInterval(fetchPrice, 5000);
     return () => clearInterval(interval);
-  }, [getNextFreeSpinTime]);
+  }, []);
 
-  // Update username in localStorage when user changes
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('pi_username', user.username);
-      fetchWalletData(user.username);
-    }
-  }, [user, fetchWalletData]);
+  // Hamburger menu toggle
+  const toggleMenu = () => {
+    setIsMenuOpen(prev => !prev);
+    setIsBlur(!isBlur);
+  };
 
   return (
-    <div className="min-h-screen bg-background overflow-hidden">
-      {/* Background effects */}
+    <div className={`min-h-screen bg-background overflow-hidden ${isBlur ? 'filter blur-sm' : ''}`}>
+      {/* Background */}
       <div className="fixed inset-0 bg-stars opacity-50 pointer-events-none" />
       <div className="fixed inset-0 bg-gradient-radial from-pi-purple/10 via-transparent to-transparent pointer-events-none" />
-      
+
       <Header 
         isLoggedIn={isAuthenticated} 
         username={user?.username || null} 
         balance={balance} 
         onLogin={handleLogin}
         onLogout={handleLogout}
-        onDepositSuccess={handleDepositSuccess}
-        isLoading={isAuthLoading}
-        shortcuts={shortcuts}
+        isMenuOpen={isMenuOpen}
+        toggleMenu={toggleMenu}
+        piPrice={piPrice}
+        piPriceTrend={piPriceTrend}
       />
-      
-      <main className="container mx-auto px-4 pt-24 pb-12">
-        {/* Hero Section */}
-        <motion.section
-          className="text-center mb-12"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+
+      {/* Dropdown Hamburger */}
+      {isMenuOpen && (
+        <motion.div 
+          className="fixed inset-0 bg-black/50 z-40"
+          onClick={toggleMenu}
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        />
+      )}
+      {isMenuOpen && (
+        <motion.nav 
+          className="fixed top-0 right-0 w-64 h-full bg-background z-50 shadow-xl p-6 flex flex-col gap-6"
+          initial={{ x: 300 }} animate={{ x: 0 }}
         >
-          <motion.h1
-            className="text-4xl md:text-6xl lg:text-7xl font-display font-black mb-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
+          <button onClick={toggleMenu} className="self-end text-2xl font-bold">&times;</button>
+          <a href="/profile" className="hover:text-gold">Profile</a>
+          <a href="/marketplace" className="hover:text-gold">Marketplace</a>
+          <a href="/vip" className="hover:text-gold">VIP Benefits</a>
+          <a href="/withdrawals" className="hover:text-gold">Withdrawals</a>
+          <a href="/achievements" className="hover:text-gold">Achievements</a>
+          <a href="/legal" className="hover:text-gold">Legal</a>
+          <a href="/admin" className="hover:text-gold">Admin</a>
+        </motion.nav>
+      )}
+
+      <main className="container mx-auto px-4 pt-24 pb-12">
+        <motion.section className="text-center mb-12" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+          <motion.h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-black mb-4">
             <span className="text-gradient-gold">Spin</span>
             <span className="text-foreground">4</span>
             <span className="text-gradient-purple">Pi</span>
           </motion.h1>
-          <motion.p
-            className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto font-medium"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
+          <motion.p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto font-medium">
             Spin Smart. Unlock Pi Value.
           </motion.p>
-          
-          {/* Daily Reward Button */}
           {isAuthenticated && user && (
-            <motion.div
-              className="mt-6"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <DailyRewardButton 
-                piUsername={user.username}
-                onRewardClaimed={() => fetchWalletData(user.username)}
-              />
-            </motion.div>
+            <DailyRewardButton 
+              piUsername={user.username}
+              onRewardClaimed={() => fetchWalletData(user.username)}
+            />
           )}
         </motion.section>
 
-        {/* Jackpot */}
-        <div className="max-w-lg mx-auto mb-12">
-          <JackpotCounter amount={jackpot} />
-        </div>
+        <JackpotCounter amount={jackpot} />
 
-        {/* Main Game Area */}
         <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-12 mb-16">
-          {/* Wheel with Boosts */}
           <div className="flex flex-col items-center gap-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              <SpinWheel 
-                onSpinComplete={handleWheelComplete}
-                isSpinning={isSpinning}
-                setIsSpinning={setIsSpinning}
-                targetResult={targetResult}
-              />
-            </motion.div>
-            
-            {/* Active Boosts Indicator - Shows below the wheel */}
-            {isAuthenticated && (
-              <ActiveBoostsIndicator 
-                piUsername={user?.username || null}
-                isSpinning={isSpinning}
-              />
-            )}
+            <SpinWheel 
+              onSpinComplete={() => setTargetResult(null)}
+              isSpinning={isSpinning}
+              setIsSpinning={setIsSpinning}
+              targetResult={targetResult}
+            />
+            {isAuthenticated && <ActiveBoostsIndicator piUsername={user?.username || null} isSpinning={isSpinning} />}
           </div>
-          
-          {/* Sidebar */}
+
           <div className="flex flex-col gap-6 w-full lg:w-80">
-            {/* VIP Status - Compact */}
-            {isAuthenticated && (
-              <div className="flex items-center justify-center lg:justify-start">
-                <VIPStatus totalSpins={totalSpins} compact />
-              </div>
-            )}
-            
-            {/* Tournament Panel */}
-            {isAuthenticated && profileId && (
-              <TournamentPanel 
-                profileId={profileId}
-                walletBalance={balance}
-                onRefresh={() => user && fetchWalletData(user.username)}
-              />
-            )}
-            
+            {isAuthenticated && <VIPStatus totalSpins={totalSpins} compact />}
+            {isAuthenticated && profileId && <TournamentPanel profileId={profileId} walletBalance={balance} onRefresh={() => user && fetchWalletData(user.username)} />}
             <Leaderboard entries={leaderboard} isLoading={isLoading} />
-            
-            {/* Staking Panel */}
-            {isAuthenticated && user && (
-              <StakingPanel
-                username={user.username}
-                walletBalance={balance}
-                onBalanceUpdate={handleBalanceUpdate}
-              />
-            )}
-            
-            {/* Referral Panel - Only show when logged in */}
-            {isAuthenticated && referralCode && (
-              <ReferralPanel 
-                referralCode={referralCode}
-                referralCount={referralCount}
-                referralEarnings={referralEarnings}
-              />
-            )}
+            {isAuthenticated && user && <StakingPanel username={user.username} walletBalance={balance} onBalanceUpdate={setBalance} />}
+            {isAuthenticated && referralCode && <ReferralPanel referralCode={referralCode} referralCount={referralCount} referralEarnings={referralEarnings} />}
           </div>
         </div>
 
-        {/* Spin Options */}
-        <div className="mb-20">
-          <SpinButtons 
-            onSpin={handleSpin}
-            disabled={isSpinning || isPaying}
-            canFreeSpin={canFreeSpin()}
-            freeSpinTimer={freeSpinTimer}
-          />
-        </div>
-
-        {/* Features */}
+        <SpinButtons onSpin={handleSpinClick} disabled={isSpinning || isPaying} canFreeSpin={canFreeSpin()} freeSpinTimer={freeSpinTimer} />
         <Features />
       </main>
 
       <Footer />
-
-      {/* Result Modal */}
-      <ResultModal 
-        isOpen={showResult}
-        onClose={() => setShowResult(false)}
-        result={lastResult}
-      />
-
-      {/* Pi Ads Reward Modal */}
-      <PiAdsReward
-        isOpen={showAdReward}
-        onClose={() => setShowAdReward(false)}
-        onAdComplete={() => {
-          handleAdComplete();
-          // If it was a free spin ad, proceed with the spin
-          if (adRewardType === 'free_spin') {
-            handleFreeSpinAfterAd();
-          }
-        }}
+      <ResultModal isOpen={showResult} onClose={() => setShowResult(false)} result={lastResult} />
+      <PiAdsReward 
+        isOpen={showAdReward} 
+        onClose={() => setShowAdReward(false)} 
+        onAdComplete={() => handleSpinClick('free', 0)} 
         rewardType={adRewardType}
       />
     </div>

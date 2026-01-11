@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
-import { 
-  Trophy, Users, Coins, TrendingUp, Plus, StopCircle, RefreshCw, BarChart3, Wallet, Calendar, ArrowLeft 
+import {
+  Trophy, Plus, RefreshCw, BarChart3, Calendar, ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import GlobalLoading from '@/components/GlobalLoading';
 
 interface Tournament {
   id: string;
@@ -21,6 +22,7 @@ interface Tournament {
   entry_fee: number;
   prize_pool: number;
   status: string;
+  winners?: { username: string; earnings: number }[];
 }
 
 interface Analytics {
@@ -78,25 +80,25 @@ const Admin = () => {
         supabase.from('tournaments').select('*').order('created_at', { ascending: false }),
       ]);
 
-      const totalDeposits = depositsData?.reduce((sum, d) => sum + Number(d.amount), 0) || 0;
-      const totalWithdrawals = withdrawalsData?.reduce((sum, w) => sum + Number(w.amount), 0) || 0;
-      const activeTournaments = tournamentsData?.filter(t => t.status === 'active').length || 0;
+      const totalDeposits = depositsData?.reduce((sum, d) => sum + Number(d.amount), 0) || 0;  
+      const totalWithdrawals = withdrawalsData?.reduce((sum, w) => sum + Number(w.amount), 0) || 0;  
+      const activeTournaments = tournamentsData?.filter(t => t.status === 'active').length || 0;  
 
-      setAnalytics({
-        totalUsers: usersCount || 0,
-        totalSpins: spinsCount || 0,
-        totalDeposits,
-        totalWithdrawals,
-        jackpotAmount: Number(jackpotData?.total_pi) || 0,
-        activeTournaments,
-      });
+      setAnalytics({  
+        totalUsers: usersCount || 0,  
+        totalSpins: spinsCount || 0,  
+        totalDeposits,  
+        totalWithdrawals,  
+        jackpotAmount: Number(jackpotData?.total_pi) || 0,  
+        activeTournaments,  
+      });  
 
-      setTournaments(tournamentsData || []);
-    } catch (error) {
-      console.error('Error fetching admin data:', error);
-      toast.error('Failed to load admin data');
-    } finally {
-      setIsLoading(false);
+      setTournaments(tournamentsData || []);  
+    } catch (error) {  
+      console.error('Error fetching admin data:', error);  
+      toast.error('Failed to load admin data');  
+    } finally {  
+      setIsLoading(false);  
     }
   };
 
@@ -106,32 +108,32 @@ const Admin = () => {
       return;
     }
 
-    setIsCreating(true);
-    try {
-      const startTime = new Date();
-      const endTime = new Date(startTime.getTime() + newTournament.duration_hours * 60 * 60 * 1000);
+    setIsCreating(true);  
+    try {  
+      const startTime = new Date();  
+      const endTime = new Date(startTime.getTime() + newTournament.duration_hours * 60 * 60 * 1000);  
 
-      const { error } = await supabase.from('tournaments').insert({
-        name: newTournament.name,
-        description: newTournament.description || null,
-        entry_fee: newTournament.entry_fee,
-        prize_pool: newTournament.prize_pool,
-        start_time: startTime.toISOString(),
-        end_time: endTime.toISOString(),
-        status: 'active',
-      });
+      const { error } = await supabase.from('tournaments').insert({  
+        name: newTournament.name,  
+        description: newTournament.description || null,  
+        entry_fee: newTournament.entry_fee,  
+        prize_pool: newTournament.prize_pool,  
+        start_time: startTime.toISOString(),  
+        end_time: endTime.toISOString(),  
+        status: 'active',  
+      });  
 
-      if (error) throw error;
+      if (error) throw error;  
 
-      toast.success('Tournament created successfully!');
-      setShowCreateForm(false);
-      setNewTournament({ name: '', description: '', entry_fee: 0.1, prize_pool: 10, duration_hours: 24 });
-      fetchData();
-    } catch (error) {
-      console.error('Error creating tournament:', error);
-      toast.error('Failed to create tournament');
-    } finally {
-      setIsCreating(false);
+      toast.success('Tournament created successfully!');  
+      setShowCreateForm(false);  
+      setNewTournament({ name: '', description: '', entry_fee: 0.1, prize_pool: 10, duration_hours: 24 });  
+      fetchData();  
+    } catch (error) {  
+      console.error('Error creating tournament:', error);  
+      toast.error('Failed to create tournament');  
+    } finally {  
+      setIsCreating(false);  
     }
   };
 
@@ -140,7 +142,6 @@ const Admin = () => {
       const { data, error } = await supabase.functions.invoke('end-tournament', {
         body: { tournament_id: tournamentId },
       });
-
       if (error) throw error;
 
       toast.success(`Tournament ended! Prizes distributed to ${data.winners?.length || 0} winners`);
@@ -173,46 +174,45 @@ const Admin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      {isLoading && <GlobalLoading />}
       <div className="fixed inset-0 bg-stars opacity-50 pointer-events-none" />
       <div className="fixed inset-0 bg-gradient-radial from-pi-purple/10 via-transparent to-transparent pointer-events-none" />
 
-      <div className="container mx-auto px-4 py-8 relative">
-        {/* Header */}
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/"><ArrowLeft className="w-5 h-5" /></Link>
-            </Button>
-            <div>
-              <h1 className="text-3xl font-display font-bold text-foreground flex items-center gap-2">
-                <BarChart3 className="w-8 h-8 text-pi-purple" /> Admin Dashboard
-              </h1>
-              <p className="text-muted-foreground">Manage tournaments and view analytics</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={runCronJob} className="gap-2">
-              <RefreshCw className="w-4 h-4" /> Run Cron
-            </Button>
-            <Button onClick={fetchData} variant="outline" className="gap-2">
-              <RefreshCw className="w-4 h-4" /> Refresh
-            </Button>
-          </div>
-        </motion.div>
+      <div className="container mx-auto px-4 py-8 relative">  
+        {/* Header */}  
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-8">  
+          <div className="flex items-center gap-4">  
+            <Button variant="ghost" size="icon" asChild>  
+              <Link to="/"><ArrowLeft className="w-5 h-5" /></Link>  
+            </Button>  
+            <div>  
+              <h1 className="text-3xl font-display font-bold text-foreground flex items-center gap-2">  
+                <BarChart3 className="w-8 h-8 text-pi-purple" /> Admin Dashboard  
+              </h1>  
+              <p className="text-muted-foreground">Manage tournaments and view analytics</p>  
+            </div>  
+          </div>  
+          <div className="flex gap-2">  
+            <Button variant="outline" onClick={runCronJob} className="gap-2">  
+              <RefreshCw className="w-4 h-4" /> Run Cron  
+            </Button>  
+            <Button onClick={fetchData} variant="outline" className="gap-2">  
+              <RefreshCw className="w-4 h-4" /> Refresh  
+            </Button>  
+          </div>  
+        </motion.div>  
 
-        {/* Analytics Cards */}
-        <motion.div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-          {["Users", "Total Spins", "Deposits", "Withdrawals", "Jackpot", "Active Events"].map((label, idx) => (
-            <Card key={idx} className="bg-card/50 border-border">
-              <CardContent className="pt-6">
-                {isLoading ? (
-                  <div className="animate-pulse h-12 w-full bg-muted rounded-lg"></div>
-                ) : (
+        {/* Analytics Cards */}  
+        <motion.div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">  
+          {["Users", "Total Spins", "Deposits", "Withdrawals", "Jackpot", "Active Events"].map((label, idx) => (  
+            <Card key={idx} className="bg-card/50 border-border">  
+              <CardContent className="pt-6">  
+                {!isLoading ? (
                   <>
-                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                      <span className="text-sm">{label}</span>
-                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground mb-1">  
+                      <span className="text-sm">{label}</span>  
+                    </div>  
                     <p className="text-2xl font-bold">
                       {label === "Users" ? analytics.totalUsers.toLocaleString() :
                        label === "Total Spins" ? analytics.totalSpins.toLocaleString() :
@@ -222,42 +222,29 @@ const Admin = () => {
                        analytics.activeTournaments}
                     </p>
                   </>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </motion.div>
-
-        {/* Tournament Management */}
-        <Card className="bg-card/50 border-border">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-gold" /> Tournament Management
-            </CardTitle>
-            <Button onClick={() => setShowCreateForm(!showCreateForm)} className="gap-2">
-              <Plus className="w-4 h-4" /> New Tournament
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {showCreateForm && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                className="mb-6 p-4 bg-muted/30 rounded-lg"
-              >
-                {isCreating ? (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                      {Array.from({ length: 5 }).map((_, idx) => (
-                        <div key={idx} className="h-12 bg-muted rounded animate-pulse"></div>
-                      ))}
-                    </div>
-                    <div className="flex gap-2 mt-4">
-                      <div className="h-10 w-32 bg-muted rounded animate-pulse"></div>
-                      <div className="h-10 w-32 bg-muted rounded animate-pulse"></div>
-                    </div>
-                  </div>
                 ) : (
+                  <div className="animate-pulse h-12 w-full bg-muted rounded-lg"></div>
+                )}
+              </CardContent>  
+            </Card>  
+          ))}  
+        </motion.div>  
+
+        {/* Tournament Management */}  
+        <Card className="bg-card/50 border-border">  
+          <CardHeader className="flex flex-row items-center justify-between">  
+            <CardTitle className="flex items-center gap-2">  
+              <Trophy className="w-5 h-5 text-gold" /> Tournament Management  
+            </CardTitle>  
+            <Button onClick={() => setShowCreateForm(!showCreateForm)} className="gap-2">  
+              <Plus className="w-4 h-4" /> New Tournament  
+            </Button>  
+          </CardHeader>  
+          <CardContent>
+            {/* Create Form & Table */}
+            {showCreateForm && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mb-6 p-4 bg-muted/30 rounded-lg">
+                {!isCreating ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
                     <div>
                       <Label htmlFor="name">Name</Label>
@@ -280,13 +267,14 @@ const Admin = () => {
                       <Input id="duration" type="number" value={newTournament.duration_hours} onChange={e => setNewTournament(p => ({...p, duration_hours: parseInt(e.target.value)||24}))} />
                     </div>
                   </div>
-                )}
-                {!isCreating && (
-                  <div className="flex gap-2">
-                    <Button onClick={createTournament}>Create Tournament</Button>
-                    <Button variant="outline" onClick={() => setShowCreateForm(false)}>Cancel</Button>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-5 gap-4">
+                      {Array.from({ length: 5 }).map((_, idx) => <div key={idx} className="h-12 bg-muted rounded animate-pulse" />)}
+                    </div>
                   </div>
                 )}
+                {!isCreating && <div className="flex gap-2"><Button onClick={createTournament}>Create Tournament</Button><Button variant="outline" onClick={()=>setShowCreateForm(false)}>Cancel</Button></div>}
               </motion.div>
             )}
 
@@ -300,35 +288,38 @@ const Admin = () => {
                   <TableHead>Prize Pool</TableHead>
                   <TableHead>Start</TableHead>
                   <TableHead>End</TableHead>
+                  <TableHead>Player Earnings</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? Array.from({ length: 3 }).map((_, idx) => (
-                  <TableRow key={idx} className="animate-pulse">
-                    {Array.from({ length: 7 }).map((__, i) => (
-                      <TableCell key={i}><div className="h-4 w-full bg-muted rounded" /></TableCell>
-                    ))}
+                {tournaments.map(tournament => (
+                  <TableRow key={tournament.id}>
+                    <TableCell className="font-medium">{tournament.name}</TableCell>
+                    <TableCell><span className={`font-semibold ${getStatusColor(tournament.status||'upcoming')}`}>{tournament.status||'upcoming'}</span></TableCell>
+                    <TableCell>{tournament.entry_fee} π</TableCell>
+                    <TableCell className="text-gold font-bold">{tournament.prize_pool} π</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{new Date(tournament.start_time).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{new Date(tournament.end_time).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-sm">
+                      {tournament.status==='completed' ? (
+                        <ul className="space-y-1 max-h-32 overflow-y-auto">
+                          {tournament.winners?.map((winner, idx)=>(
+                            <li key={idx}>{winner.username}: <span className="font-bold">{winner.earnings} π</span></li>
+                          )) || <span className="text-muted-foreground">No data</span>}
+                        </ul>
+                      ) : <span className="text-muted-foreground">N/A</span>}
+                    </TableCell>
+                    <TableCell>
+                      {tournament.status==='active' && <Button size="sm" variant="destructive" onClick={()=>endTournament(tournament.id)}>End</Button>}
+                      {tournament.status==='upcoming' && <span className="text-sm text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3"/>Scheduled</span>}
+                      {tournament.status==='completed' && <span className="text-sm text-green-500">✓ Done</span>}
+                    </TableCell>
                   </TableRow>
-                )) : (
-                  tournaments.map(tournament => (
-                    <TableRow key={tournament.id}>
-                      <TableCell className="font-medium">{tournament.name}</TableCell>
-                      <TableCell><span className={`font-semibold ${getStatusColor(tournament.status||'upcoming')}`}>{tournament.status||'upcoming'}</span></TableCell>
-                      <TableCell>{tournament.entry_fee} π</TableCell>
-                      <TableCell className="text-gold font-bold">{tournament.prize_pool} π</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{new Date(tournament.start_time).toLocaleDateString()}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{new Date(tournament.end_time).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        {tournament.status==='active' && <Button size="sm" variant="destructive" onClick={()=>endTournament(tournament.id)}>End</Button>}
-                        {tournament.status==='upcoming' && <span className="text-sm text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3"/>Scheduled</span>}
-                        {tournament.status==='completed' && <span className="text-sm text-green-500">✓ Done</span>}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
+                ))}
               </TableBody>
             </Table>
+
           </CardContent>
         </Card>
       </div>

@@ -36,6 +36,7 @@ const Index = () => {
   const [balance, setBalance] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
+  const [lastReward, setLastReward] = useState<number>(0);
   const [pendingSpinType, setPendingSpinType] = useState<string | null>(null);
   const [freeSpinTimer, setFreeSpinTimer] = useState("Available!");
   const [referralCode, setReferralCode] = useState<string>("");
@@ -45,6 +46,7 @@ const Index = () => {
   const [profileId, setProfileId] = useState<string>("");
   const [showAdReward, setShowAdReward] = useState(false);
   const [adRewardType, setAdRewardType] = useState<'free_spin' | 'bonus_pi' | 'boost'>('free_spin');
+  const [targetResult, setTargetResult] = useState<string | null>(null);
 
   // Pi Network authentication
   const {
@@ -52,6 +54,7 @@ const Index = () => {
     profile, 
     isLoading: isAuthLoading, 
     authenticate, 
+    logout,
     refreshProfile,
     canFreeSpin,
     getNextFreeSpinTime,
@@ -67,6 +70,8 @@ const Index = () => {
   // Apply referral code on login
   const applyReferral = useCallback(async (piUsername: string) => {
     const refCode = searchParams.get('ref');
+    if (!refCode) return;
+    
     try {
       const { data } = await supabase.functions.invoke('apply-referral', {
         body: { pi_username: piUsername, referral_code: refCode }
@@ -103,6 +108,7 @@ const Index = () => {
   // Handle spin result from backend
   const handleSpinResult = useCallback((result: string, rewardAmount: number) => {
     setLastResult(result);
+    setLastReward(rewardAmount);
     setShowResult(true);
     
     // Update local balance with winnings
@@ -116,7 +122,7 @@ const Index = () => {
     if (user) fetchWalletData(user.username);
   }, [refreshData, refreshProfile, user, fetchWalletData]);
 
-  const { spin, isSpinning, setIsSpinning, completeAnimation } = useSpin({
+  const { spin, isSpinning, setIsSpinning, completeAnimation, lastResult: spinResult } = useSpin({
     onSpinComplete: handleSpinResult,
   });
 
@@ -127,7 +133,21 @@ const Index = () => {
       localStorage.setItem('pi_username', result.username);
       await applyReferral(result.username);
       await fetchWalletData(result.username);
+      toast.success(`Welcome, ${result.username}!`);
     }
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    logout();
+    localStorage.removeItem('pi_username');
+    setBalance(0);
+    setReferralCode('');
+    setReferralCount(0);
+    setReferralEarnings(0);
+    setTotalSpins(0);
+    setProfileId('');
+    toast.info('Disconnected from Pi Network');
   };
 
   // Handle balance update from staking
@@ -160,12 +180,20 @@ const Index = () => {
       toast.error("Please login with Pi first!");
       return;
     }
+
+    if (isSpinning) {
+      toast.error("Spin in progress!");
+      return;
+    }
     
     if (type === "free") {
       if (!canFreeSpin()) {
         toast.error("Daily free spin not available yet!");
         return;
       }
+      // Show ad before free spin
+      setAdRewardType('free_spin');
+      setShowAdReward(true);
     } else {
       if (balance < cost) {
         toast.error("Insufficient Pi balance! Deposit more Pi to continue.");
@@ -192,15 +220,44 @@ const Index = () => {
     }
 
     setPendingSpinType(type);
-    toast.info(type === "free" ? "Using daily free spin!" : `Spinning for ${cost} π...`);
+    setIsSpinning(true);
     
     // Call backend for spin result
     const result = await spin(user.username, type);
     
-    if (!result) {
-      // Refund if spin failed (only for paid spins - payment already completed)
+    if (result) {
+      // Set the target result for the wheel animation
+      setTargetResult(result.result);
+    } else {
+      // Spin failed, reset state
+      setIsSpinning(false);
+      setPendingSpinType(null);
+      // Refund would be handled by payment system
+    }
+  };
+
+  // Handle free spin after ad
+  const handleFreeSpinAfterAd = async () => {
+    if (!user) return;
+    
+    setPendingSpinType('free');
+    setIsSpinning(true);
+    
+    const result = await spin(user.username, 'free');
+    
+    if (result) {
+      setTargetResult(result.result);
+    } else {
+      setIsSpinning(false);
       setPendingSpinType(null);
     }
+  };
+
+  // Handle wheel animation completion
+  const handleWheelComplete = (result: string) => {
+    completeAnimation();
+    setPendingSpinType(null);
+    setTargetResult(null);
   };
 
   // Handle free spin shortcut
@@ -214,10 +271,12 @@ const Index = () => {
   const handleQuickSpin = useCallback(() => {
     if (canFreeSpin()) {
       handleSpin('free', 0);
-    } else {
+    } else if (balance >= SPIN_COSTS.basic) {
       handleSpin('basic', SPIN_COSTS.basic);
+    } else {
+      toast.error('Insufficient balance for spin');
     }
-  }, [canFreeSpin]);
+  }, [canFreeSpin, balance]);
 
   // Keyboard shortcuts
   const { shortcuts } = useKeyboardShortcuts({
@@ -225,12 +284,6 @@ const Index = () => {
     onFreeSpin: handleFreeSpin,
     canSpin: !isSpinning && !isPaying && isAuthenticated,
   });
-
-  // Handle wheel animation completion
-  const handleWheelComplete = (result: string) => {
-    completeAnimation();
-    setPendingSpinType(null);
-  };
 
   // Timer effect for free spin
   useEffect(() => {
@@ -260,6 +313,7 @@ const Index = () => {
         username={user?.username || null} 
         balance={balance} 
         onLogin={handleLogin}
+        onLogout={handleLogout}
         onDepositSuccess={handleDepositSuccess}
         isLoading={isAuthLoading}
         shortcuts={shortcuts}
@@ -326,6 +380,7 @@ const Index = () => {
                 onSpinComplete={handleWheelComplete}
                 isSpinning={isSpinning}
                 setIsSpinning={setIsSpinning}
+                targetResult={targetResult}
               />
             </motion.div>
             
@@ -405,7 +460,13 @@ const Index = () => {
       <PiAdsReward
         isOpen={showAdReward}
         onClose={() => setShowAdReward(false)}
-        onAdComplete={handleAdComplete}
+        onAdComplete={() => {
+          handleAdComplete();
+          // If it was a free spin ad, proceed with the spin
+          if (adRewardType === 'free_spin') {
+            handleFreeSpinAfterAd();
+          }
+        }}
         rewardType={adRewardType}
       />
     </div>

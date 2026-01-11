@@ -8,25 +8,39 @@ import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 import { DepositModal } from "./DepositModal";
 import { WithdrawModal } from "./WithdrawModal";
 import { MobileMenu } from "./MobileMenu";
+import { PiPriceDisplay } from "./PiPriceDisplay";
 import { Button } from "./ui/button";
+
 interface HeaderProps {
   isLoggedIn: boolean;
   username: string | null;
   balance: number;
   onLogin: () => void;
+  onLogout?: () => void;
   onDepositSuccess?: () => void;
   isLoading?: boolean;
   shortcuts?: Array<{ key: string; action: string }>;
   isAdmin?: boolean;
 }
 
-export function Header({ isLoggedIn, username, balance, onLogin, onDepositSuccess, isLoading, shortcuts = [], isAdmin = false }: HeaderProps) {
+export function Header({ 
+  isLoggedIn, 
+  username, 
+  balance, 
+  onLogin, 
+  onLogout,
+  onDepositSuccess, 
+  isLoading, 
+  shortcuts = [], 
+  isAdmin = false 
+}: HeaderProps) {
   const [showDeposit, setShowDeposit] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
+
   return (
     <>
       <motion.header
-        className="fixed top-0 left-0 right-0 z-40 bg-dark-space/80 backdrop-blur-lg border-b border-border"
+        className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border"
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
@@ -37,30 +51,37 @@ export function Header({ isLoggedIn, username, balance, onLogin, onDepositSucces
             className="flex items-center gap-3"
             whileHover={{ scale: 1.02 }}
           >
-            <Link to="/">
-              <img src={logo} alt="Spin4Pi" className="h-12 w-auto" />
+            <Link to="/" className="flex items-center">
+              <img src={logo} alt="Spin4Pi" className="h-10 sm:h-12 w-auto" />
             </Link>
           </motion.div>
           
+          {/* Center - Pi Price (hidden on mobile when logged in) */}
+          <div className={`hidden ${isLoggedIn ? 'lg:block' : 'sm:block'}`}>
+            <PiPriceDisplay />
+          </div>
+          
           {/* Right side */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Mobile Menu */}
-            <MobileMenu isLoggedIn={isLoggedIn} isAdmin={isAdmin} />
-            {/* Navigation Links */}
+            {/* NFT Link - Desktop only */}
             {isLoggedIn && (
-              <Link to="/marketplace">
+              <Link to="/marketplace" className="hidden md:block">
                 <motion.div
-                  className="hidden sm:flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-pi-purple/20 to-card rounded-full border border-pi-purple/30 cursor-pointer hover:border-pi-purple/50 transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-pi-purple/20 to-card rounded-full border border-pi-purple/30 cursor-pointer hover:border-pi-purple/50 transition-colors"
                   whileHover={{ scale: 1.02 }}
                 >
-                  <Sparkles className="w-4 h-4 text-pi-purple-glow" />
+                  <Sparkles className="w-4 h-4 text-pi-purple" />
                   <span className="text-sm font-medium text-foreground">NFTs</span>
                 </motion.div>
               </Link>
             )}
             
             {/* Keyboard Shortcuts */}
-            {shortcuts.length > 0 && <KeyboardShortcutsHelp shortcuts={shortcuts} />}
+            {shortcuts.length > 0 && (
+              <div className="hidden sm:block">
+                <KeyboardShortcutsHelp shortcuts={shortcuts} />
+              </div>
+            )}
             
             {/* Sound Controls */}
             <SoundControls />
@@ -73,7 +94,9 @@ export function Header({ isLoggedIn, username, balance, onLogin, onDepositSucces
                   whileHover={{ scale: 1.02 }}
                 >
                   <Wallet className="w-4 h-4 text-gold" />
-                  <span className="font-display font-bold text-gold">{balance.toFixed(2)} π</span>
+                  <span className="font-display font-bold text-gold text-sm sm:text-base">
+                    {balance.toFixed(2)} π
+                  </span>
                   <Button
                     size="icon"
                     variant="ghost"
@@ -95,14 +118,14 @@ export function Header({ isLoggedIn, username, balance, onLogin, onDepositSucces
                   </Button>
                 </motion.div>
                 
-                {/* User - Links to Profile */}
-                <Link to="/profile">
+                {/* User - Links to Profile (hidden on mobile) */}
+                <Link to="/profile" className="hidden sm:block">
                   <motion.div
-                    className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-pi-purple/20 to-card rounded-full border border-pi-purple/30 cursor-pointer"
+                    className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-pi-purple/20 to-card rounded-full border border-pi-purple/30 cursor-pointer hover:border-pi-purple/50 transition-colors"
                     whileHover={{ scale: 1.02 }}
                   >
-                    <User className="w-4 h-4 text-pi-purple-glow" />
-                    <span className="hidden sm:inline font-medium text-foreground">{username}</span>
+                    <User className="w-4 h-4 text-pi-purple" />
+                    <span className="font-medium text-foreground">{username}</span>
                   </motion.div>
                 </Link>
               </>
@@ -110,14 +133,22 @@ export function Header({ isLoggedIn, username, balance, onLogin, onDepositSucces
               <motion.button
                 onClick={onLogin}
                 disabled={isLoading}
-                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-pi-purple to-pi-purple-dark text-foreground font-display font-bold rounded-full hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 sm:px-6 py-2 bg-gradient-to-r from-pi-purple to-pi-purple-dark text-foreground font-display font-bold rounded-full hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 whileHover={{ scale: isLoading ? 1 : 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
                 <LogIn className="w-5 h-5" />
-                <span>{isLoading ? 'Connecting...' : 'Login with Pi'}</span>
+                <span className="hidden sm:inline">{isLoading ? 'Connecting...' : 'Login with Pi'}</span>
+                <span className="sm:hidden">{isLoading ? '...' : 'Login'}</span>
               </motion.button>
             )}
+            
+            {/* Mobile Menu - Always visible */}
+            <MobileMenu 
+              isLoggedIn={isLoggedIn} 
+              isAdmin={isAdmin} 
+              onLogout={onLogout}
+            />
           </div>
         </div>
       </motion.header>

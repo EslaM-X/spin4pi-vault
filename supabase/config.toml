@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.cron-end-tournaments]
 verify_jwt = false
+
+[functions.get-pi-price]
+verify_jwt = false

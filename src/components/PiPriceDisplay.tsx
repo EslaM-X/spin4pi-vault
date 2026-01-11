@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PriceData {
   price: number;
@@ -10,34 +11,38 @@ interface PriceData {
 
 export function PiPriceDisplay() {
   const [priceData, setPriceData] = useState<PriceData | null>(null);
-  const [previousPrice, setPreviousPrice] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [trend, setTrend] = useState<'up' | 'down' | 'stable'>('stable');
+  const previousPriceRef = useRef<number | null>(null);
+  const fetchIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const fetchPrice = async () => {
       try {
-        // Use a proxy or simulated price for demo
-        // In production, use your Supabase Edge Function as proxy
-        const mockPrice = 30 + (Math.random() * 5 - 2.5); // Simulate price around $30
-        const mockChange = (Math.random() * 10 - 5); // -5% to +5%
+        // Fetch from Edge Function proxy
+        const { data, error } = await supabase.functions.invoke('get-pi-price');
         
-        const newPrice = parseFloat(mockPrice.toFixed(4));
+        if (error) {
+          console.error('Edge function error:', error);
+          return;
+        }
+
+        const newPrice = data?.price || 0;
+        const change24h = data?.change24h || 0;
         
-        if (previousPrice !== null) {
-          if (newPrice > previousPrice) {
-            setTrend('up');
-          } else if (newPrice < previousPrice) {
-            setTrend('down');
-          } else {
-            setTrend('stable');
-          }
+        // Determine trend based on 24h change (more stable than real-time)
+        if (change24h > 0.1) {
+          setTrend('up');
+        } else if (change24h < -0.1) {
+          setTrend('down');
+        } else {
+          setTrend('stable');
         }
         
-        setPreviousPrice(priceData?.price ?? null);
+        previousPriceRef.current = newPrice;
         setPriceData({
           price: newPrice,
-          change24h: mockChange,
+          change24h: change24h,
           lastUpdated: new Date(),
         });
         setIsLoading(false);
@@ -47,11 +52,18 @@ export function PiPriceDisplay() {
       }
     };
 
+    // Initial fetch
     fetchPrice();
-    const interval = setInterval(fetchPrice, 5000); // Update every 5 seconds
+    
+    // Update every 30 seconds (much slower, more stable)
+    fetchIntervalRef.current = setInterval(fetchPrice, 30000);
 
-    return () => clearInterval(interval);
-  }, [priceData?.price, previousPrice]);
+    return () => {
+      if (fetchIntervalRef.current) {
+        clearInterval(fetchIntervalRef.current);
+      }
+    };
+  }, []);
 
   if (isLoading) {
     return (
@@ -62,14 +74,21 @@ export function PiPriceDisplay() {
     );
   }
 
-  if (!priceData) return null;
+  if (!priceData || priceData.price === 0) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-full">
+        <span className="text-xs font-medium text-muted-foreground">π</span>
+        <span className="text-xs text-muted-foreground">--</span>
+      </div>
+    );
+  }
 
   const isPositive = priceData.change24h >= 0;
   const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus;
 
   return (
     <motion.div
-      className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-300 ${
+      className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-colors duration-500 ${
         isPositive 
           ? 'bg-green-500/10 border-green-500/30' 
           : 'bg-red-500/10 border-red-500/30'
@@ -81,10 +100,11 @@ export function PiPriceDisplay() {
       
       <AnimatePresence mode="wait">
         <motion.span
-          key={priceData.price}
-          initial={{ opacity: 0, y: trend === 'up' ? 10 : -10 }}
+          key={priceData.price.toFixed(2)}
+          initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: trend === 'up' ? -10 : 10 }}
+          exit={{ opacity: 0, y: -5 }}
+          transition={{ duration: 0.3 }}
           className={`text-sm font-bold ${isPositive ? 'text-green-500' : 'text-red-500'}`}
         >
           ${priceData.price.toFixed(2)}

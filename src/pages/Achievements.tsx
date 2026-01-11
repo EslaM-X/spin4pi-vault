@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Trophy, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AchievementBadges } from '@/components/AchievementBadges';
@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { usePiAuth } from '@/hooks/usePiAuth';
 import { useQueryClient } from '@tanstack/react-query';
+import GlobalLoading from '@/components/GlobalLoading';
 
 interface UnlockedAchievement {
   name: string;
@@ -17,6 +18,7 @@ interface UnlockedAchievement {
 
 const Achievements = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const { user, isAuthenticated, isLoading: authLoading } = usePiAuth();
 
@@ -24,6 +26,14 @@ const Achievements = () => {
   const [isChecking, setIsChecking] = useState(false);
   const [unlockedAchievements, setUnlockedAchievements] = useState<UnlockedAchievement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [pageTransitionLoading, setPageTransitionLoading] = useState(true);
+
+  // GlobalLoading عند كل تغيير صفحة
+  useEffect(() => {
+    setPageTransitionLoading(true);
+    const timer = setTimeout(() => setPageTransitionLoading(false), 800);
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
 
   // حماية الصفحة: لو مش مسجل دخول، يرجع للصفحة الرئيسية
   useEffect(() => {
@@ -47,10 +57,8 @@ const Achievements = () => {
         .select('id')
         .eq('pi_username', piUsername)
         .maybeSingle();
-      
-      if (data) {
-        setProfileId(data.id);
-      }
+
+      if (data) setProfileId(data.id);
     } catch (error) {
       console.error('Error fetching profile:', error);
       toast.error('Failed to fetch profile');
@@ -61,7 +69,7 @@ const Achievements = () => {
 
   const checkAchievements = async () => {
     if (!user?.username) return;
-    
+
     setIsChecking(true);
     try {
       const { data, error } = await supabase.functions.invoke('check-achievements', {
@@ -90,8 +98,17 @@ const Achievements = () => {
     }
   };
 
+  if (authLoading || isLoading || pageTransitionLoading) {
+    return <GlobalLoading isVisible={true} />;
+  }
+
   return (
-    <div className="min-h-screen bg-background">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="min-h-screen bg-background"
+    >
       <div className="fixed inset-0 bg-stars opacity-50 pointer-events-none" />
       <div className="fixed inset-0 bg-gradient-radial from-pi-purple/10 via-transparent to-transparent pointer-events-none" />
 
@@ -126,26 +143,14 @@ const Achievements = () => {
           </Button>
         </motion.div>
 
-        {isLoading ? (
-          <div className="space-y-4 animate-pulse">
-            <div className="h-8 w-48 bg-muted rounded" />
-            <div className="h-6 w-64 bg-muted rounded" />
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
-              {Array.from({ length: 8 }).map((_, idx) => (
-                <div key={idx} className="h-28 bg-muted rounded-lg" />
-              ))}
-            </div>
-          </div>
-        ) : (
-          profileId && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <AchievementBadges profileId={profileId} />
-            </motion.div>
-          )
+        {profileId && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <AchievementBadges profileId={profileId} />
+          </motion.div>
         )}
       </div>
 
@@ -155,7 +160,7 @@ const Achievements = () => {
           onClose={handleCloseModal}
         />
       )}
-    </div>
+    </motion.div>
   );
 };
 

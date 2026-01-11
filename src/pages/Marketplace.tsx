@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { usePiAuth } from "@/hooks/usePiAuth";
+import GlobalLoading from "@/components/GlobalLoading";
 
 interface NFT {
   id: string;
@@ -86,13 +87,9 @@ export default function Marketplace() {
     }
   };
 
-  // Loading Skeleton لو الصفحة لسة loading
-  if (isLoading || !isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
-        Loading Marketplace...
-      </div>
-    );
+  // Loading أثناء التحقق من المستخدم أو تحميل NFTs
+  if (isLoading || !isAuthenticated || loading) {
+    return <GlobalLoading isVisible={true} />;
   }
 
   return (
@@ -117,9 +114,7 @@ export default function Marketplace() {
           Boost your rewards with powerful NFT power-ups
         </p>
 
-        {loading ? (
-          <div className="text-center py-12 text-muted-foreground">Loading NFTs...</div>
-        ) : nfts.length === 0 ? (
+        {nfts.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">No NFTs available yet</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -141,9 +136,7 @@ export default function Marketplace() {
                   )}
                 </div>
                 <div className="flex items-center gap-2 mb-2">
-                  {UTILITY_ICONS[nft.utility] || (
-                    <Zap className="w-5 h-5 text-muted-foreground" />
-                  )}
+                  {UTILITY_ICONS[nft.utility] || <Zap className="w-5 h-5 text-muted-foreground" />}
                   <h3 className="font-display font-bold text-lg">{nft.name}</h3>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">{nft.description}</p>

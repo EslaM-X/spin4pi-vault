@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowUpRight, Clock, CheckCircle, XCircle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { usePiAuth } from "@/hooks/usePiAuth";
+import GlobalLoading from "@/components/GlobalLoading";
 
 interface Withdrawal {
   id: string;
@@ -18,51 +19,63 @@ interface Withdrawal {
 }
 
 const WithdrawalHistory = () => {
+  const navigate = useNavigate();
+  const { user, isAuthenticated, isLoading, authenticate } = usePiAuth();
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { user, isAuthenticated, authenticate } = usePiAuth();
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [dataLoading, setDataLoading] = useState(true);
 
+  // حماية الدخول
   useEffect(() => {
-    if (user) {
+    if (!isLoading && !isAuthenticated) {
+      navigate("/");
+    }
+  }, [isAuthenticated, isLoading]);
+
+  // جلب البيانات بعد التأكد من المستخدم
+  useEffect(() => {
+    if (user && isAuthenticated) {
       fetchWithdrawals();
     }
-  }, [user]);
+  }, [user, isAuthenticated]);
 
   const fetchWithdrawals = async () => {
     if (!user) return;
-    
-    setIsLoading(true);
+    setDataLoading(true);
+
     try {
-      // First get the profile ID
+      // جلب profile ID وwallet_balance
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('pi_username', user.username)
+        .from("profiles")
+        .select("id, wallet_balance")
+        .eq("pi_username", user.username)
         .single();
 
       if (profile) {
+        setWalletBalance(Number(profile.wallet_balance) || 0);
+
         const { data } = await supabase
-          .from('withdrawals')
-          .select('*')
-          .eq('profile_id', profile.id)
-          .order('created_at', { ascending: false });
+          .from("withdrawals")
+          .select("*")
+          .eq("profile_id", profile.id)
+          .order("created_at", { ascending: false });
 
         setWithdrawals(data || []);
       }
     } catch (error) {
-      console.error('Error fetching withdrawals:', error);
+      console.error("Error fetching withdrawals:", error);
     } finally {
-      setIsLoading(false);
+      setDataLoading(false);
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed':
+      case "completed":
         return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case 'pending':
+      case "pending":
         return <Clock className="w-5 h-5 text-amber-500" />;
-      case 'failed':
+      case "failed":
         return <XCircle className="w-5 h-5 text-red-500" />;
       default:
         return <Clock className="w-5 h-5 text-muted-foreground" />;
@@ -71,36 +84,39 @@ const WithdrawalHistory = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
-        return 'text-green-500 bg-green-500/10';
-      case 'pending':
-        return 'text-amber-500 bg-amber-500/10';
-      case 'failed':
-        return 'text-red-500 bg-red-500/10';
+      case "completed":
+        return "text-green-500 bg-green-500/10";
+      case "pending":
+        return "text-amber-500 bg-amber-500/10";
+      case "failed":
+        return "text-red-500 bg-red-500/10";
       default:
-        return 'text-muted-foreground bg-muted';
+        return "text-muted-foreground bg-muted";
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
+
+  // Global Loading أثناء التحقق من المستخدم أو جلب البيانات
+  if (isLoading || !isAuthenticated || dataLoading) return <GlobalLoading isVisible={true} />;
 
   return (
     <div className="min-h-screen bg-background">
       <div className="fixed inset-0 bg-stars opacity-50 pointer-events-none" />
       <div className="fixed inset-0 bg-gradient-radial from-pi-purple/10 via-transparent to-transparent pointer-events-none" />
-      
+
       <Header 
         isLoggedIn={isAuthenticated} 
         username={user?.username || null} 
-        balance={0} 
+        balance={walletBalance} 
         onLogin={authenticate}
       />
 
@@ -133,12 +149,7 @@ const WithdrawalHistory = () => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          {isLoading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto" />
-              <p className="text-muted-foreground mt-4">Loading withdrawals...</p>
-            </div>
-          ) : withdrawals.length === 0 ? (
+          {withdrawals.length === 0 ? (
             <div className="text-center py-12 bg-card rounded-xl border border-border">
               <ArrowUpRight className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium text-foreground">No withdrawals yet</h3>

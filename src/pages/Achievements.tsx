@@ -7,6 +7,7 @@ import { AchievementBadges } from '@/components/AchievementBadges';
 import { AchievementUnlockModal } from '@/components/AchievementUnlockModal';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { usePiAuth } from '@/hooks/usePiAuth';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface UnlockedAchievement {
@@ -17,20 +18,25 @@ interface UnlockedAchievement {
 const Achievements = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [username, setUsername] = useState<string | null>(null);
+  const { user, isAuthenticated, isLoading } = usePiAuth();
+
   const [profileId, setProfileId] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState(false);
   const [unlockedAchievements, setUnlockedAchievements] = useState<UnlockedAchievement[]>([]);
 
+  // حماية الصفحة: لو مش مسجل دخول، يرجع للصفحة الرئيسية
   useEffect(() => {
-    const storedUsername = localStorage.getItem('pi_username');
-    if (!storedUsername) {
+    if (!isLoading && !isAuthenticated) {
       navigate('/');
-      return;
     }
-    setUsername(storedUsername);
-    fetchProfile(storedUsername);
-  }, [navigate]);
+  }, [isAuthenticated, isLoading]);
+
+  // fetch profile بعد ما user موجود
+  useEffect(() => {
+    if (user?.username) {
+      fetchProfile(user.username);
+    }
+  }, [user]);
 
   const fetchProfile = async (piUsername: string) => {
     const { data } = await supabase
@@ -45,12 +51,12 @@ const Achievements = () => {
   };
 
   const checkAchievements = async () => {
-    if (!username) return;
+    if (!user?.username) return;
     
     setIsChecking(true);
     try {
       const { data, error } = await supabase.functions.invoke('check-achievements', {
-        body: { pi_username: username }
+        body: { pi_username: user.username }
       });
 
       if (error) throw error;
@@ -70,9 +76,18 @@ const Achievements = () => {
 
   const handleCloseModal = () => {
     setUnlockedAchievements([]);
-    // Refresh achievements list
-    queryClient.invalidateQueries({ queryKey: ['user-achievements', profileId] });
+    if (profileId) {
+      queryClient.invalidateQueries({ queryKey: ['user-achievements', profileId] });
+    }
   };
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
+        Loading Achievements...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -119,7 +134,6 @@ const Achievements = () => {
         </motion.div>
       </div>
 
-      {/* Achievement Unlock Modal */}
       {unlockedAchievements.length > 0 && (
         <AchievementUnlockModal
           achievements={unlockedAchievements}

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 // ======= Components =======
 import { Header } from "@/components/Header";
@@ -32,16 +33,12 @@ import { usePiPayment } from "@/hooks/usePiPayment";
 import { supabase } from "@/integrations/supabase/client";
 
 // ======= Constants =======
-const SPIN_COSTS: Record<string, number> = {
-  free: 0,
-  basic: 0.1,
-  pro: 0.25,
-  vault: 1,
-};
+const SPIN_COSTS: Record<string, number> = { free: 0, basic: 0.1, pro: 0.25, vault: 1 };
 
 const Index = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { t, i18n } = useTranslation();
 
   // ======= Wallet & Profile State =======
   const [wallet, setWallet] = useState({
@@ -52,7 +49,7 @@ const Index = () => {
     referralEarnings: 0,
   });
   const [profileId, setProfileId] = useState<string>("");
-  const [freeSpinTimer, setFreeSpinTimer] = useState("Available!");
+  const [freeSpinTimer, setFreeSpinTimer] = useState(t("available"));
 
   // ======= Spin State =======
   const [showResult, setShowResult] = useState(false);
@@ -76,29 +73,14 @@ const Index = () => {
   const [showJackpotPopup, setShowJackpotPopup] = useState(false);
 
   // ======= Pi Hooks =======
-  const {
-    user,
-    profile,
-    isLoading: isAuthLoading,
-    authenticate,
-    logout,
-    refreshProfile,
-    canFreeSpin,
-    getNextFreeSpinTime,
-    isAuthenticated,
-  } = usePiAuth();
-
+  const { user, profile, isLoading: isAuthLoading, authenticate, logout, refreshProfile, canFreeSpin, getNextFreeSpinTime, isAuthenticated } = usePiAuth();
   const { createPayment, isPaying } = usePiPayment();
   const { jackpot, leaderboard, isLoading: isGameLoading, refreshData } = useGameData();
-  const { spin, isSpinning, setIsSpinning } = useSpin({
-    onSpinComplete: handleSpinResult
-  });
+  const { spin, isSpinning, setIsSpinning } = useSpin({ onSpinComplete: handleSpinResult });
 
   // ======= حماية الصفحة =======
   useEffect(() => {
-    if (!isAuthLoading && !isAuthenticated) {
-      navigate('/');
-    }
+    if (!isAuthLoading && !isAuthenticated) navigate('/');
   }, [isAuthenticated, isAuthLoading]);
 
   // ======= Profile Fetch & Wallet =======
@@ -109,17 +91,16 @@ const Index = () => {
       const { data } = await supabase.functions.invoke('apply-referral', {
         body: { pi_username: piUsername, referral_code: refCode }
       });
-      if (data && data.referral_applied) {
+      if (data?.referral_applied) {
         setWallet(prev => ({ ...prev, referralCode: data.referral_code || '' }));
-        toast.success('Referral bonus applied! +0.25 π added to your wallet');
+        toast.success(t("referral_applied", { pi: 0.25 }));
       }
     } catch (error) { console.error('Referral error:', error); }
-  }, [searchParams]);
+  }, [searchParams, t]);
 
   const fetchWalletData = useCallback(async (piUsername: string) => {
     try {
-      const { data: profileData } = await supabase
-        .from('profiles')
+      const { data: profileData } = await supabase.from('profiles')
         .select('id, wallet_balance, referral_code, referral_count, referral_earnings, total_spins')
         .eq('pi_username', piUsername)
         .maybeSingle();
@@ -134,9 +115,7 @@ const Index = () => {
           referralEarnings: Number(profileData.referral_earnings) || 0,
         });
       }
-    } catch (error) {
-      console.error('Wallet fetch error:', error);
-    }
+    } catch (error) { console.error('Wallet fetch error:', error); }
   }, []);
 
   function handleSpinResult(result: string, rewardAmount: number) {
@@ -144,25 +123,27 @@ const Index = () => {
     setLastReward(rewardAmount);
     setShowResult(true);
 
-    // Big reward popup
     if (rewardAmount >= 1) setShowJackpotPopup(true);
-
     if (rewardAmount > 0) setWallet(prev => ({ ...prev, balance: prev.balance + rewardAmount }));
     refreshData();
     refreshProfile();
     if (user) fetchWalletData(user.username);
+    // Push notification for big rewards
+    if (Notification.permission === "granted" && rewardAmount >= 1) {
+      new Notification(t("big_reward", { amount: rewardAmount }));
+    }
   }
 
   const handleSpinClick = async (type: string, cost: number) => {
-    if (!window?.Pi?.isPiBrowser) return toast.error("Please open in Pi Browser!");
-    if (!isAuthenticated || !user) return toast.error("Please login with Pi first!");
-    if (isSpinning) return toast.error("Spin in progress!");
-    if (type === "free" && !canFreeSpin()) return toast.error("Daily free spin not ready!");
-    if (type !== "free" && wallet.balance < cost) return toast.error("Insufficient Pi balance!");
+    if (!window?.Pi?.isPiBrowser) return toast.error(t("pi_browser_only"));
+    if (!isAuthenticated || !user) return toast.error(t("login_first"));
+    if (isSpinning) return toast.error(t("spin_in_progress"));
+    if (type === "free" && !canFreeSpin()) return toast.error(t("free_spin_not_ready"));
+    if (type !== "free" && wallet.balance < cost) return toast.error(t("insufficient_balance"));
 
     if (type !== "free") {
       const paymentResult = await createPayment(cost, `Spin4Pi ${type} spin`, user.username, { spin_type: type });
-      if (!paymentResult.success) return toast.error("Payment failed!");
+      if (!paymentResult.success) return toast.error(t("payment_failed"));
       setWallet(prev => ({ ...prev, balance: prev.balance - cost }));
     }
 
@@ -184,7 +165,7 @@ const Index = () => {
       localStorage.setItem('pi_username', result.username);
       await applyReferral(result.username);
       await fetchWalletData(result.username);
-      toast.success(`Welcome, ${result.username}!`);
+      toast.success(t("welcome_user", { username: result.username }));
     }
   };
   const handleLogout = () => {
@@ -192,7 +173,7 @@ const Index = () => {
     localStorage.removeItem('pi_username');
     setWallet({ balance:0, totalSpins:0, referralCode:'', referralCount:0, referralEarnings:0 });
     setProfileId('');
-    toast.info('Disconnected from Pi Network');
+    toast.info(t("logged_out"));
   };
 
   // ======= Pi Price Live =======
@@ -222,15 +203,10 @@ const Index = () => {
   }, [getNextFreeSpinTime]);
 
   // ======= Menu Toggle =======
-  const toggleMenu = () => {
-    setIsMenuOpen(prev => !prev);
-    setIsBlur(prev => !prev);
-  };
+  const toggleMenu = () => { setIsMenuOpen(prev => !prev); setIsBlur(prev => !prev); };
 
   // ======= Global Loading =======
-  useEffect(() => {
-    if (!isAuthLoading && (!isGameLoading && profileId)) setIsLoading(false);
-  }, [isAuthLoading, isGameLoading, profileId]);
+  useEffect(() => { if (!isAuthLoading && (!isGameLoading && profileId)) setIsLoading(false); }, [isAuthLoading, isGameLoading, profileId]);
 
   if (isLoading) return <GlobalLoading />;
 
@@ -256,25 +232,25 @@ const Index = () => {
       {isMenuOpen && (
         <motion.nav className="fixed top-0 right-0 w-64 h-full bg-background z-50 shadow-xl p-6 flex flex-col gap-6" initial={{ x: 300 }} animate={{ x: 0 }}>
           <button onClick={toggleMenu} className="self-end text-2xl font-bold">&times;</button>
-          <a href="/profile" className="hover:text-gold">Profile</a>
-          <a href="/marketplace" className="hover:text-gold">Marketplace</a>
-          <a href="/vip" className="hover:text-gold">VIP Benefits</a>
-          <a href="/withdrawals" className="hover:text-gold">Withdrawals</a>
-          <a href="/achievements" className="hover:text-gold">Achievements</a>
-          <a href="/legal" className="hover:text-gold">Legal</a>
-          <a href="/admin" className="hover:text-gold">Admin</a>
+          <a href="/profile" className="hover:text-gold">{t("profile")}</a>
+          <a href="/marketplace" className="hover:text-gold">{t("marketplace")}</a>
+          <a href="/vip" className="hover:text-gold">{t("vip_benefits")}</a>
+          <a href="/withdrawals" className="hover:text-gold">{t("withdrawals")}</a>
+          <a href="/achievements" className="hover:text-gold">{t("achievements")}</a>
+          <a href="/legal" className="hover:text-gold">{t("legal")}</a>
+          <a href="/admin" className="hover:text-gold">{t("admin")}</a>
         </motion.nav>
       )}
 
       <main className="container mx-auto px-4 pt-24 pb-12">
         <motion.section className="text-center mb-12" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
           <motion.h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-black mb-4">
-            <span className="text-gradient-gold">Spin</span>
+            <span className="text-gradient-gold">{t("spin")}</span>
             <span className="text-foreground">4</span>
             <span className="text-gradient-purple">Pi</span>
           </motion.h1>
           <motion.p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto font-medium">
-            Spin Smart. Unlock Pi Value.
+            {t("spin_tagline")}
           </motion.p>
 
           {isAuthenticated && user && (

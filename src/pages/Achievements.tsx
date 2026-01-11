@@ -18,18 +18,19 @@ interface UnlockedAchievement {
 const Achievements = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, isAuthenticated, isLoading } = usePiAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = usePiAuth();
 
   const [profileId, setProfileId] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState(false);
   const [unlockedAchievements, setUnlockedAchievements] = useState<UnlockedAchievement[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // حماية الصفحة: لو مش مسجل دخول، يرجع للصفحة الرئيسية
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!authLoading && !isAuthenticated) {
       navigate('/');
     }
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, authLoading]);
 
   // fetch profile بعد ما user موجود
   useEffect(() => {
@@ -39,14 +40,22 @@ const Achievements = () => {
   }, [user]);
 
   const fetchProfile = async (piUsername: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('pi_username', piUsername)
-      .maybeSingle();
-    
-    if (data) {
-      setProfileId(data.id);
+    setIsLoading(true);
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('pi_username', piUsername)
+        .maybeSingle();
+      
+      if (data) {
+        setProfileId(data.id);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      toast.error('Failed to fetch profile');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -81,14 +90,6 @@ const Achievements = () => {
     }
   };
 
-  if (isLoading || !isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
-        Loading Achievements...
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <div className="fixed inset-0 bg-stars opacity-50 pointer-events-none" />
@@ -114,10 +115,10 @@ const Achievements = () => {
               <p className="text-muted-foreground">Collect badges and earn rewards</p>
             </div>
           </div>
-          
-          <Button 
+
+          <Button
             onClick={checkAchievements}
-            disabled={isChecking}
+            disabled={isChecking || isLoading}
             className="gap-2"
           >
             <Sparkles className="w-4 h-4" />
@@ -125,13 +126,27 @@ const Achievements = () => {
           </Button>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          {profileId && <AchievementBadges profileId={profileId} />}
-        </motion.div>
+        {isLoading ? (
+          <div className="space-y-4 animate-pulse">
+            <div className="h-8 w-48 bg-muted rounded" />
+            <div className="h-6 w-64 bg-muted rounded" />
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
+              {Array.from({ length: 8 }).map((_, idx) => (
+                <div key={idx} className="h-28 bg-muted rounded-lg" />
+              ))}
+            </div>
+          </div>
+        ) : (
+          profileId && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <AchievementBadges profileId={profileId} />
+            </motion.div>
+          )
+        )}
       </div>
 
       {unlockedAchievements.length > 0 && (

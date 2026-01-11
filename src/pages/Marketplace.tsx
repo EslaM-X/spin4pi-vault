@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Sparkles, Zap, Shield, Crown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { usePiAuth } from "@/hooks/usePiAuth";
 
 interface NFT {
   id: string;
@@ -22,19 +23,29 @@ const UTILITY_ICONS: Record<string, React.ReactNode> = {
 };
 
 export default function Marketplace() {
+  const navigate = useNavigate();
+  const { user, isAuthenticated, isLoading } = usePiAuth();
+
   const [nfts, setNfts] = useState<NFT[]>([]);
   const [owned, setOwned] = useState<string[]>([]);
   const [equipped, setEquipped] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
 
-  const username = localStorage.getItem("pi_username");
-
+  // حماية الصفحة: لو مش مسجل دخول، يرجع للصفحة الرئيسية
   useEffect(() => {
-    fetchNFTs();
-  }, []);
+    if (!isLoading && !isAuthenticated) {
+      navigate("/");
+    }
+  }, [isAuthenticated, isLoading]);
+
+  // fetch NFTs بس بعد ما يكون فيه user
+  useEffect(() => {
+    if (user?.username) fetchNFTs();
+  }, [user]);
 
   const fetchNFTs = async () => {
+    setLoading(true);
     const { data, error } = await supabase.functions.invoke("get-nfts", {
       body: {},
     });
@@ -47,13 +58,13 @@ export default function Marketplace() {
   };
 
   const handlePurchase = async (nftId: string) => {
-    if (!username) {
+    if (!user?.username) {
       toast.error("Please login first");
       return;
     }
     setPurchasing(nftId);
     const { data, error } = await supabase.functions.invoke("purchase-nft", {
-      body: { pi_username: username, nft_id: nftId },
+      body: { pi_username: user.username, nft_id: nftId },
     });
     if (error || !data?.success) {
       toast.error(data?.error || "Purchase failed");
@@ -65,9 +76,9 @@ export default function Marketplace() {
   };
 
   const handleEquip = async (nftId: string, equip: boolean) => {
-    if (!username) return;
+    if (!user?.username) return;
     const { data, error } = await supabase.functions.invoke("equip-nft", {
-      body: { pi_username: username, nft_id: nftId, equip },
+      body: { pi_username: user.username, nft_id: nftId, equip },
     });
     if (!error && data?.success) {
       setEquipped(equip ? [...equipped, nftId] : equipped.filter((id) => id !== nftId));
@@ -75,17 +86,36 @@ export default function Marketplace() {
     }
   };
 
+  // Loading Skeleton لو الصفحة لسة loading
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
+        Loading Marketplace...
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
-        <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6"
+        >
           <ArrowLeft className="w-4 h-4" /> Back to Game
         </Link>
-        <motion.h1 className="text-4xl font-display font-bold mb-2" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+
+        <motion.h1
+          className="text-4xl font-display font-bold mb-2"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
           <Sparkles className="inline w-8 h-8 text-gold mr-2" />
           NFT Marketplace
         </motion.h1>
-        <p className="text-muted-foreground mb-8">Boost your rewards with powerful NFT power-ups</p>
+        <p className="text-muted-foreground mb-8">
+          Boost your rewards with powerful NFT power-ups
+        </p>
 
         {loading ? (
           <div className="text-center py-12 text-muted-foreground">Loading NFTs...</div>
@@ -94,23 +124,45 @@ export default function Marketplace() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {nfts.map((nft) => (
-              <motion.div key={nft.id} className="bg-card border border-border rounded-xl p-6 hover:border-pi-purple/50 transition-colors" whileHover={{ y: -4 }}>
+              <motion.div
+                key={nft.id}
+                className="bg-card border border-border rounded-xl p-6 hover:border-pi-purple/50 transition-colors"
+                whileHover={{ y: -4 }}
+              >
                 <div className="aspect-square bg-muted rounded-lg mb-4 flex items-center justify-center">
-                  {nft.image_url ? <img src={nft.image_url} alt={nft.name} className="w-full h-full object-cover rounded-lg" /> : <Sparkles className="w-16 h-16 text-pi-purple/30" />}
+                  {nft.image_url ? (
+                    <img
+                      src={nft.image_url}
+                      alt={nft.name}
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                  ) : (
+                    <Sparkles className="w-16 h-16 text-pi-purple/30" />
+                  )}
                 </div>
                 <div className="flex items-center gap-2 mb-2">
-                  {UTILITY_ICONS[nft.utility] || <Zap className="w-5 h-5 text-muted-foreground" />}
+                  {UTILITY_ICONS[nft.utility] || (
+                    <Zap className="w-5 h-5 text-muted-foreground" />
+                  )}
                   <h3 className="font-display font-bold text-lg">{nft.name}</h3>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">{nft.description}</p>
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-gold">{nft.price_pi} π</span>
                   {owned.includes(nft.id) ? (
-                    <Button size="sm" variant={equipped.includes(nft.id) ? "default" : "outline"} onClick={() => handleEquip(nft.id, !equipped.includes(nft.id))}>
+                    <Button
+                      size="sm"
+                      variant={equipped.includes(nft.id) ? "default" : "outline"}
+                      onClick={() => handleEquip(nft.id, !equipped.includes(nft.id))}
+                    >
                       {equipped.includes(nft.id) ? "Equipped" : "Equip"}
                     </Button>
                   ) : (
-                    <Button size="sm" onClick={() => handlePurchase(nft.id)} disabled={purchasing === nft.id}>
+                    <Button
+                      size="sm"
+                      onClick={() => handlePurchase(nft.id)}
+                      disabled={purchasing === nft.id}
+                    >
                       {purchasing === nft.id ? "Buying..." : "Buy"}
                     </Button>
                   )}

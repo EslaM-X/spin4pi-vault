@@ -25,7 +25,6 @@ import { useGameData } from "@/hooks/useGameData";
 import { useSpin } from "@/hooks/useSpin";
 import { usePiAuth } from "@/hooks/usePiAuth";
 import { usePiPayment } from "@/hooks/usePiPayment";
-import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 // ======= Supabase Integration =======
 import { supabase } from "@/integrations/supabase/client";
@@ -39,45 +38,44 @@ const SPIN_COSTS: Record<string, number> = {
 };
 
 const Index = () => {
-  // ======= State Variables =======
   const [searchParams] = useSearchParams();
 
-  // Wallet & Spins
-  const [balance, setBalance] = useState(0);
-  const [totalSpins, setTotalSpins] = useState(0);
+  // ======= Wallet & Profile State =======
+  const [wallet, setWallet] = useState({
+    balance: 0,
+    totalSpins: 0,
+    referralCode: "",
+    referralCount: 0,
+    referralEarnings: 0,
+  });
+  const [profileId, setProfileId] = useState<string>("");
   const [freeSpinTimer, setFreeSpinTimer] = useState("Available!");
 
-  // Referral
-  const [referralCode, setReferralCode] = useState<string>("");
-  const [referralCount, setReferralCount] = useState(0);
-  const [referralEarnings, setReferralEarnings] = useState(0);
-
-  // Spin Result
+  // ======= Spin State =======
   const [showResult, setShowResult] = useState(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
-  const [lastReward, setLastReward] = useState<number>(0);
+  const [lastReward, setLastReward] = useState(0);
   const [pendingSpinType, setPendingSpinType] = useState<string | null>(null);
   const [targetResult, setTargetResult] = useState<string | null>(null);
 
-  // Profile & Ads
-  const [profileId, setProfileId] = useState<string>("");
+  // ======= Pi Ads State =======
   const [showAdReward, setShowAdReward] = useState(false);
   const [adRewardType, setAdRewardType] = useState<'free_spin' | 'bonus_pi' | 'boost'>('free_spin');
 
-  // Pi Price
-  const [piPrice, setPiPrice] = useState<number>(0);
+  // ======= Pi Price =======
+  const [piPrice, setPiPrice] = useState(0);
   const [piPriceTrend, setPiPriceTrend] = useState<'up'|'down'|'neutral'>('neutral');
 
-  // UI State
+  // ======= UI State =======
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isBlur, setIsBlur] = useState(false);
 
-  // ======= Pi Auth & Payment Hooks =======
+  // ======= Pi Hooks =======
   const {
-    user, 
-    profile, 
-    isLoading: isAuthLoading, 
-    authenticate, 
+    user,
+    profile,
+    isLoading: isAuthLoading,
+    authenticate,
     logout,
     refreshProfile,
     canFreeSpin,
@@ -102,7 +100,7 @@ const Index = () => {
         body: { pi_username: piUsername, referral_code: refCode }
       });
       if (data) {
-        setReferralCode(data.referral_code || '');
+        setWallet(prev => ({ ...prev, referralCode: data.referral_code || '' }));
         if (data.referral_applied) {
           toast.success('Referral bonus applied! +0.25 π added to your wallet');
         }
@@ -114,19 +112,25 @@ const Index = () => {
 
   // --- Wallet Data Fetching ---
   const fetchWalletData = useCallback(async (piUsername: string) => {
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('id, wallet_balance, referral_code, referral_count, referral_earnings, total_spins')
-      .eq('pi_username', piUsername)
-      .maybeSingle();
+    try {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('id, wallet_balance, referral_code, referral_count, referral_earnings, total_spins')
+        .eq('pi_username', piUsername)
+        .maybeSingle();
 
-    if (profileData) {
-      setProfileId(profileData.id);
-      setBalance(Number(profileData.wallet_balance) || 0);
-      setReferralCode(profileData.referral_code || '');
-      setReferralCount(profileData.referral_count || 0);
-      setReferralEarnings(Number(profileData.referral_earnings) || 0);
-      setTotalSpins(profileData.total_spins || 0);
+      if (profileData) {
+        setProfileId(profileData.id);
+        setWallet({
+          balance: Number(profileData.wallet_balance) || 0,
+          totalSpins: profileData.total_spins || 0,
+          referralCode: profileData.referral_code || '',
+          referralCount: profileData.referral_count || 0,
+          referralEarnings: Number(profileData.referral_earnings) || 0,
+        });
+      }
+    } catch (error) {
+      console.error('Wallet fetch error:', error);
     }
   }, []);
 
@@ -135,28 +139,29 @@ const Index = () => {
     setLastResult(result);
     setLastReward(rewardAmount);
     setShowResult(true);
-    if (rewardAmount > 0) setBalance(prev => prev + rewardAmount);
+    if (rewardAmount > 0) setWallet(prev => ({ ...prev, balance: prev.balance + rewardAmount }));
 
     refreshData();
     refreshProfile();
     if (user) fetchWalletData(user.username);
   }, [refreshData, refreshProfile, user, fetchWalletData]);
 
-  const { spin, isSpinning, setIsSpinning } = useSpin({
-    onSpinComplete: handleSpinResult,
-  });
+  const { spin, isSpinning, setIsSpinning } = useSpin({ onSpinComplete: handleSpinResult });
 
   // --- Handle Spin Click ---
   const handleSpinClick = async (type: string, cost: number) => {
+    if (!window?.Pi?.isPiBrowser) {
+      return toast.error("Please open this app in Pi Browser to use Pi features!");
+    }
     if (!isAuthenticated || !user) return toast.error("Please login with Pi first!");
     if (isSpinning) return toast.error("Spin in progress!");
     if (type === "free" && !canFreeSpin()) return toast.error("Daily free spin not ready!");
-    if (type !== "free" && balance < cost) return toast.error("Insufficient Pi balance!");
+    if (type !== "free" && wallet.balance < cost) return toast.error("Insufficient Pi balance!");
 
     if (type !== "free") {
       const paymentResult = await createPayment(cost, `Spin4Pi ${type} spin`, user.username, { spin_type: type });
-      if (!paymentResult.success) return;
-      setBalance(prev => prev - cost);
+      if (!paymentResult.success) return toast.error("Payment failed!");
+      setWallet(prev => ({ ...prev, balance: prev.balance - cost }));
     }
 
     setPendingSpinType(type);
@@ -184,16 +189,18 @@ const Index = () => {
   const handleLogout = () => {
     logout();
     localStorage.removeItem('pi_username');
-    setBalance(0);
-    setReferralCode('');
-    setReferralCount(0);
-    setReferralEarnings(0);
-    setTotalSpins(0);
+    setWallet({
+      balance: 0,
+      totalSpins: 0,
+      referralCode: '',
+      referralCount: 0,
+      referralEarnings: 0,
+    });
     setProfileId('');
     toast.info('Disconnected from Pi Network');
   };
 
-  // --- Pi Price Fetch ---
+  // --- Pi Price Fetch (every 15s for efficiency) ---
   useEffect(() => {
     let lastPrice = 0;
     const fetchPrice = async () => {
@@ -209,14 +216,14 @@ const Index = () => {
       } catch (err) { console.error(err); }
     };
     fetchPrice();
-    const interval = setInterval(fetchPrice, 5000);
+    const interval = setInterval(fetchPrice, 15000);
     return () => clearInterval(interval);
   }, []);
 
   // --- Free Spin Timer ---
   useEffect(() => {
     const interval = setInterval(() => {
-      setFreeSpinTimer(getNextFreeSpinTime());
+      if (getNextFreeSpinTime) setFreeSpinTimer(getNextFreeSpinTime());
     }, 1000);
     return () => clearInterval(interval);
   }, [getNextFreeSpinTime]);
@@ -224,20 +231,19 @@ const Index = () => {
   // --- Hamburger Menu Toggle ---
   const toggleMenu = () => {
     setIsMenuOpen(prev => !prev);
-    setIsBlur(!isBlur);
+    setIsBlur(prev => !prev);
   };
 
   // ======= JSX =======
   return (
     <div className={`min-h-screen bg-background overflow-hidden ${isBlur ? 'filter blur-sm' : ''}`}>
-      {/* Background */}
       <div className="fixed inset-0 bg-stars opacity-50 pointer-events-none" />
       <div className="fixed inset-0 bg-gradient-radial from-pi-purple/10 via-transparent to-transparent pointer-events-none" />
 
       <Header 
         isLoggedIn={isAuthenticated} 
         username={user?.username || null} 
-        balance={balance} 
+        balance={wallet.balance} 
         onLogin={handleLogin}
         onLogout={handleLogout}
         isMenuOpen={isMenuOpen}
@@ -246,21 +252,12 @@ const Index = () => {
         piPriceTrend={piPriceTrend}
       />
 
-      {/* Overlay for menu */}
       {isMenuOpen && (
-        <motion.div 
-          className="fixed inset-0 bg-black/50 z-40"
-          onClick={toggleMenu}
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-        />
+        <motion.div className="fixed inset-0 bg-black/50 z-40" onClick={toggleMenu} initial={{ opacity: 0 }} animate={{ opacity: 1 }} />
       )}
 
-      {/* Dropdown Menu */}
       {isMenuOpen && (
-        <motion.nav 
-          className="fixed top-0 right-0 w-64 h-full bg-background z-50 shadow-xl p-6 flex flex-col gap-6"
-          initial={{ x: 300 }} animate={{ x: 0 }}
-        >
+        <motion.nav className="fixed top-0 right-0 w-64 h-full bg-background z-50 shadow-xl p-6 flex flex-col gap-6" initial={{ x: 300 }} animate={{ x: 0 }}>
           <button onClick={toggleMenu} className="self-end text-2xl font-bold">&times;</button>
           <a href="/profile" className="hover:text-gold">Profile</a>
           <a href="/marketplace" className="hover:text-gold">Marketplace</a>
@@ -273,7 +270,6 @@ const Index = () => {
       )}
 
       <main className="container mx-auto px-4 pt-24 pb-12">
-        {/* Hero Section */}
         <motion.section className="text-center mb-12" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
           <motion.h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-black mb-4">
             <span className="text-gradient-gold">Spin</span>
@@ -293,24 +289,18 @@ const Index = () => {
 
         <JackpotCounter amount={jackpot} />
 
-        {/* Main Game Area */}
         <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-12 mb-16">
           <div className="flex flex-col items-center gap-4">
-            <SpinWheel 
-              onSpinComplete={() => setTargetResult(null)}
-              isSpinning={isSpinning}
-              setIsSpinning={setIsSpinning}
-              targetResult={targetResult}
-            />
+            <SpinWheel isSpinning={isSpinning} setIsSpinning={setIsSpinning} targetResult={targetResult} onSpinComplete={() => setTargetResult(null)} />
             {isAuthenticated && <ActiveBoostsIndicator piUsername={user?.username || null} isSpinning={isSpinning} />}
           </div>
 
           <div className="flex flex-col gap-6 w-full lg:w-80">
-            {isAuthenticated && <VIPStatus totalSpins={totalSpins} compact />}
-            {isAuthenticated && profileId && <TournamentPanel profileId={profileId} walletBalance={balance} onRefresh={() => user && fetchWalletData(user.username)} />}
+            {isAuthenticated && <VIPStatus totalSpins={wallet.totalSpins} compact />}
+            {isAuthenticated && profileId && <TournamentPanel profileId={profileId} walletBalance={wallet.balance} onRefresh={() => user && fetchWalletData(user.username)} />}
             <Leaderboard entries={leaderboard} isLoading={isLoading} />
-            {isAuthenticated && user && <StakingPanel username={user.username} walletBalance={balance} onBalanceUpdate={setBalance} />}
-            {isAuthenticated && referralCode && <ReferralPanel referralCode={referralCode} referralCount={referralCount} referralEarnings={referralEarnings} />}
+            {isAuthenticated && user && <StakingPanel username={user.username} walletBalance={wallet.balance} onBalanceUpdate={(balance) => setWallet(prev => ({ ...prev, balance }))} />}
+            {isAuthenticated && wallet.referralCode && <ReferralPanel referralCode={wallet.referralCode} referralCount={wallet.referralCount} referralEarnings={wallet.referralEarnings} />}
           </div>
         </div>
 

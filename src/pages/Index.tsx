@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 
 // ======= Components =======
 import { Header } from "@/components/Header";
@@ -38,6 +38,7 @@ const SPIN_COSTS: Record<string, number> = {
 };
 
 const Index = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   // ======= Wallet & Profile State =======
@@ -84,13 +85,19 @@ const Index = () => {
   } = usePiAuth();
 
   const { createPayment, isPaying } = usePiPayment();
+  const { jackpot, leaderboard, isLoading: isGameLoading, refreshData } = useGameData();
+  const { spin, isSpinning, setIsSpinning } = useSpin({
+    onSpinComplete: handleSpinResult
+  });
 
-  // ======= Game Data =======
-  const { jackpot, leaderboard, isLoading, refreshData } = useGameData();
+  // ======= حماية الصفحة =======
+  useEffect(() => {
+    if (!isAuthLoading && !isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, isAuthLoading]);
 
-  // ======= Functions =======
-
-  // --- Referral Application ---
+  // ======= Profile Fetch & Wallet =======
   const applyReferral = useCallback(async (piUsername: string) => {
     const refCode = searchParams.get('ref');
     if (!refCode) return;
@@ -99,18 +106,13 @@ const Index = () => {
       const { data } = await supabase.functions.invoke('apply-referral', {
         body: { pi_username: piUsername, referral_code: refCode }
       });
-      if (data) {
+      if (data && data.referral_applied) {
         setWallet(prev => ({ ...prev, referralCode: data.referral_code || '' }));
-        if (data.referral_applied) {
-          toast.success('Referral bonus applied! +0.25 π added to your wallet');
-        }
+        toast.success('Referral bonus applied! +0.25 π added to your wallet');
       }
-    } catch (error) {
-      console.error('Referral error:', error);
-    }
+    } catch (error) { console.error('Referral error:', error); }
   }, [searchParams]);
 
-  // --- Wallet Data Fetching ---
   const fetchWalletData = useCallback(async (piUsername: string) => {
     try {
       const { data: profileData } = await supabase
@@ -134,25 +136,18 @@ const Index = () => {
     }
   }, []);
 
-  // --- Handle Spin Result ---
-  const handleSpinResult = useCallback((result: string, rewardAmount: number) => {
+  function handleSpinResult(result: string, rewardAmount: number) {
     setLastResult(result);
     setLastReward(rewardAmount);
     setShowResult(true);
     if (rewardAmount > 0) setWallet(prev => ({ ...prev, balance: prev.balance + rewardAmount }));
-
     refreshData();
     refreshProfile();
     if (user) fetchWalletData(user.username);
-  }, [refreshData, refreshProfile, user, fetchWalletData]);
+  }
 
-  const { spin, isSpinning, setIsSpinning } = useSpin({ onSpinComplete: handleSpinResult });
-
-  // --- Handle Spin Click ---
   const handleSpinClick = async (type: string, cost: number) => {
-    if (!window?.Pi?.isPiBrowser) {
-      return toast.error("Please open this app in Pi Browser to use Pi features!");
-    }
+    if (!window?.Pi?.isPiBrowser) return toast.error("Please open in Pi Browser!");
     if (!isAuthenticated || !user) return toast.error("Please login with Pi first!");
     if (isSpinning) return toast.error("Spin in progress!");
     if (type === "free" && !canFreeSpin()) return toast.error("Daily free spin not ready!");
@@ -175,7 +170,7 @@ const Index = () => {
     }
   };
 
-  // --- Login / Logout ---
+  // ======= Login / Logout =======
   const handleLogin = async () => {
     const result = await authenticate();
     if (result) {
@@ -185,22 +180,15 @@ const Index = () => {
       toast.success(`Welcome, ${result.username}!`);
     }
   };
-
   const handleLogout = () => {
     logout();
     localStorage.removeItem('pi_username');
-    setWallet({
-      balance: 0,
-      totalSpins: 0,
-      referralCode: '',
-      referralCount: 0,
-      referralEarnings: 0,
-    });
+    setWallet({ balance:0, totalSpins:0, referralCode:'', referralCount:0, referralEarnings:0 });
     setProfileId('');
     toast.info('Disconnected from Pi Network');
   };
 
-  // --- Pi Price Fetch (every 15s for efficiency) ---
+  // ======= Pi Price =======
   useEffect(() => {
     let lastPrice = 0;
     const fetchPrice = async () => {
@@ -209,9 +197,7 @@ const Index = () => {
         const json = await res.json();
         const price = parseFloat(json.data?.last) || 0;
         setPiPrice(price);
-        if (price > lastPrice) setPiPriceTrend('up');
-        else if (price < lastPrice) setPiPriceTrend('down');
-        else setPiPriceTrend('neutral');
+        setPiPriceTrend(price > lastPrice ? 'up' : price < lastPrice ? 'down' : 'neutral');
         lastPrice = price;
       } catch (err) { console.error(err); }
     };
@@ -220,7 +206,7 @@ const Index = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // --- Free Spin Timer ---
+  // ======= Free Spin Timer =======
   useEffect(() => {
     const interval = setInterval(() => {
       if (getNextFreeSpinTime) setFreeSpinTimer(getNextFreeSpinTime());
@@ -228,15 +214,21 @@ const Index = () => {
     return () => clearInterval(interval);
   }, [getNextFreeSpinTime]);
 
-  // --- Hamburger Menu Toggle ---
+  // ======= Menu Toggle =======
   const toggleMenu = () => {
     setIsMenuOpen(prev => !prev);
     setIsBlur(prev => !prev);
   };
 
+  // ======= Loading State =======
+  if (isAuthLoading) {
+    return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading...</div>;
+  }
+
   // ======= JSX =======
   return (
     <div className={`min-h-screen bg-background overflow-hidden ${isBlur ? 'filter blur-sm' : ''}`}>
+      {/* Background Effects */}
       <div className="fixed inset-0 bg-stars opacity-50 pointer-events-none" />
       <div className="fixed inset-0 bg-gradient-radial from-pi-purple/10 via-transparent to-transparent pointer-events-none" />
 
@@ -252,10 +244,7 @@ const Index = () => {
         piPriceTrend={piPriceTrend}
       />
 
-      {isMenuOpen && (
-        <motion.div className="fixed inset-0 bg-black/50 z-40" onClick={toggleMenu} initial={{ opacity: 0 }} animate={{ opacity: 1 }} />
-      )}
-
+      {isMenuOpen && <motion.div className="fixed inset-0 bg-black/50 z-40" onClick={toggleMenu} initial={{ opacity: 0 }} animate={{ opacity: 1 }} />}
       {isMenuOpen && (
         <motion.nav className="fixed top-0 right-0 w-64 h-full bg-background z-50 shadow-xl p-6 flex flex-col gap-6" initial={{ x: 300 }} animate={{ x: 0 }}>
           <button onClick={toggleMenu} className="self-end text-2xl font-bold">&times;</button>
@@ -270,6 +259,7 @@ const Index = () => {
       )}
 
       <main className="container mx-auto px-4 pt-24 pb-12">
+        {/* Main content */}
         <motion.section className="text-center mb-12" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
           <motion.h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-black mb-4">
             <span className="text-gradient-gold">Spin</span>
@@ -279,6 +269,7 @@ const Index = () => {
           <motion.p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto font-medium">
             Spin Smart. Unlock Pi Value.
           </motion.p>
+
           {isAuthenticated && user && (
             <DailyRewardButton 
               piUsername={user.username}
@@ -287,30 +278,35 @@ const Index = () => {
           )}
         </motion.section>
 
-        <JackpotCounter amount={jackpot} />
-
-        <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-12 mb-16">
-          <div className="flex flex-col items-center gap-4">
-            <SpinWheel isSpinning={isSpinning} setIsSpinning={setIsSpinning} targetResult={targetResult} onSpinComplete={() => setTargetResult(null)} />
-            {isAuthenticated && <ActiveBoostsIndicator piUsername={user?.username || null} isSpinning={isSpinning} />}
+        {isAuthenticated && profileId ? (
+          <>
+            <JackpotCounter amount={jackpot} />
+            <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-12 mb-16">
+              <div className="flex flex-col items-center gap-4">
+                <SpinWheel isSpinning={isSpinning} setIsSpinning={setIsSpinning} targetResult={targetResult} onSpinComplete={() => setTargetResult(null)} />
+                <ActiveBoostsIndicator piUsername={user.username} isSpinning={isSpinning} />
+              </div>
+              <div className="flex flex-col gap-6 w-full lg:w-80">
+                <VIPStatus totalSpins={wallet.totalSpins} compact />
+                <TournamentPanel profileId={profileId} walletBalance={wallet.balance} onRefresh={() => fetchWalletData(user.username)} />
+                <Leaderboard entries={leaderboard} isLoading={isGameLoading} />
+                <StakingPanel username={user.username} walletBalance={wallet.balance} onBalanceUpdate={(balance) => setWallet(prev => ({ ...prev, balance }))} />
+                {wallet.referralCode && <ReferralPanel referralCode={wallet.referralCode} referralCount={wallet.referralCount} referralEarnings={wallet.referralEarnings} />}
+              </div>
+            </div>
+            <SpinButtons onSpin={handleSpinClick} disabled={isSpinning || isPaying} canFreeSpin={canFreeSpin()} freeSpinTimer={freeSpinTimer} />
+          </>
+        ) : (
+          <div className="flex justify-center items-center h-64 text-muted-foreground animate-pulse">
+            Loading game data...
           </div>
+        )}
 
-          <div className="flex flex-col gap-6 w-full lg:w-80">
-            {isAuthenticated && <VIPStatus totalSpins={wallet.totalSpins} compact />}
-            {isAuthenticated && profileId && <TournamentPanel profileId={profileId} walletBalance={wallet.balance} onRefresh={() => user && fetchWalletData(user.username)} />}
-            <Leaderboard entries={leaderboard} isLoading={isLoading} />
-            {isAuthenticated && user && <StakingPanel username={user.username} walletBalance={wallet.balance} onBalanceUpdate={(balance) => setWallet(prev => ({ ...prev, balance }))} />}
-            {isAuthenticated && wallet.referralCode && <ReferralPanel referralCode={wallet.referralCode} referralCount={wallet.referralCount} referralEarnings={wallet.referralEarnings} />}
-          </div>
-        </div>
-
-        <SpinButtons onSpin={handleSpinClick} disabled={isSpinning || isPaying} canFreeSpin={canFreeSpin()} freeSpinTimer={freeSpinTimer} />
         <Features />
       </main>
 
       <Footer />
-
-      <ResultModal isOpen={showResult} onClose={() => setShowResult(false)} result={lastResult} />
+      <ResultModal isOpen={showResult} onClose={() => setShowResult(false)} />
       <PiAdsReward 
         isOpen={showAdReward} 
         onClose={() => setShowAdReward(false)} 

@@ -19,6 +19,8 @@ import { TournamentPanel } from "@/components/TournamentPanel";
 import { VIPStatus } from "@/components/VIPStatus";
 import StakingPanel from "@/components/StakingPanel";
 import PiAdsReward from "@/components/PiAdsReward";
+import GlobalLoading from "@/components/GlobalLoading";
+import JackpotPopup from "@/components/JackpotPopup";
 
 // ======= Hooks =======
 import { useGameData } from "@/hooks/useGameData";
@@ -70,6 +72,8 @@ const Index = () => {
   // ======= UI State =======
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isBlur, setIsBlur] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showJackpotPopup, setShowJackpotPopup] = useState(false);
 
   // ======= Pi Hooks =======
   const {
@@ -101,7 +105,6 @@ const Index = () => {
   const applyReferral = useCallback(async (piUsername: string) => {
     const refCode = searchParams.get('ref');
     if (!refCode) return;
-
     try {
       const { data } = await supabase.functions.invoke('apply-referral', {
         body: { pi_username: piUsername, referral_code: refCode }
@@ -140,6 +143,10 @@ const Index = () => {
     setLastResult(result);
     setLastReward(rewardAmount);
     setShowResult(true);
+
+    // Big reward popup
+    if (rewardAmount >= 1) setShowJackpotPopup(true);
+
     if (rewardAmount > 0) setWallet(prev => ({ ...prev, balance: prev.balance + rewardAmount }));
     refreshData();
     refreshProfile();
@@ -188,7 +195,7 @@ const Index = () => {
     toast.info('Disconnected from Pi Network');
   };
 
-  // ======= Pi Price =======
+  // ======= Pi Price Live =======
   useEffect(() => {
     let lastPrice = 0;
     const fetchPrice = async () => {
@@ -220,15 +227,16 @@ const Index = () => {
     setIsBlur(prev => !prev);
   };
 
-  // ======= Loading State =======
-  if (isAuthLoading) {
-    return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading...</div>;
-  }
+  // ======= Global Loading =======
+  useEffect(() => {
+    if (!isAuthLoading && (!isGameLoading && profileId)) setIsLoading(false);
+  }, [isAuthLoading, isGameLoading, profileId]);
 
-  // ======= JSX =======
+  if (isLoading) return <GlobalLoading />;
+
   return (
     <div className={`min-h-screen bg-background overflow-hidden ${isBlur ? 'filter blur-sm' : ''}`}>
-      {/* Background Effects */}
+      {/* Background */}
       <div className="fixed inset-0 bg-stars opacity-50 pointer-events-none" />
       <div className="fixed inset-0 bg-gradient-radial from-pi-purple/10 via-transparent to-transparent pointer-events-none" />
 
@@ -259,7 +267,6 @@ const Index = () => {
       )}
 
       <main className="container mx-auto px-4 pt-24 pb-12">
-        {/* Main content */}
         <motion.section className="text-center mb-12" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
           <motion.h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-black mb-4">
             <span className="text-gradient-gold">Spin</span>
@@ -278,29 +285,23 @@ const Index = () => {
           )}
         </motion.section>
 
-        {isAuthenticated && profileId ? (
-          <>
-            <JackpotCounter amount={jackpot} />
-            <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-12 mb-16">
-              <div className="flex flex-col items-center gap-4">
-                <SpinWheel isSpinning={isSpinning} setIsSpinning={setIsSpinning} targetResult={targetResult} onSpinComplete={() => setTargetResult(null)} />
-                <ActiveBoostsIndicator piUsername={user.username} isSpinning={isSpinning} />
-              </div>
-              <div className="flex flex-col gap-6 w-full lg:w-80">
-                <VIPStatus totalSpins={wallet.totalSpins} compact />
-                <TournamentPanel profileId={profileId} walletBalance={wallet.balance} onRefresh={() => fetchWalletData(user.username)} />
-                <Leaderboard entries={leaderboard} isLoading={isGameLoading} />
-                <StakingPanel username={user.username} walletBalance={wallet.balance} onBalanceUpdate={(balance) => setWallet(prev => ({ ...prev, balance }))} />
-                {wallet.referralCode && <ReferralPanel referralCode={wallet.referralCode} referralCount={wallet.referralCount} referralEarnings={wallet.referralEarnings} />}
-              </div>
-            </div>
-            <SpinButtons onSpin={handleSpinClick} disabled={isSpinning || isPaying} canFreeSpin={canFreeSpin()} freeSpinTimer={freeSpinTimer} />
-          </>
-        ) : (
-          <div className="flex justify-center items-center h-64 text-muted-foreground animate-pulse">
-            Loading game data...
+        <JackpotCounter amount={jackpot} />
+
+        <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-12 mb-16">
+          <div className="flex flex-col items-center gap-4">
+            <SpinWheel isSpinning={isSpinning} setIsSpinning={setIsSpinning} targetResult={targetResult} onSpinComplete={() => setTargetResult(null)} />
+            <ActiveBoostsIndicator piUsername={user.username} isSpinning={isSpinning} />
           </div>
-        )}
+          <div className="flex flex-col gap-6 w-full lg:w-80">
+            <VIPStatus totalSpins={wallet.totalSpins} compact />
+            <TournamentPanel profileId={profileId} walletBalance={wallet.balance} onRefresh={() => fetchWalletData(user.username)} />
+            <Leaderboard entries={leaderboard} isLoading={isGameLoading} />
+            <StakingPanel username={user.username} walletBalance={wallet.balance} onBalanceUpdate={(balance) => setWallet(prev => ({ ...prev, balance }))} />
+            {wallet.referralCode && <ReferralPanel referralCode={wallet.referralCode} referralCount={wallet.referralCount} referralEarnings={wallet.referralEarnings} />}
+          </div>
+        </div>
+
+        <SpinButtons onSpin={handleSpinClick} disabled={isSpinning || isPaying} canFreeSpin={canFreeSpin()} freeSpinTimer={freeSpinTimer} />
 
         <Features />
       </main>
@@ -313,6 +314,7 @@ const Index = () => {
         onAdComplete={() => handleSpinClick('free', 0)} 
         rewardType={adRewardType}
       />
+      <JackpotPopup isOpen={showJackpotPopup} onClose={() => setShowJackpotPopup(false)} reward={lastReward} />
     </div>
   );
 };

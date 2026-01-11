@@ -1,39 +1,27 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
   Trophy,
   Zap,
   Coins,
-  Clock,
   TrendingUp,
   Wallet,
-  ArrowUpRight,
   Bell,
-  Award,
-  Crown,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 
 import { ReferralPanel } from '@/components/ReferralPanel';
 import { NotificationSettings } from '@/components/NotificationSettings';
-import { AchievementBadges } from '@/components/AchievementBadges';
 import { VIPStatus } from '@/components/VIPStatus';
 
 import { supabase } from '@/integrations/supabase/client';
 import { usePiAuth } from '@/hooks/usePiAuth';
+import GlobalLoading from '@/components/GlobalLoading';
 
 interface SpinHistory {
   id: string;
@@ -59,21 +47,27 @@ interface ProfileStats {
 
 const Profile = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated, isLoading } = usePiAuth();
 
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [loading, setLoading] = useState(true); // للانتقال بين الصفحات
+
+  // تظهر GlobalLoading كل مرة الصفحة تتغير
+  useEffect(() => {
+    setLoading(true);
+    const timer = setTimeout(() => setLoading(false), 800); // تأخير وهمي سلس
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       navigate('/');
       return;
     }
-
-    if (user?.username) {
-      fetchProfileData(user.username);
-    }
+    if (user?.username) fetchProfileData(user.username);
   }, [isAuthenticated, isLoading, user]);
 
   const fetchProfileData = async (piUsername: string) => {
@@ -126,24 +120,6 @@ const Profile = () => {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const getResultColor = (result: string) => {
-    if (result.toLowerCase().includes('jackpot')) return 'text-pi-gold';
-    if (result.toLowerCase().includes('win') || result.includes('π'))
-      return 'text-green-400';
-    if (result.toLowerCase().includes('nft')) return 'text-pi-purple';
-    return 'text-muted-foreground';
-  };
-
   const StatCard = ({
     icon: Icon,
     label,
@@ -168,19 +144,11 @@ const Profile = () => {
             highlight ? 'bg-gold/20' : 'bg-primary/20'
           }`}
         >
-          <Icon
-            className={`w-6 h-6 ${
-              highlight ? 'text-gold' : 'text-primary'
-            }`}
-          />
+          <Icon className={`w-6 h-6 ${highlight ? 'text-gold' : 'text-primary'}`} />
         </div>
         <div>
           <p className="text-sm text-muted-foreground">{label}</p>
-          <p
-            className={`text-2xl font-bold ${
-              highlight ? 'text-gold' : 'text-foreground'
-            }`}
-          >
+          <p className={`text-2xl font-bold ${highlight ? 'text-gold' : 'text-foreground'}`}>
             {typeof value === 'number' ? value.toFixed(2) : value}
             {suffix}
           </p>
@@ -189,16 +157,17 @@ const Profile = () => {
     </Card>
   );
 
-  if (isLoading || pageLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Skeleton className="h-32 w-32 rounded-full" />
-      </div>
-    );
+  if (isLoading || pageLoading || loading) {
+    return <GlobalLoading isVisible={true} />;
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="min-h-screen bg-background"
+    >
       <div className="fixed inset-0 bg-stars opacity-50 pointer-events-none" />
       <div className="fixed inset-0 bg-gradient-radial from-pi-purple/10 via-transparent to-transparent pointer-events-none" />
 
@@ -221,47 +190,18 @@ const Profile = () => {
             <p className="text-muted-foreground">@{user?.username}</p>
           </div>
 
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setShowNotifications(true)}
-          >
+          <Button variant="outline" size="icon" onClick={() => setShowNotifications(true)}>
             <Bell className="w-4 h-4" />
           </Button>
         </motion.div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          <StatCard
-            icon={Wallet}
-            label="Wallet Balance"
-            value={stats?.wallet_balance || 0}
-            suffix=" π"
-            highlight
-          />
-          <StatCard
-            icon={Zap}
-            label="Total Spins"
-            value={stats?.total_spins || 0}
-          />
-          <StatCard
-            icon={Coins}
-            label="Total Winnings"
-            value={stats?.total_winnings || 0}
-            suffix=" π"
-          />
-          <StatCard
-            icon={Trophy}
-            label="Best Win"
-            value={stats?.best_win || 0}
-            suffix=" π"
-          />
-          <StatCard
-            icon={TrendingUp}
-            label="Win Rate"
-            value={stats?.win_rate?.toFixed(1) || 0}
-            suffix="%"
-          />
+          <StatCard icon={Wallet} label="Wallet Balance" value={stats?.wallet_balance || 0} suffix=" π" highlight />
+          <StatCard icon={Zap} label="Total Spins" value={stats?.total_spins || 0} />
+          <StatCard icon={Coins} label="Total Winnings" value={stats?.total_winnings || 0} suffix=" π" />
+          <StatCard icon={Trophy} label="Best Win" value={stats?.best_win || 0} suffix=" π" />
+          <StatCard icon={TrendingUp} label="Win Rate" value={stats?.win_rate?.toFixed(1) || 0} suffix="%" />
         </div>
 
         <VIPStatus totalSpins={stats?.total_spins || 0} />
@@ -282,7 +222,7 @@ const Profile = () => {
           piUsername={user.username}
         />
       )}
-    </div>
+    </motion.div>
   );
 };
 

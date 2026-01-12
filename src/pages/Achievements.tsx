@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { usePiAuth } from '@/hooks/usePiAuth';
 import { useQueryClient } from '@tanstack/react-query';
 import GlobalLoading from '@/components/GlobalLoading';
+import DashboardLayout from '@/layouts/DashboardLayout';
 
 interface UnlockedAchievement {
   name: string;
@@ -69,13 +70,11 @@ const Achievements = () => {
 
   const checkAchievements = async () => {
     if (!user?.username) return;
-
     setIsChecking(true);
     try {
       const { data, error } = await supabase.functions.invoke('check-achievements', {
         body: { pi_username: user.username }
       });
-
       if (error) throw error;
 
       if (data?.new_achievements?.length > 0) {
@@ -103,64 +102,69 @@ const Achievements = () => {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="min-h-screen bg-background"
-    >
-      <div className="fixed inset-0 bg-stars opacity-50 pointer-events-none" />
-      <div className="fixed inset-0 bg-gradient-radial from-pi-purple/10 via-transparent to-transparent pointer-events-none" />
+    <DashboardLayout>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="min-h-screen bg-background"
+      >
+        <div className="fixed inset-0 bg-stars opacity-50 pointer-events-none" />
+        <div className="fixed inset-0 bg-gradient-radial from-pi-purple/10 via-transparent to-transparent pointer-events-none" />
 
-      <div className="container mx-auto px-4 py-8 relative">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-8"
-        >
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/profile">
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
-            </Button>
-            <div>
-              <h1 className="text-3xl font-display font-bold text-foreground flex items-center gap-2">
-                <Trophy className="w-8 h-8 text-gold" />
-                Achievements
-              </h1>
-              <p className="text-muted-foreground">Collect badges and earn rewards</p>
-            </div>
-          </div>
-
-          <Button
-            onClick={checkAchievements}
-            disabled={isChecking || isLoading}
-            className="gap-2"
-          >
-            <Sparkles className="w-4 h-4" />
-            {isChecking ? 'Checking...' : 'Check Progress'}
-          </Button>
-        </motion.div>
-
-        {profileId && (
+        <div className="container mx-auto px-4 py-8 relative">
+          {/* Header */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
+            className="flex items-center justify-between mb-8"
           >
-            <AchievementBadges profileId={profileId} />
-          </motion.div>
-        )}
-      </div>
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="icon" asChild>
+                <Link to="/profile">
+                  <ArrowLeft className="w-5 h-5" />
+                </Link>
+              </Button>
+              <div>
+                <h1 className="text-3xl font-display font-bold text-foreground flex items-center gap-2">
+                  <Trophy className="w-8 h-8 text-gold" />
+                  Achievements
+                </h1>
+                <p className="text-muted-foreground">Collect badges and earn rewards</p>
+              </div>
+            </div>
 
-      {unlockedAchievements.length > 0 && (
-        <AchievementUnlockModal
-          achievements={unlockedAchievements}
-          onClose={handleCloseModal}
-        />
-      )}
-    </motion.div>
+            <Button
+              onClick={checkAchievements}
+              disabled={isChecking || isLoading}
+              className="gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              {isChecking ? 'Checking...' : 'Check Progress'}
+            </Button>
+          </motion.div>
+
+          {/* Badges */}
+          {profileId && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <AchievementBadges profileId={profileId} />
+            </motion.div>
+          )}
+        </div>
+
+        {/* Unlock Modal */}
+        {unlockedAchievements.length > 0 && (
+          <AchievementUnlockModal
+            achievements={unlockedAchievements}
+            onClose={handleCloseModal}
+          />
+        )}
+      </motion.div>
+    </DashboardLayout>
   );
 };
 

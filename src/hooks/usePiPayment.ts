@@ -7,6 +7,7 @@ interface PaymentResult {
   success: boolean;
   paymentId?: string;
   error?: string;
+  txid?: string;
 }
 
 export function usePiPayment() {
@@ -28,18 +29,11 @@ export function usePiPayment() {
 
     return new Promise((resolve) => {
       const callbacks = {
-        // Server-side approval
+        // مرحلة الموافقة من السيرفر
         onReadyForServerApproval: async (paymentId: string) => {
-          console.log('Payment ready for approval:', paymentId);
-          
           try {
             const { data, error } = await supabase.functions.invoke('approve-payment', {
-              body: {
-                payment_id: paymentId,
-                pi_username: piUsername,
-                amount,
-                memo,
-              }
+              body: { payment_id: paymentId, pi_username: piUsername, amount, memo }
             });
 
             if (error) {
@@ -56,10 +50,8 @@ export function usePiPayment() {
           }
         },
 
-        // Server-side completion after blockchain transaction
+        // مرحلة إكمال الدفع بعد التحويل على blockchain
         onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-          console.log('Payment ready for completion:', paymentId, txid);
-          
           try {
             const { data, error } = await supabase.functions.invoke('complete-payment', {
               body: { payment_id: paymentId, txid }
@@ -73,7 +65,7 @@ export function usePiPayment() {
               console.log('Payment completed:', data);
               toast.success('Payment successful!');
               setIsPaying(false);
-              resolve({ success: true, paymentId });
+              resolve({ success: true, paymentId, txid });
             }
           } catch (err) {
             console.error('Completion error:', err);
@@ -83,6 +75,7 @@ export function usePiPayment() {
           }
         },
 
+        // إلغاء الدفع
         onCancel: (paymentId: string) => {
           console.log('Payment cancelled:', paymentId);
           toast.info('Payment cancelled');
@@ -91,6 +84,7 @@ export function usePiPayment() {
           resolve({ success: false, error: 'cancelled' });
         },
 
+        // أي خطأ أثناء العملية
         onError: (error: Error, payment?: PaymentDTO) => {
           console.error('Payment error:', error, payment);
           toast.error('Payment failed: ' + error.message);
@@ -100,19 +94,23 @@ export function usePiPayment() {
         },
       };
 
+      // إنشاء الدفع عن طريق Pi SDK فعليًا
       piSDK.createPayment(amount, memo, { ...metadata, pi_username: piUsername }, callbacks)
         .then((payment) => {
           if (payment) {
             setCurrentPayment(payment);
+            console.log('Payment created:', payment);
           } else {
+            console.error('Failed to create payment');
             setIsPaying(false);
             resolve({ success: false, error: 'Failed to create payment' });
           }
         })
         .catch((err) => {
           console.error('Payment creation error:', err);
+          toast.error('Payment creation failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
           setIsPaying(false);
-          resolve({ success: false, error: err.message });
+          resolve({ success: false, error: err instanceof Error ? err.message : 'Unknown error' });
         });
     });
   }, []);

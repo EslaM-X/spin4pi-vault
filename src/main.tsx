@@ -7,21 +7,27 @@ import "./index.css";
 
 function Root() {
   const [showSplash, setShowSplash] = useState(true);
-  const { isLoading: isAuthLoading, authenticate } = usePiAuth();
+  const { isInitialized, isLoading, authenticate, user } = usePiAuth();
 
   const handleSplashComplete = useCallback(() => {
     setShowSplash(false);
   }, []);
 
-  // نعمل انتظار لبيانات Pi قبل إزالة الـ Splash
+  // انتظار الـ Pi SDK initialization + authentication
   useEffect(() => {
     const init = async () => {
-      // لو عايز تعمل login تلقائي أو check للـ localStorage
-      await authenticate().catch(() => null); 
+      // لو الـ SDK جاهز بالفعل اعمل authentication
+      if (!isInitialized) return;
+
+      if (!user) {
+        await authenticate().catch(() => null);
+      }
+
+      // بعد ما يخلص كل حاجة، شيل الـ Splash
       setShowSplash(false);
     };
     init();
-  }, [authenticate]);
+  }, [isInitialized, authenticate, user]);
 
   return (
     <>

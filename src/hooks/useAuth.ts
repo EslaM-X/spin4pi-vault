@@ -1,86 +1,160 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { piSDK } from "pi-sdk-js";
+import { supabase } from "@/integrations/supabase/client";
 
-// Type المستخدم
-interface User {
+/* ================= TYPES ================= */
+
+export interface PiUser {
+  uid: string;
   username: string;
-  piAddress?: string;
+  walletAddress?: string;
 }
 
-// نتيجة الهُوية
 interface AuthResult {
-  user?: User;
+  user?: PiUser;
   isAuthenticated: boolean;
   isLoading: boolean;
-  authenticate: () => Promise<User | null>;
+  authenticate: () => Promise<PiUser | null>;
   logout: () => void;
-  refreshProfile: () => void;
+  refreshProfile: () => Promise<void>;
   canFreeSpin: () => boolean;
   getNextFreeSpinTime: () => string;
 }
 
+/* ================= HOOK ================= */
+
 export function useAuth(): AuthResult {
-  const [user, setUser] = useState<User | undefined>(undefined);
+  const [user, setUser] = useState<PiUser | undefined>();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastFreeSpin, setLastFreeSpin] = useState<string | null>(null);
 
-  // عند تحميل التطبيق
+  /* ========== INIT AUTH ========== */
   useEffect(() => {
-    const savedUsername = localStorage.getItem("pi_username");
-    if (savedUsername) {
-      setUser({ username: savedUsername });
-      setIsAuthenticated(true);
-    } else {
-      // لو مفيش بيانات محفوظة ممكن نسأل Pi SDK مباشرة
-      checkPiAuth();
-    }
-    setIsLoading(false);
+    initAuth();
   }, []);
 
-  // دالة تسجيل الدخول باستخدام Pi SDK
-  const authenticate = async (): Promise<User | null> => {
+  const initAuth = async () => {
+    if (!piSDK.isAvailable()) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const session = await piSDK.getUser();
+      if (session?.uid) {
+        await syncProfile(session);
+        setUser(session);
+        setIsAuthenticated(true);
+      }
+    } catch (err) {
+      console.warn("Pi session not found");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /* ========== LOGIN ========== */
+  const authenticate = async (): Promise<PiUser | null> => {
     setIsLoading(true);
     try {
-      // مثال على استخدام Pi SDK: 
-      // const piUser = await PiSDK.login(); 
-      // return { username: piUser.username, piAddress: piUser.address }
+      const piUser = await piSDK.authenticate([
+        "username",
+        "payments",
+        "wallet_address",
+      ]);
 
-      // مؤقت لحين ربطه بـ Pi SDK
-      const piUser = { username: "DemoUser", piAddress: "PiAddress123" };
+      if (!piUser?.uid) return null;
+
+      await syncProfile(piUser);
+
       setUser(piUser);
       setIsAuthenticated(true);
-      localStorage.setItem("pi_username", piUser.username);
       return piUser;
     } catch (err) {
-      console.error("Pi Auth failed", err);
-      setIsAuthenticated(false);
+      console.error("Pi authentication failed", err);
       return null;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // دالة التحقق عند بداية التحميل
-  const checkPiAuth = async () => {
-    // مثال: لو Pi SDK يوفر session
-    // const session = await PiSDK.getSession();
-    // if(session) { ... }
+  /* ========== SYNC WITH SUPABASE ========== */
+  const syncProfile = async (piUser: PiUser) => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("pi_uid", piUser.uid)
+      .maybeSingle();
+
+    if (!data) {
+      await supabase.from("profiles").insert({
+        pi_uid: piUser.uid,
+        pi_username: piUser.username,
+        wallet_balance: 0,
+        total_spins: 0,
+        total_winnings: 0,
+        referral_code: piUser.username,
+      });
+      setLastFreeSpin(null);
+    } else {
+      setLastFreeSpin(data.last_free_spin);
+    }
+
+    if (error) console.error(error);
   };
 
+  /* ========== REFRESH PROFILE ========== */
+  const refreshProfile = async () => {
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("profiles")
+      .select("last_free_spin")
+      .eq("pi_uid", user.uid)
+      .single();
+
+    setLastFreeSpin(data?.last_free_spin || null);
+  };
+
+  /* ========== FREE SPIN LOGIC ========== */
+  const canFreeSpin = () => {
+    if (!lastFreeSpin) return true;
+    const last = new Date(lastFreeSpin).getTime();
+    return Date.now() - last >= 24 * 60 * 60 * 1000;
+  };
+
+  const getNextFreeSpinTime = () => {
+    if (!lastFreeSpin) return "Available";
+    const next =
+      new Date(lastFreeSpin).getTime() + 24 * 60 * 60 * 1000;
+    const diff = next - Date.now();
+    if (diff <= 0) return "Available";
+
+    const h = Math.floor(diff / 3_600_000);
+    const m = Math.floor((diff % 3_600_000) / 60_000);
+    const s = Math.floor((diff % 60_000) / 1000);
+
+    return `${h.toString().padStart(2, "0")}:${m
+      .toString()
+      .padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+
+  /* ========== LOGOUT ========== */
   const logout = () => {
     setUser(undefined);
     setIsAuthenticated(false);
-    localStorage.removeItem("pi_username");
-    // لو Pi SDK فيه logout
-    // PiSDK.logout();
+    setLastFreeSpin(null);
   };
 
-  const refreshProfile = () => {
-    // ممكن تحدث بيانات المستخدم من Pi SDK
-    // مثال: const updated = await PiSDK.getProfile(user?.username);
+  return {
+    user,
+    isAuthenticated,
+    isLoading,
+    authenticate,
+    logout,
+    refreshProfile,
+    canFreeSpin,
+    getNextFreeSpinTime,
   };
-
-  const canFreeSpin = () => true; // مؤقت، بعدين نربطه بـ wallet و cooldown
-  const getNextFreeSpinTime = () => "Available"; // مؤقت، بعدين نربطه بـ wallet و cooldown
-
-  return { user, isAuthenticated, isLoading, authenticate, logout, refreshProfile, canFreeSpin, getNextFreeSpinTime };
 }

@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import { piSDK } from '@/lib/pi-sdk';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useWallet } from './useWallet';
 
 interface ShareOptions {
   title: string;
@@ -8,69 +10,116 @@ interface ShareOptions {
 }
 
 export function usePiShare() {
-  const shareAchievement = useCallback((achievementName: string, rewardPi: number) => {
+  const { profileId, wallet, updateBalance } = useWallet();
+
+  // ===== Achievement Share =====
+  const shareAchievement = useCallback(async (achievementName: string, rewardPi: number) => {
     const title = '🏆 Achievement Unlocked!';
     const message = `I just unlocked the "${achievementName}" achievement on Spin4Pi and earned ${rewardPi} π! 🎉\n\nJoin me and start spinning to win Pi! 🎰✨`;
 
-    if (piSDK.isAvailable()) {
-      try {
-        piSDK.shareDialog(title, message);
+    try {
+      if (piSDK.isAvailable()) {
+        await piSDK.shareDialog(title, message);
         toast.success('Share dialog opened!');
-      } catch (error) {
-        console.error('Pi share error:', error);
+      } else {
         fallbackShare(title, message);
       }
-    } else {
-      fallbackShare(title, message);
-    }
-  }, []);
 
-  const shareTournamentWin = useCallback((tournamentName: string, rank: number, prize: number) => {
+      // ===== سجل المشاركة في Supabase + اعطاء المكافأة =====
+      if (profileId) {
+        await supabase.from('shares').insert({
+          profile_id: profileId,
+          type: 'achievement',
+          title,
+          message,
+          reward_pi: rewardPi,
+          created_at: new Date(),
+        });
+
+        // تحديث رصيد Pi في wallet
+        const newBalance = (wallet.balance || 0) + rewardPi;
+        updateBalance(newBalance, true);
+      }
+    } catch (error) {
+      console.error('Share Achievement error:', error);
+      toast.error('Failed to share achievement');
+    }
+  }, [profileId, wallet, updateBalance]);
+
+  // ===== Tournament Share =====
+  const shareTournamentWin = useCallback(async (tournamentName: string, rank: number, prize: number) => {
     const title = '🏆 Tournament Victory!';
     const rankEmoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉';
     const message = `${rankEmoji} I just placed #${rank} in the "${tournamentName}" tournament on Spin4Pi and won ${prize.toFixed(2)} π! 🎉\n\nCompete with me next time! 🎰`;
 
-    if (piSDK.isAvailable()) {
-      try {
-        piSDK.shareDialog(title, message);
+    try {
+      if (piSDK.isAvailable()) {
+        await piSDK.shareDialog(title, message);
         toast.success('Share dialog opened!');
-      } catch (error) {
-        console.error('Pi share error:', error);
+      } else {
         fallbackShare(title, message);
       }
-    } else {
-      fallbackShare(title, message);
-    }
-  }, []);
 
-  const shareReferral = useCallback((referralCode: string) => {
+      if (profileId) {
+        await supabase.from('shares').insert({
+          profile_id: profileId,
+          type: 'tournament',
+          title,
+          message,
+          reward_pi: prize,
+          created_at: new Date(),
+        });
+
+        const newBalance = (wallet.balance || 0) + prize;
+        updateBalance(newBalance, true);
+      }
+    } catch (error) {
+      console.error('Share Tournament error:', error);
+      toast.error('Failed to share tournament');
+    }
+  }, [profileId, wallet, updateBalance]);
+
+  // ===== Referral Share =====
+  const shareReferral = useCallback(async (referralCode: string) => {
     const title = '🎰 Join Spin4Pi!';
     const message = `Hey! I'm playing Spin4Pi and earning Pi tokens! Use my referral code "${referralCode}" to get a bonus when you sign up! 🎁✨`;
 
-    if (piSDK.isAvailable()) {
-      try {
-        piSDK.shareDialog(title, message);
+    try {
+      if (piSDK.isAvailable()) {
+        await piSDK.shareDialog(title, message);
         toast.success('Share dialog opened!');
-      } catch (error) {
-        console.error('Pi share error:', error);
+      } else {
         fallbackShare(title, message);
       }
-    } else {
-      fallbackShare(title, message);
-    }
-  }, []);
 
-  const shareCustom = useCallback((options: ShareOptions) => {
-    if (piSDK.isAvailable()) {
-      try {
-        piSDK.shareDialog(options.title, options.message);
+      if (profileId) {
+        await supabase.from('shares').insert({
+          profile_id: profileId,
+          type: 'referral',
+          title,
+          message,
+          reward_pi: 0, // Referral reward يتم عادة عند التسجيل
+          created_at: new Date(),
+        });
+      }
+    } catch (error) {
+      console.error('Share Referral error:', error);
+      toast.error('Failed to share referral');
+    }
+  }, [profileId]);
+
+  // ===== Custom Share =====
+  const shareCustom = useCallback(async (options: ShareOptions) => {
+    try {
+      if (piSDK.isAvailable()) {
+        await piSDK.shareDialog(options.title, options.message);
         toast.success('Share dialog opened!');
-      } catch (error) {
-        console.error('Pi share error:', error);
+      } else {
         fallbackShare(options.title, options.message);
       }
-    } else {
-      fallbackShare(options.title, options.message);
+    } catch (error) {
+      console.error('Share Custom error:', error);
+      toast.error('Failed to share');
     }
   }, []);
 
@@ -82,13 +131,10 @@ export function usePiShare() {
   };
 }
 
-// Fallback for when Pi SDK is not available
+// Fallback
 function fallbackShare(title: string, message: string) {
   if (navigator.share) {
-    navigator.share({
-      title,
-      text: message,
-    }).catch((error) => {
+    navigator.share({ title, text: message }).catch((error) => {
       if (error.name !== 'AbortError') {
         console.error('Share error:', error);
         copyToClipboard(message);

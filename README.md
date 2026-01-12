@@ -1,73 +1,148 @@
-# Welcome to your Lovable project
+<p align="center">
+  <img src="./assets/spin4pi-logo.png" alt="Spin4Pi Logo" width="200"/>
+</p>
 
-## Project info
+# 🌟 Spin4Pi - Ultimate Pi Gaming Experience
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+![Badge: Pi Network](https://img.shields.io/badge/Pi%20Network-Integration-success?style=for-the-badge) 
+![Badge: Realtime Backend](https://img.shields.io/badge/Supabase-Realtime-blue?style=for-the-badge)
+![Badge: Pi Payment](https://img.shields.io/badge/Pi%20Payment-Full%20Integration-brightgreen?style=for-the-badge)
+![Badge: Web Audio](https://img.shields.io/badge/Web%20Audio-Sound%20FX-orange?style=for-the-badge)
 
-## How can I edit this code?
+**Spin4Pi** is an innovative gaming application delivering a fun **spin experience** with real rewards in **Pi currency**, fully integrated with **Pi SDK, Pi API, and Supabase** to ensure a seamless, secure, and realistic user experience.
 
-There are several ways of editing your application.
+---
 
-**Use Lovable**
+## 🎯 Vision
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+Spin4Pi is a **recreational and educational platform** on the Pi Network where players can:
 
-Changes made via Lovable will be committed automatically to this repo.
+- Enjoy **daily Free and Paid Spins** with real Pi rewards.
+- Build a **fully integrated digital economy** inside the game.
+- Experience every Pi Network feature safely and realistically.
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🕹️ Key Features
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 1️⃣ Advanced Spin System
+- ✅ Daily Free Spin with **Supabase DB synchronized cooldown**.  
+- ✅ Paid Spin with **real Pi payment** through Pi SDK.  
+- ✅ Smart spin outcomes based on **player behavior and AI**.  
+- ✅ Realistic sound effects using **Web Audio API**:  
+  - Spin whoosh  
+  - Segment tick  
+  - Win / Jackpot / Lose  
+  - Achievement unlock  
 
-Follow these steps:
+### 2️⃣ Integrated Pi Wallet
+- 💰 **Real Pi balance linked to user account**.  
+- 🔄 Automatic updates after each spin.  
+- 🎁 Referral system for extra Pi rewards.  
+- 🏆 Real-time leaderboard powered by **Supabase and Pi SDK**.  
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### 3️⃣ Pi SDK & Pi API Integration
+- 🔐 Secure login via **Pi SDK**.  
+- 💳 Real Pi payments with **transaction verification**.  
+- 📤 Share achievements and tournament wins directly on Pi Network.  
+- 🌐 Full support for **Pi Browser** for all features.
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### 4️⃣ Achievements & Social
+- 🏅 Realistic achievement system unlocking new features.  
+- 📱 Direct social sharing through Pi Network.  
+- 🤝 Boost community interaction and engagement.
 
-# Step 3: Install the necessary dependencies.
-npm i
+### 5️⃣ Supabase Backend
+- 🔒 Secure storage for Profiles, Wallet, Spin History.  
+- ⚡ Supabase Functions: `spin-result`, `complete-payment`, `approve-payment`.  
+- 📊 Real-time leaderboard updates.  
+- 📈 Analytics to track **player engagement and digital economy**.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+### 6️⃣ User-Friendly Interface
+- 🎨 Responsive design for all devices.  
+- 🌙 Dark/Light mode support & accessibility.  
+- ✨ Smooth animations for spins and rewards.
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 💎 Community Impact
+- 📚 **Education and training in digital economy** using Pi.  
+- 💵 **Real earning opportunities** with Pi tokens.  
+- 🌍 Boosting Pi Network adoption in real-life use cases.  
+- 🤗 Encouraging collaboration and healthy competition.  
+- 🛠️ Supporting developers to create Pi-integrated content.
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 🔧 Technical Architecture
 
-## What technologies are used for this project?
+App.tsx ├── SoundSettingsProvider ├── QueryClientProvider ├── TooltipProvider ├── Toaster + Sonner (notifications) └── BrowserRouter ├── Index (Spin Page) │     ├── useSpinUnified │     ├── useWalletUnified │     ├── useSoundEffects │     └── usePiShare ├── Profile │     ├── useWalletUnified │     └── usePiAuthUnified ├── Marketplace ├── Achievements └── WithdrawalHistory
 
-This project is built with:
+### 🔑 Main Hooks
+- **useSpinUnified.ts** → Manage Free & Paid Spins with real Pi payments.  
+- **useWalletUnified.ts** → Wallet management, Leaderboard, and digital economy analytics.  
+- **usePiShare.ts** → Share achievements and tournament wins via Pi SDK.  
+- **useSoundEffects.ts** → Realistic sound effects for Spin, Win, Lose, and Jackpot.  
+- **usePiAuthUnified.ts** → Secure Pi SDK login and Supabase profile management.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+---
 
-## How can I deploy this project?
+## 📈 Analytics & Digital Economy
+- Track rewards and player engagement in real-time.  
+- Simulate Pi economy: balances, leaderboard, referrals, earnings.  
+- Prevent cheating or manipulation.  
+- Support Pi currency in all in-game transactions safely.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+---
 
-## Can I connect a custom domain to my Lovable project?
+## 🚀 Why Spin4Pi is Unique
+- 🛠️ **Full real integration with Pi SDK, Pi API, and Supabase**.  
+- 🎮 Fun gameplay with real Pi rewards.  
+- 📚 Educational and recreational for the Pi community.  
+- ✨ Visually attractive and smooth interface.  
+- 🔊 Advanced sound effects and animations for immersive experience.
 
-Yes, you can!
+---
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 🔒 Security & Privacy
+- 🔐 Data encrypted and safely stored on Supabase.  
+- 💳 Real Pi transactions secured via Pi SDK.  
+- ⏱️ Safe Free and Paid Spin verification.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+---
+
+## 🏆 Call for Developers & Community
+- 🌱 Contribute to **expanding Spin4Pi** through Open API or Tournament System.  
+- 🏛️ Build a **community-driven system** that encourages interaction and rewards.  
+- 🔗 Promote **Pi Network adoption** and increase real usage of Pi currency.
+
+---
+
+## 📌 Screenshots / Demo
+
+<p align="center">
+  <img src="./assets/spin-demo.gif" alt="Spin Demo" width="600"/>
+</p>
+<p align="center">
+  <img src="./assets/leaderboard-demo.png" alt="Leaderboard Demo" width="600"/>
+</p>
+
+---
+
+## 💡 Key Notes
+- Everything is **real and fully integrated**, no mocks.  
+- All financial operations are linked to **Pi SDK & Pi API**.  
+- Supabase serves as a **secure and efficient backend** for all game data.
+
+---
+
+## 🔗 Useful Links
+- Pi Network: [https://minepi.com](https://minepi.com)  
+- Supabase: [https://supabase.com](https://supabase.com)  
+- Spin4Pi GitHub: `https://github.com/your-repo/Spin4Pi`
+
+---
+
+<p align="center">
+  <img src="./assets/spin4pi-logo.png" alt="Spin4Pi Logo" width="200"/>
+</p>

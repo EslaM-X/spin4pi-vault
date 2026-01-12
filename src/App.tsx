@@ -24,13 +24,11 @@ const AppRoutes = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // تظهر الـ Loading كل مرة الصفحة تتغير
     setLoading(true);
 
-    // تأخير وهمي لمحاكاة تحميل البيانات
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 1000); // ممكن تغييره حسب بيانات الصفحة الحقيقية
+    }, 1000); // Simulate data fetching delay
 
     return () => clearTimeout(timer);
   }, [location.pathname]);

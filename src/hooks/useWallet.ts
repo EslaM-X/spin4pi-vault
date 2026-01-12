@@ -1,9 +1,9 @@
-// src/hooks/useWallet.ts
+// src/hooks/useWalletUnified.ts
 import { useState, useEffect, useCallback } from "react";
-import { piSDK } from "pi-sdk-js";
+import { piSDK, PaymentDTO } from "@/lib/pi-sdk"; // Pi SDK مدمج
 import { usePiAuth } from "./usePiAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface SpinHistory {
   id: string;
@@ -29,7 +29,7 @@ interface LeaderboardEntry {
   totalWinnings: number;
 }
 
-export function useWallet() {
+export function useWalletUnified() {
   const { user, canFreeSpin } = usePiAuth();
   const profileId = user?.uid || "";
 
@@ -53,148 +53,183 @@ export function useWallet() {
     setIsLoading(true);
     try {
       let balance = 0;
-      if (piSDK.isAvailable()) balance = await piSDK.getBalance();
+      if (piSDK.isAvailable()) {
+        balance = await piSDK.getBalance();
+      }
 
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", profileId)
         .maybeSingle();
 
-      setWallet((prev) => ({
-        ...prev,
-        balance,
-        totalSpins: profile?.total_spins || prev.totalSpins,
-        referralCode: profile?.referral_code || prev.referralCode,
-        referralCount: profile?.referral_count || prev.referralCount,
-        referralEarnings: profile?.referral_earnings || prev.referralEarnings,
-      }));
+      if (error) throw error;
 
-      fetchLeaderboard();
+      setWallet({
+        balance,
+        totalSpins: profile?.total_spins || 0,
+        referralCode: profile?.referral_code || "",
+        referralCount: profile?.referral_count || 0,
+        referralEarnings: profile?.referral_earnings || 0,
+        recentSpins: profile?.recent_spins || [],
+        lastFreeSpin: profile?.last_free_spin || null,
+      });
+
+      await fetchLeaderboard();
     } catch (err) {
       console.error(err);
-      toast({ type: "error", title: "Failed to fetch wallet" });
+      toast.error("Failed to fetch wallet");
     } finally {
       setIsLoading(false);
     }
   }, [profileId, user]);
 
   // ===== Apply Referral =====
-  const applyReferral = async (ref?: string) => {
+  const applyReferral = useCallback(async (ref?: string) => {
     if (!user || !ref) return;
     try {
       await supabase.from("profiles").update({ referral_code: ref }).eq("id", profileId);
-      toast({ type: "success", title: `Referral ${ref} applied!` });
-      fetchWalletData();
+      toast.success(`Referral ${ref} applied!`);
+      await fetchWalletData();
     } catch (err) {
       console.error(err);
-      toast({ type: "error", title: "Failed to apply referral" });
+      toast.error("Failed to apply referral");
     }
-  };
+  }, [profileId, user, fetchWalletData]);
 
   // ===== Update Balance =====
-  const updateBalance = async (amount: number, saveToDB = false) => {
-    setWallet((prev) => ({ ...prev, balance: amount }));
+  const updateBalance = useCallback(async (amount: number, saveToDB = false) => {
+    setWallet(prev => ({ ...prev, balance: amount }));
     if (saveToDB) {
       try {
         await supabase.from("profiles").update({ wallet_balance: amount }).eq("id", profileId);
       } catch (err) {
         console.error(err);
-        toast({ type: "error", title: "Failed to update balance" });
+        toast.error("Failed to update balance");
       }
     }
-  };
+  }, [profileId]);
 
   // ===== Free Spin =====
-  const handleFreeSpin = async () => {
+  const handleFreeSpin = useCallback(async () => {
     if (!user || !wallet) return;
     if (!canFreeSpin?.()) {
-      toast({ type: "info", title: "Free spin not available yet" });
+      toast.info("Free spin not available yet");
       return;
     }
 
-    const reward = Math.random() > 0.5 ? 1 : 0;
-    setWallet((prev) => ({
-      ...prev,
-      balance: prev.balance + reward,
-      totalSpins: prev.totalSpins + 1,
-      recentSpins: [
-        {
-          id: Date.now().toString(),
-          result: reward > 0 ? "Win" : "Lose",
-          spin_type: "free",
-          cost: 0,
-          reward_amount: reward,
-          created_at: new Date().toISOString(),
-        },
-        ...prev.recentSpins,
-      ],
-      lastFreeSpin: new Date().toISOString(),
-    }));
+    try {
+      const reward = Math.floor(Math.random() * 2); // 0 أو 1 Pi
+      const newSpin: SpinHistory = {
+        id: Date.now().toString(),
+        result: reward > 0 ? "Win" : "Lose",
+        spin_type: "free",
+        cost: 0,
+        reward_amount: reward,
+        created_at: new Date().toISOString(),
+      };
 
-    toast({ type: "success", title: `Free spin completed! Reward: ${reward} π` });
-  };
+      // إرسال reward عن طريق Pi SDK بشكل رسمي
+      if (reward > 0 && piSDK.isAvailable()) {
+        await piSDK.createPayment(reward, "Free Spin Reward", user.username);
+      }
+
+      // تحديث البيانات في Supabase
+      await supabase.from("profiles").update({
+        wallet_balance: wallet.balance + reward,
+        total_spins: wallet.totalSpins + 1,
+        last_free_spin: new Date().toISOString(),
+        recent_spins: [newSpin, ...(wallet.recentSpins || [])],
+      }).eq("id", profileId);
+
+      setWallet(prev => ({
+        ...prev,
+        balance: prev.balance + reward,
+        totalSpins: prev.totalSpins + 1,
+        lastFreeSpin: new Date().toISOString(),
+        recentSpins: [newSpin, ...prev.recentSpins],
+      }));
+
+      toast.success(`Free spin completed! Reward: ${reward} π`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Free spin failed");
+    }
+  }, [user, wallet, profileId, canFreeSpin]);
 
   // ===== Paid Spin =====
-  const handlePaidSpin = async (cost: number) => {
+  const handlePaidSpin = useCallback(async (cost: number) => {
     if (!user || !wallet) return;
     if (!piSDK.isAvailable()) {
-      toast({ type: "error", title: "Open in Pi Browser to spin" });
+      toast.error("Open in Pi Browser to spin");
       return;
     }
 
     setIsPaying(true);
     try {
-      const result = await piSDK.sendPayment({
-        amount: cost,
-        note: "Paid Spin",
-      });
+      const paymentResult = await piSDK.createPayment(cost, "Paid Spin", user.username);
 
-      if (!result.success) {
-        toast({ type: "error", title: "Payment failed" });
+      if (!paymentResult.success) {
+        toast.error("Payment failed");
         return;
       }
 
       const reward = Math.random() > 0.5 ? cost * 2 : 0;
-      setWallet((prev) => ({
+      const newSpin: SpinHistory = {
+        id: Date.now().toString(),
+        result: reward > 0 ? "Win" : "Lose",
+        spin_type: "paid",
+        cost,
+        reward_amount: reward,
+        created_at: new Date().toISOString(),
+      };
+
+      await supabase.from("profiles").update({
+        wallet_balance: wallet.balance - cost + reward,
+        total_spins: wallet.totalSpins + 1,
+        recent_spins: [newSpin, ...(wallet.recentSpins || [])],
+      }).eq("id", profileId);
+
+      setWallet(prev => ({
         ...prev,
         balance: prev.balance - cost + reward,
         totalSpins: prev.totalSpins + 1,
-        recentSpins: [
-          {
-            id: Date.now().toString(),
-            result: reward > 0 ? "Win" : "Lose",
-            spin_type: "paid",
-            cost,
-            reward_amount: reward,
-            created_at: new Date().toISOString(),
-          },
-          ...prev.recentSpins,
-        ],
+        recentSpins: [newSpin, ...prev.recentSpins],
       }));
 
-      toast({ type: "success", title: `Paid spin completed! Reward: ${reward} π` });
+      toast.success(`Paid spin completed! Reward: ${reward} π`);
     } catch (err) {
       console.error(err);
-      toast({ type: "error", title: "Paid spin failed" });
+      toast.error("Paid spin failed");
     } finally {
       setIsPaying(false);
     }
-  };
+  }, [user, wallet, profileId]);
 
-  // ===== Leaderboard =====
-  const fetchLeaderboard = async () => {
-    // مثال mock, ممكن تعوضها من Supabase لاحقًا
-    setLeaderboard([
-      { username: "alice", totalWinnings: 120 },
-      { username: "bob", totalWinnings: 100 },
-      { username: "charlie", totalWinnings: 80 },
-    ]);
-  };
+  // ===== Leaderboard من Supabase =====
+  const fetchLeaderboard = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("username, wallet_balance")
+        .order("wallet_balance", { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      setLeaderboard(data?.map((p: any) => ({
+        username: p.username,
+        totalWinnings: p.wallet_balance,
+      })) || []);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch leaderboard");
+    }
+  }, []);
 
   useEffect(() => {
     if (user) fetchWalletData();
-  }, [user]);
+  }, [user, fetchWalletData]);
 
   return {
     wallet,

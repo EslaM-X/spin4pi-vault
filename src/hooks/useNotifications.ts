@@ -1,175 +1,178 @@
-import { useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-interface NotificationPreferences {
-  email: string | null;
-  dailyReminder: boolean;
-  streakWarning: boolean;
-  tournamentAlerts: boolean;
+type ReminderType =
+  | "daily_reset"
+  | "streak_warning"
+  | "tournament_end";
+
+interface SendReminderPayload {
+  pi_username?: string;
+  email: string;
+  reminder_type: ReminderType;
+  extra?: Record<string, any>;
 }
 
 export function useNotifications() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const sendDailyReminder = useCallback(async (
-    piUsername: string,
-    email: string
-  ) => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('send-streak-reminder', {
-        body: {
-          pi_username: piUsername,
-          email,
-          reminder_type: 'daily_reset'
-        }
-      });
+  // ===== Generic Edge Function Caller =====
+  const sendReminder = useCallback(
+    async (payload: SendReminderPayload) => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          "send-streak-reminder",
+          { body: payload }
+        );
 
-      if (error) throw error;
-
-      toast({
-        title: "Reminder sent!",
-        description: "Check your email for the daily reward notification.",
-      });
-
-      return data;
-    } catch (error) {
-      console.error('Failed to send daily reminder:', error);
-      toast({
-        title: "Failed to send reminder",
-        description: error instanceof Error ? error.message : 'Unknown error',
-        variant: "destructive"
-      });
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
-
-  const sendStreakWarning = useCallback(async (
-    piUsername: string,
-    email: string
-  ) => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('send-streak-reminder', {
-        body: {
-          pi_username: piUsername,
-          email,
-          reminder_type: 'streak_warning'
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Streak warning sent!",
-        description: "Check your email for the streak warning.",
-      });
-
-      return data;
-    } catch (error) {
-      console.error('Failed to send streak warning:', error);
-      toast({
-        title: "Failed to send warning",
-        description: error instanceof Error ? error.message : 'Unknown error',
-        variant: "destructive"
-      });
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
-
-  const sendTournamentEndAlert = useCallback(async (
-    email: string,
-    tournamentName: string,
-    position: number,
-    prize: number
-  ) => {
-    setIsLoading(true);
-    try {
-      // Use the existing send-streak-reminder with tournament data
-      // In production, create a dedicated tournament notification function
-      const { data, error } = await supabase.functions.invoke('send-streak-reminder', {
-        body: {
-          email,
-          reminder_type: 'daily_reset', // Reuse existing template for now
-          pi_username: `Tournament: ${tournamentName}`,
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Tournament alert sent!",
-        description: `Notification sent for ${tournamentName} results.`,
-      });
-
-      return data;
-    } catch (error) {
-      console.error('Failed to send tournament alert:', error);
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
-
-  const requestBrowserNotificationPermission = useCallback(async () => {
-    if (!('Notification' in window)) {
-      toast({
-        title: "Notifications not supported",
-        description: "Your browser doesn't support push notifications.",
-        variant: "destructive"
-      });
-      return false;
-    }
-
-    try {
-      const permission = await Notification.requestPermission();
-      
-      if (permission === 'granted') {
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        console.error("Notification error:", error);
         toast({
-          title: "Notifications enabled!",
-          description: "You'll receive spin reminders and alerts.",
+          title: "Notification failed",
+          description:
+            error instanceof Error ? error.message : "Unknown error",
+          variant: "destructive",
         });
-        return true;
-      } else {
-        toast({
-          title: "Notifications blocked",
-          description: "Enable notifications in your browser settings.",
-          variant: "destructive"
-        });
-        return false;
+        return null;
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Notification permission error:', error);
+    },
+    [toast]
+  );
+
+  // ===== Daily Reminder =====
+  const sendDailyReminder = useCallback(
+    async (piUsername: string, email: string) => {
+      const result = await sendReminder({
+        pi_username: piUsername,
+        email,
+        reminder_type: "daily_reset",
+      });
+
+      if (result) {
+        toast({
+          title: "Daily reminder sent",
+          description: "Check your email for today's reward reminder.",
+        });
+      }
+
+      return result;
+    },
+    [sendReminder, toast]
+  );
+
+  // ===== Streak Warning =====
+  const sendStreakWarning = useCallback(
+    async (piUsername: string, email: string) => {
+      const result = await sendReminder({
+        pi_username: piUsername,
+        email,
+        reminder_type: "streak_warning",
+      });
+
+      if (result) {
+        toast({
+          title: "Streak warning sent",
+          description: "Your streak is about to reset!",
+        });
+      }
+
+      return result;
+    },
+    [sendReminder, toast]
+  );
+
+  // ===== Tournament Alert =====
+  const sendTournamentEndAlert = useCallback(
+    async (
+      email: string,
+      tournamentName: string,
+      position: number,
+      prize: number
+    ) => {
+      const result = await sendReminder({
+        email,
+        reminder_type: "tournament_end",
+        extra: {
+          tournamentName,
+          position,
+          prize,
+        },
+      });
+
+      if (result) {
+        toast({
+          title: "Tournament results sent",
+          description: `${tournamentName} results have been emailed.`,
+        });
+      }
+
+      return result;
+    },
+    [sendReminder, toast]
+  );
+
+  // ===== Browser Notification Permission =====
+  const requestBrowserNotificationPermission = useCallback(async () => {
+    if (!("Notification" in window)) {
+      toast({
+        title: "Not supported",
+        description: "Your browser does not support notifications.",
+        variant: "destructive",
+      });
       return false;
     }
+
+    const permission = await Notification.requestPermission();
+    const granted = permission === "granted";
+
+    toast({
+      title: granted ? "Notifications enabled" : "Notifications blocked",
+      description: granted
+        ? "You will receive spin reminders."
+        : "Enable notifications from browser settings.",
+      variant: granted ? "default" : "destructive",
+    });
+
+    return granted;
   }, [toast]);
 
-  const showLocalNotification = useCallback((title: string, body: string, icon?: string) => {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, {
-        body,
-        icon: icon || '/favicon.ico',
-        badge: '/favicon.ico',
-        tag: 'spin4pi-notification'
-      });
-    }
-  }, []);
+  // ===== Local Notification =====
+  const showLocalNotification = useCallback(
+    (title: string, body: string, icon?: string) => {
+      if (
+        "Notification" in window &&
+        Notification.permission === "granted"
+      ) {
+        new Notification(title, {
+          body,
+          icon: icon || "/favicon.ico",
+          badge: "/favicon.ico",
+          tag: "spin4pi",
+        });
+      }
+    },
+    []
+  );
 
-  const scheduleSpinReminder = useCallback((delay: number = 3600000) => {
-    // Schedule a local notification after delay (default 1 hour)
-    setTimeout(() => {
-      showLocalNotification(
-        '🎰 Time to Spin!',
-        'Your next spin is ready. Come back and win Pi!'
-      );
-    }, delay);
-  }, [showLocalNotification]);
+  // ===== Scheduled Reminder =====
+  const scheduleSpinReminder = useCallback(
+    (delayMs: number = 60 * 60 * 1000) => {
+      setTimeout(() => {
+        showLocalNotification(
+          "🎰 Time to Spin!",
+          "Your next spin is ready. Come back and win Pi!"
+        );
+      }, delayMs);
+    },
+    [showLocalNotification]
+  );
 
   return {
     isLoading,
@@ -178,6 +181,6 @@ export function useNotifications() {
     sendTournamentEndAlert,
     requestBrowserNotificationPermission,
     showLocalNotification,
-    scheduleSpinReminder
+    scheduleSpinReminder,
   };
 }

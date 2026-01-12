@@ -33,7 +33,7 @@ export default function Marketplace() {
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
 
-  // حماية الصفحة: لو مش مسجل دخول، يرجع للصفحة الرئيسية
+  // حماية الدخول: لو مش مسجل دخول، يرجع للصفحة الرئيسية
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       navigate("/");
@@ -47,15 +47,21 @@ export default function Marketplace() {
 
   const fetchNFTs = async () => {
     setLoading(true);
-    const { data, error } = await supabase.functions.invoke("get-nfts", {
-      body: {},
-    });
-    if (!error && data) {
+    try {
+      const { data, error } = await supabase.functions.invoke("get-nfts", {
+        body: {},
+      });
+      if (error) throw error;
+
       setNfts(data.nfts || []);
       setOwned(data.owned || []);
       setEquipped(data.equipped || []);
+    } catch (err: any) {
+      console.error("Error fetching NFTs:", err);
+      toast.error(err?.message || "Failed to load NFTs");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handlePurchase = async (nftId: string) => {
@@ -64,30 +70,44 @@ export default function Marketplace() {
       return;
     }
     setPurchasing(nftId);
-    const { data, error } = await supabase.functions.invoke("purchase-nft", {
-      body: { pi_username: user.username, nft_id: nftId },
-    });
-    if (error || !data?.success) {
-      toast.error(data?.error || "Purchase failed");
-    } else {
-      toast.success("NFT purchased!");
-      setOwned([...owned, nftId]);
+    try {
+      const { data, error } = await supabase.functions.invoke("purchase-nft", {
+        body: { pi_username: user.username, nft_id: nftId },
+      });
+
+      if (error || !data?.success) {
+        toast.error(data?.error || "Purchase failed");
+      } else {
+        toast.success("NFT purchased!");
+        setOwned([...owned, nftId]);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Purchase failed");
+    } finally {
+      setPurchasing(null);
     }
-    setPurchasing(null);
   };
 
   const handleEquip = async (nftId: string, equip: boolean) => {
     if (!user?.username) return;
-    const { data, error } = await supabase.functions.invoke("equip-nft", {
-      body: { pi_username: user.username, nft_id: nftId, equip },
-    });
-    if (!error && data?.success) {
-      setEquipped(equip ? [...equipped, nftId] : equipped.filter((id) => id !== nftId));
-      toast.success(equip ? "NFT equipped!" : "NFT unequipped");
+    try {
+      const { data, error } = await supabase.functions.invoke("equip-nft", {
+        body: { pi_username: user.username, nft_id: nftId, equip },
+      });
+      if (!error && data?.success) {
+        setEquipped(
+          equip
+            ? [...equipped, nftId]
+            : equipped.filter((id) => id !== nftId)
+        );
+        toast.success(equip ? "NFT equipped!" : "NFT unequipped");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to equip NFT");
     }
   };
 
-  // Loading أثناء التحقق من المستخدم أو تحميل NFTs
+  // GlobalLoading أثناء التحقق من المستخدم أو تحميل NFTs
   if (isLoading || !isAuthenticated || loading) {
     return <GlobalLoading isVisible={true} />;
   }
@@ -115,13 +135,20 @@ export default function Marketplace() {
         </p>
 
         {nfts.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">No NFTs available yet</div>
+          <div className="text-center py-12 bg-card rounded-xl border border-border">
+            <Sparkles className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-foreground">No NFTs available yet</h3>
+            <p className="text-muted-foreground mt-2">Check back later for new power-ups</p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {nfts.map((nft) => (
+            {nfts.map((nft, index) => (
               <motion.div
                 key={nft.id}
                 className="bg-card border border-border rounded-xl p-6 hover:border-pi-purple/50 transition-colors"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
                 whileHover={{ y: -4 }}
               >
                 <div className="aspect-square bg-muted rounded-lg mb-4 flex items-center justify-center">

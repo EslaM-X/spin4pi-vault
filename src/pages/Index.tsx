@@ -38,17 +38,7 @@ const Index = () => {
   const [searchParams] = useSearchParams();
 
   // ======= Auth & Pi =======
-  const { 
-    user, 
-    isAuthenticated, 
-    isLoading: isAuthLoading, 
-    authenticate, 
-    logout, 
-    refreshProfile, 
-    canFreeSpin, 
-    getNextFreeSpinTime 
-  } = usePiAuth();
-  
+  const { user, isAuthenticated, isLoading: isAuthLoading, authenticate, logout, refreshProfile, canFreeSpin, getNextFreeSpinTime } = usePiAuth();
   const { createPayment } = usePiPayment();
   const { jackpot, leaderboard, isLoading: isGameLoading, refreshData } = useGameData();
 
@@ -73,11 +63,7 @@ const Index = () => {
   const [showAdReward, setShowAdReward] = useState(false);
   const [adRewardType, setAdRewardType] = useState<'free_spin' | 'bonus_pi' | 'boost'>('free_spin');
   const [lastReward, setLastReward] = useState(0);
-  
-  const toggleMenu = () => { 
-    setIsMenuOpen(prev => !prev); 
-    setIsBlur(prev => !prev); 
-  };
+  const toggleMenu = () => { setIsMenuOpen(prev => !prev); setIsBlur(prev => !prev); };
 
   // ======= Protect route =======
   useEffect(() => {
@@ -87,7 +73,6 @@ const Index = () => {
   // ======= Pi Price Live =======
   const [piPrice, setPiPrice] = useState(0);
   const [piPriceTrend, setPiPriceTrend] = useState<'up'|'down'|'neutral'>('neutral');
-
   useEffect(() => {
     let lastPrice = 0;
     const fetchPrice = async () => {
@@ -127,7 +112,7 @@ const Index = () => {
       localStorage.setItem('pi_username', result.username);
       await applyReferral(result.username, searchParams.get('ref'));
       await fetchWalletData(result.username);
-      toast.success(`Welcome, ${result.username}!`);
+      toast.success(`Welcome, ${result.username}`);
     }
   };
 
@@ -180,7 +165,7 @@ const Index = () => {
             <span className="text-gradient-purple">Pi</span>
           </h1>
           <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto font-medium">
-            Spin the wheel and earn rewards every day!
+            Spin & win Pi rewards instantly!
           </p>
 
           {isAuthenticated && user && (

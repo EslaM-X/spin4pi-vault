@@ -1,5 +1,6 @@
+// src/hooks/usePiAuthUnified.ts
 import { useState, useCallback, useEffect } from "react";
-import PiSDK from "pi-sdk-js";
+import { piSDK } from "@/lib/pi-sdk"; // Pi SDK مدمج
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -15,34 +16,33 @@ interface ProfileData {
   total_spins: number;
   total_winnings: number;
   last_free_spin: string | null;
+  referral_code?: string;
 }
 
-export function usePiAuth() {
+export function usePiAuthUnified() {
   const [user, setUser] = useState<PiUser | null>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // تهيئة Pi SDK عند أول تحميل
+  // ===== Initialize Pi SDK =====
   useEffect(() => {
     const initSDK = async () => {
       try {
-        // sandbox للـ dev mode
-        const sandbox = import.meta.env.DEV;
-        await PiSDK.init(sandbox);
+        await piSDK.init(import.meta.env.DEV); // sandbox في DEV
         setIsInitialized(true);
       } catch (err) {
         console.error("Pi SDK initialization failed:", err);
-        setIsInitialized(false);
         toast.error("Pi SDK not available. Open in Pi Browser.");
+        setIsInitialized(false);
       }
     };
     initSDK();
   }, []);
 
-  // دالة لإنهاء أي دفع غير مكتمل
+  // ===== Handle incomplete payments =====
   const handleIncompletePayment = useCallback(async (payment: any) => {
-    console.log("Incomplete payment found:", payment);
+    console.log("Incomplete payment detected:", payment);
     try {
       await supabase.functions.invoke("complete-payment", {
         body: {
@@ -55,7 +55,7 @@ export function usePiAuth() {
     }
   }, []);
 
-  // جلب أو إنشاء البروفايل في Supabase
+  // ===== Fetch or create profile in Supabase =====
   const fetchProfile = useCallback(async (username: string): Promise<ProfileData | null> => {
     try {
       const { data, error } = await supabase
@@ -63,40 +63,27 @@ export function usePiAuth() {
         .select("*")
         .eq("pi_username", username)
         .maybeSingle();
+
       if (error) throw error;
 
-      if (data) {
-        return {
-          id: data.id,
-          pi_username: data.pi_username,
-          total_spins: data.total_spins || 0,
-          total_winnings: data.total_winnings || 0,
-          last_free_spin: data.last_free_spin,
-        };
-      }
+      if (data) return data;
 
-      // إنشاء بروفايل جديد لو مش موجود
+      // Create new profile if not exists
       const { data: newProfile, error: insertError } = await supabase
         .from("profiles")
         .insert({ pi_username: username })
         .select()
         .single();
-      if (insertError) throw insertError;
 
-      return {
-        id: newProfile.id,
-        pi_username: newProfile.pi_username,
-        total_spins: 0,
-        total_winnings: 0,
-        last_free_spin: null,
-      };
+      if (insertError) throw insertError;
+      return newProfile;
     } catch (err) {
       console.error("Failed to fetch profile:", err);
       return null;
     }
   }, []);
 
-  // تسجيل الدخول عبر Pi SDK
+  // ===== Authenticate user =====
   const authenticate = useCallback(async () => {
     if (!isInitialized) {
       toast.error("Pi Network not available. Open in Pi Browser.");
@@ -105,7 +92,8 @@ export function usePiAuth() {
 
     setIsLoading(true);
     try {
-      const authResult = await PiSDK.authenticate(handleIncompletePayment);
+      const authResult = await piSDK.authenticate(handleIncompletePayment);
+
       if (!authResult) {
         toast.error("Authentication failed");
         return null;
@@ -116,16 +104,17 @@ export function usePiAuth() {
         username: authResult.user.username,
         accessToken: authResult.accessToken,
       };
+
       setUser(piUser);
 
-      // جلب أو إنشاء البروفايل
+      // Fetch or create profile
       const profileData = await fetchProfile(piUser.username);
       setProfile(profileData);
 
       toast.success(`Welcome, ${piUser.username}!`);
       return piUser;
     } catch (err) {
-      console.error("Auth error:", err);
+      console.error("Authentication error:", err);
       toast.error("Authentication failed");
       return null;
     } finally {
@@ -133,21 +122,21 @@ export function usePiAuth() {
     }
   }, [isInitialized, handleIncompletePayment, fetchProfile]);
 
-  // تسجيل الخروج
+  // ===== Logout =====
   const logout = useCallback(() => {
     setUser(null);
     setProfile(null);
     toast.info("Logged out");
   }, []);
 
-  // تحديث بيانات البروفايل
+  // ===== Refresh profile =====
   const refreshProfile = useCallback(async () => {
     if (!user) return;
     const profileData = await fetchProfile(user.username);
     setProfile(profileData);
   }, [user, fetchProfile]);
 
-  // التحقق من صلاحية Free Spin
+  // ===== Free Spin check =====
   const canFreeSpin = useCallback(() => {
     if (!profile?.last_free_spin) return true;
     const lastSpin = new Date(profile.last_free_spin);
@@ -156,7 +145,6 @@ export function usePiAuth() {
     return hoursSinceSpin >= 24;
   }, [profile]);
 
-  // الوقت المتبقي لـ Free Spin
   const getNextFreeSpinTime = useCallback(() => {
     if (!profile?.last_free_spin) return "Available!";
     const lastSpin = new Date(profile.last_free_spin);

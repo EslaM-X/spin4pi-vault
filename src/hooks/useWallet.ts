@@ -1,6 +1,8 @@
 // src/hooks/useWallet.ts
-import { useState } from "react";
-import { usePiAuth } from "./usePiAuth"; // لو عندك hook auth
+import { useState, useEffect, useCallback } from "react";
+import { usePiAuth } from "./usePiAuth";
+import { piSDK } from "pi-sdk-js";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface WalletData {
@@ -13,46 +15,139 @@ interface WalletData {
 
 export function useWallet() {
   const { user } = usePiAuth();
-  const profileId = user?.username || '';
-
+  const profileId = user?.uid || ""; // استخدم UID بدل username لتجنب التعارض
   const [wallet, setWallet] = useState<WalletData>({
     balance: 0,
     totalSpins: 0,
-    referralCode: '',
+    referralCode: "",
     referralCount: 0,
     referralEarnings: 0,
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   // ======= Fetch wallet data =======
-  const fetchWalletData = async (username: string) => {
+  const fetchWalletData = useCallback(async () => {
+    if (!user) return;
+    setIsLoading(true);
     try {
-      // لو عندك API رسمي من Pi Wallet أو Pi Network استخدمه هنا
-      // دلوقتي مجرد mock للـ build
-      setWallet({
-        balance: 100,           // رصيد افتراضي
-        totalSpins: 5,          // إجمالي عدد اللفات
-        referralCode: "REF123", // رمز إحالة افتراضي
-        referralCount: 2,
-        referralEarnings: 10,
-      });
+      // 1. جلب بيانات من Supabase
+      const { data, error } = await supabase
+        .from("wallets")
+        .select("*")
+        .eq("pi_uid", profileId)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      // 2. لو موجود بيانات، نحدث state
+      if (data) {
+        setWallet({
+          balance: data.balance,
+          totalSpins: data.total_spins,
+          referralCode: data.referral_code,
+          referralCount: data.referral_count,
+          referralEarnings: data.referral_earnings,
+        });
+      } else {
+        // إنشاء سجل جديد في Supabase لو مش موجود
+        const { data: newWallet, error: insertError } = await supabase
+          .from("wallets")
+          .insert({
+            pi_uid: profileId,
+            balance: 0,
+            total_spins: 0,
+            referral_code: `REF-${Math.floor(Math.random() * 100000)}`,
+            referral_count: 0,
+            referral_earnings: 0,
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+
+        setWallet({
+          balance: newWallet.balance,
+          totalSpins: newWallet.total_spins,
+          referralCode: newWallet.referral_code,
+          referralCount: newWallet.referral_count,
+          referralEarnings: newWallet.referral_earnings,
+        });
+      }
+
+      // 3. جلب الرصيد الفعلي من Pi Wallet API إذا متاح
+      if (piSDK.isAvailable()) {
+        try {
+          const balance = await piSDK.getBalance(); // افترض أن SDK يوفر دالة getBalance
+          setWallet((prev) => ({ ...prev, balance }));
+        } catch (err) {
+          console.warn("Failed to fetch Pi Wallet balance:", err);
+        }
+      }
     } catch (err) {
-      console.error("Error fetching wallet data:", err);
+      console.error("Failed to fetch wallet data:", err);
       toast.error("Failed to fetch wallet data");
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [profileId, user]);
 
   // ======= Apply referral =======
-  const applyReferral = async (username: string, ref?: string) => {
-    if (!ref) return;
-    // لو عندك API رسمي استخدمه هنا
-    console.log(`Applying referral ${ref} for ${username}`);
-    toast.success(`Referral ${ref} applied for ${username}`);
-  };
+  const applyReferral = useCallback(
+    async (referralCode: string) => {
+      if (!user || !referralCode) return;
+      try {
+        // تحديث Supabase
+        const { data, error } = await supabase
+          .from("wallets")
+          .update({
+            referral_code: referralCode,
+            referral_count: wallet.referralCount + 1,
+          })
+          .eq("pi_uid", profileId)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setWallet((prev) => ({
+          ...prev,
+          referralCode: data.referral_code,
+          referralCount: data.referral_count,
+        }));
+
+        toast.success(`Referral ${referralCode} applied!`);
+      } catch (err) {
+        console.error("Failed to apply referral:", err);
+        toast.error("Failed to apply referral");
+      }
+    },
+    [profileId, user, wallet.referralCount]
+  );
 
   // ======= Update balance =======
-  const updateBalance = (amount: number) => {
-    setWallet(prev => ({ ...prev, balance: amount }));
-  };
+  const updateBalance = useCallback(
+    async (amount: number) => {
+      if (!user) return;
+
+      // تحديث Supabase
+      try {
+        const { data, error } = await supabase
+          .from("wallets")
+          .update({ balance: amount })
+          .eq("pi_uid", profileId)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setWallet((prev) => ({ ...prev, balance: data.balance }));
+      } catch (err) {
+        console.error("Failed to update balance:", err);
+        toast.error("Failed to update balance");
+      }
+    },
+    [profileId, user]
+  );
 
   return {
     wallet,
@@ -60,6 +155,7 @@ export function useWallet() {
     fetchWalletData,
     applyReferral,
     updateBalance,
+    isLoading,
     setWallet,
   };
 }

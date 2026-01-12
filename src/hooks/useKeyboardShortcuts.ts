@@ -1,5 +1,5 @@
-import { useEffect, useCallback } from 'react';
-import { useSoundSettings } from '@/contexts/SoundSettingsContext';
+import { useEffect, useCallback } from "react";
+import { useSoundSettings } from "@/contexts/SoundSettingsContext";
 
 interface ShortcutHandlers {
   onSpin?: () => void;
@@ -7,57 +7,70 @@ interface ShortcutHandlers {
   canSpin?: boolean;
 }
 
-export function useKeyboardShortcuts({ onSpin, onFreeSpin, canSpin = true }: ShortcutHandlers) {
+export function useKeyboardShortcuts({
+  onSpin,
+  onFreeSpin,
+  canSpin = true,
+}: ShortcutHandlers) {
   const { isMuted, toggleMute } = useSoundSettings();
 
-  const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    // Ignore if typing in an input
-    if (
-      event.target instanceof HTMLInputElement ||
-      event.target instanceof HTMLTextAreaElement
-    ) {
-      return;
-    }
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      // تجاهل لو المستخدم بيكتب
+      const target = event.target as HTMLElement;
+      if (
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
 
-    // M - Toggle mute
-    if (event.key === 'm' || event.key === 'M') {
-      event.preventDefault();
-      toggleMute();
-      return;
-    }
+      // M → Mute / Unmute
+      if (event.key.toLowerCase() === "m") {
+        event.preventDefault();
+        toggleMute();
+        return;
+      }
 
-    // Space - Spin (if available)
-    if (event.code === 'Space' && canSpin) {
-      event.preventDefault();
-      onSpin?.();
-      return;
-    }
+      if (!canSpin) return;
 
-    // F - Free spin
-    if ((event.key === 'f' || event.key === 'F') && canSpin) {
-      event.preventDefault();
-      onFreeSpin?.();
-      return;
-    }
+      // Space → Spin
+      if (event.code === "Space") {
+        event.preventDefault();
+        onSpin?.();
+        return;
+      }
 
-    // Number keys 1-4 for different spin types
-    if (event.key >= '1' && event.key <= '4' && canSpin) {
-      event.preventDefault();
-      onSpin?.();
-      return;
-    }
-  }, [toggleMute, onSpin, onFreeSpin, canSpin]);
+      // F → Free Spin
+      if (event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        onFreeSpin?.();
+        return;
+      }
+
+      // 1 - 4 → Spin presets (مستقبلي)
+      if (/^[1-4]$/.test(event.key)) {
+        event.preventDefault();
+        onSpin?.();
+      }
+    },
+    [toggleMute, onSpin, onFreeSpin, canSpin]
+  );
 
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown, { passive: false });
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, [handleKeyDown]);
 
   return {
     shortcuts: [
-      { key: 'Space', action: 'Spin the wheel' },
-      { key: 'F', action: 'Use free spin' },
-      { key: 'M', action: isMuted ? 'Unmute sounds' : 'Mute sounds' },
+      { key: "Space", action: "Spin" },
+      { key: "F", action: "Free Spin" },
+      { key: "M", action: isMuted ? "Unmute Sounds" : "Mute Sounds" },
+      { key: "1-4", action: "Spin Presets" },
     ],
   };
 }

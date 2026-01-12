@@ -1,7 +1,7 @@
-import { useState, useCallback, useEffect } from 'react';
-import { piSDK, AuthResult, PaymentDTO } from '@/lib/pi-sdk';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useState, useCallback, useEffect } from "react";
+import PiSDK from "pi-sdk-js";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface PiUser {
   uid: string;
@@ -23,41 +23,46 @@ export function usePiAuth() {
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize Pi SDK on mount
+  // تهيئة Pi SDK عند أول تحميل
   useEffect(() => {
     const initSDK = async () => {
-      const sandbox = import.meta.env.DEV; // Use sandbox in development
-      const success = await piSDK.init(sandbox);
-      setIsInitialized(success);
+      try {
+        // sandbox للـ dev mode
+        const sandbox = import.meta.env.DEV;
+        await PiSDK.init(sandbox);
+        setIsInitialized(true);
+      } catch (err) {
+        console.error("Pi SDK initialization failed:", err);
+        setIsInitialized(false);
+        toast.error("Pi SDK not available. Open in Pi Browser.");
+      }
     };
     initSDK();
   }, []);
 
-  // Handle incomplete payments
-  const handleIncompletePayment = useCallback(async (payment: PaymentDTO) => {
-    console.log('Incomplete payment found:', payment);
-    // Complete the payment on the server
+  // دالة لإنهاء أي دفع غير مكتمل
+  const handleIncompletePayment = useCallback(async (payment: any) => {
+    console.log("Incomplete payment found:", payment);
     try {
-      await supabase.functions.invoke('complete-payment', {
-        body: { 
+      await supabase.functions.invoke("complete-payment", {
+        body: {
           payment_id: payment.identifier,
-          txid: payment.transaction?.txid 
-        }
+          txid: payment.transaction?.txid,
+        },
       });
-    } catch (error) {
-      console.error('Failed to complete payment:', error);
+    } catch (err) {
+      console.error("Failed to complete payment:", err);
     }
   }, []);
 
-  // Fetch or create profile
+  // جلب أو إنشاء البروفايل في Supabase
   const fetchProfile = useCallback(async (username: string): Promise<ProfileData | null> => {
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('pi_username', username)
+        .from("profiles")
+        .select("*")
+        .eq("pi_username", username)
         .maybeSingle();
-
       if (error) throw error;
 
       if (data) {
@@ -70,13 +75,12 @@ export function usePiAuth() {
         };
       }
 
-      // Create new profile
+      // إنشاء بروفايل جديد لو مش موجود
       const { data: newProfile, error: insertError } = await supabase
-        .from('profiles')
+        .from("profiles")
         .insert({ pi_username: username })
         .select()
         .single();
-
       if (insertError) throw insertError;
 
       return {
@@ -86,26 +90,24 @@ export function usePiAuth() {
         total_winnings: 0,
         last_free_spin: null,
       };
-    } catch (error) {
-      console.error('Failed to fetch profile:', error);
+    } catch (err) {
+      console.error("Failed to fetch profile:", err);
       return null;
     }
   }, []);
 
-  // Authenticate with Pi Network
+  // تسجيل الدخول عبر Pi SDK
   const authenticate = useCallback(async () => {
     if (!isInitialized) {
-      toast.error('Pi Network not available. Please open in Pi Browser.');
+      toast.error("Pi Network not available. Open in Pi Browser.");
       return null;
     }
 
     setIsLoading(true);
-
     try {
-      const authResult = await piSDK.authenticate(handleIncompletePayment);
-      
+      const authResult = await PiSDK.authenticate(handleIncompletePayment);
       if (!authResult) {
-        toast.error('Authentication failed');
+        toast.error("Authentication failed");
         return null;
       }
 
@@ -114,65 +116,58 @@ export function usePiAuth() {
         username: authResult.user.username,
         accessToken: authResult.accessToken,
       };
-
       setUser(piUser);
 
-      // Fetch or create profile
+      // جلب أو إنشاء البروفايل
       const profileData = await fetchProfile(piUser.username);
       setProfile(profileData);
 
       toast.success(`Welcome, ${piUser.username}!`);
       return piUser;
-    } catch (error) {
-      console.error('Auth error:', error);
-      toast.error('Authentication failed');
+    } catch (err) {
+      console.error("Auth error:", err);
+      toast.error("Authentication failed");
       return null;
     } finally {
       setIsLoading(false);
     }
   }, [isInitialized, handleIncompletePayment, fetchProfile]);
 
-  // Logout
+  // تسجيل الخروج
   const logout = useCallback(() => {
     setUser(null);
     setProfile(null);
-    toast.info('Logged out');
+    toast.info("Logged out");
   }, []);
 
-  // Refresh profile data
+  // تحديث بيانات البروفايل
   const refreshProfile = useCallback(async () => {
     if (!user) return;
     const profileData = await fetchProfile(user.username);
     setProfile(profileData);
   }, [user, fetchProfile]);
 
-  // Check if free spin is available
+  // التحقق من صلاحية Free Spin
   const canFreeSpin = useCallback(() => {
     if (!profile?.last_free_spin) return true;
-    
     const lastSpin = new Date(profile.last_free_spin);
     const now = new Date();
     const hoursSinceSpin = (now.getTime() - lastSpin.getTime()) / (1000 * 60 * 60);
-    
     return hoursSinceSpin >= 24;
   }, [profile]);
 
-  // Get time until next free spin
+  // الوقت المتبقي لـ Free Spin
   const getNextFreeSpinTime = useCallback(() => {
-    if (!profile?.last_free_spin) return 'Available!';
-    
+    if (!profile?.last_free_spin) return "Available!";
     const lastSpin = new Date(profile.last_free_spin);
     const nextSpin = new Date(lastSpin.getTime() + 24 * 60 * 60 * 1000);
     const now = new Date();
-    
-    if (now >= nextSpin) return 'Available!';
-    
+    if (now >= nextSpin) return "Available!";
     const diff = nextSpin.getTime() - now.getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const secs = Math.floor((diff % (1000 * 60)) / 1000);
-    
-    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   }, [profile]);
 
   return {

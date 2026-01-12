@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 
 // ======= Components =======
 import { Header } from "@/components/Header";
@@ -37,10 +36,19 @@ const SPIN_COSTS: Record<string, number> = { free: 0, basic: 0.1, pro: 0.25, vau
 const Index = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { t } = useTranslation();
 
   // ======= Auth & Pi =======
-  const { user, isAuthenticated, isLoading: isAuthLoading, authenticate, logout, refreshProfile, canFreeSpin, getNextFreeSpinTime } = usePiAuth();
+  const { 
+    user, 
+    isAuthenticated, 
+    isLoading: isAuthLoading, 
+    authenticate, 
+    logout, 
+    refreshProfile, 
+    canFreeSpin, 
+    getNextFreeSpinTime 
+  } = usePiAuth();
+  
   const { createPayment } = usePiPayment();
   const { jackpot, leaderboard, isLoading: isGameLoading, refreshData } = useGameData();
 
@@ -49,24 +57,27 @@ const Index = () => {
 
   // ======= Spin Hook =======
   const spinFn = useSpin({ onSpinComplete: null });
-  const { isSpinning, setIsSpinning, targetResult, handleSpinClick, handleSpinResult, setTargetResult } = useSpinHandler(
+  const { isSpinning, setIsSpinning, targetResult, handleSpinClick, setTargetResult } = useSpinHandler(
     spinFn.spin,
     updateBalance,
     refreshData,
-    refreshProfile,
-    t
+    refreshProfile
   );
 
   // ======= UI States =======
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isBlur, setIsBlur] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [freeSpinTimer, setFreeSpinTimer] = useState(t("available"));
+  const [freeSpinTimer, setFreeSpinTimer] = useState("Available");
   const [showJackpotPopup, setShowJackpotPopup] = useState(false);
   const [showAdReward, setShowAdReward] = useState(false);
   const [adRewardType, setAdRewardType] = useState<'free_spin' | 'bonus_pi' | 'boost'>('free_spin');
   const [lastReward, setLastReward] = useState(0);
-  const toggleMenu = () => { setIsMenuOpen(prev => !prev); setIsBlur(prev => !prev); };
+  
+  const toggleMenu = () => { 
+    setIsMenuOpen(prev => !prev); 
+    setIsBlur(prev => !prev); 
+  };
 
   // ======= Protect route =======
   useEffect(() => {
@@ -76,6 +87,7 @@ const Index = () => {
   // ======= Pi Price Live =======
   const [piPrice, setPiPrice] = useState(0);
   const [piPriceTrend, setPiPriceTrend] = useState<'up'|'down'|'neutral'>('neutral');
+
   useEffect(() => {
     let lastPrice = 0;
     const fetchPrice = async () => {
@@ -115,7 +127,7 @@ const Index = () => {
       localStorage.setItem('pi_username', result.username);
       await applyReferral(result.username, searchParams.get('ref'));
       await fetchWalletData(result.username);
-      toast.success(t("welcome_user", { username: result.username }));
+      toast.success(`Welcome, ${result.username}!`);
     }
   };
 
@@ -123,7 +135,7 @@ const Index = () => {
     logout();
     localStorage.removeItem('pi_username');
     setWallet({ balance:0, totalSpins:0, referralCode:'', referralCount:0, referralEarnings:0 });
-    toast.info(t("logged_out"));
+    toast.info("Logged out");
   };
 
   return (
@@ -150,25 +162,25 @@ const Index = () => {
       {isMenuOpen && (
         <motion.nav className="fixed top-0 right-0 w-64 h-full bg-background z-50 shadow-xl p-6 flex flex-col gap-6" initial={{ x: 300 }} animate={{ x: 0 }}>
           <button onClick={toggleMenu} className="self-end text-2xl font-bold">&times;</button>
-          <a href="/profile" className="hover:text-gold">{t("profile")}</a>
-          <a href="/marketplace" className="hover:text-gold">{t("marketplace")}</a>
-          <a href="/vip" className="hover:text-gold">{t("vip_benefits")}</a>
-          <a href="/withdrawals" className="hover:text-gold">{t("withdrawals")}</a>
-          <a href="/achievements" className="hover:text-gold">{t("achievements")}</a>
-          <a href="/legal" className="hover:text-gold">{t("legal")}</a>
-          <a href="/admin" className="hover:text-gold">{t("admin")}</a>
+          <a href="/profile" className="hover:text-gold">Profile</a>
+          <a href="/marketplace" className="hover:text-gold">Marketplace</a>
+          <a href="/vip" className="hover:text-gold">VIP</a>
+          <a href="/withdrawals" className="hover:text-gold">Withdrawals</a>
+          <a href="/achievements" className="hover:text-gold">Achievements</a>
+          <a href="/legal" className="hover:text-gold">Legal</a>
+          <a href="/admin" className="hover:text-gold">Admin</a>
         </motion.nav>
       )}
 
       <main className="container mx-auto px-4 pt-24 pb-12">
         <section className="text-center mb-12">
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-black mb-4">
-            <span className="text-gradient-gold">{t("spin")}</span>
+            <span className="text-gradient-gold">Spin</span>
             <span className="text-foreground">4</span>
             <span className="text-gradient-purple">Pi</span>
           </h1>
           <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto font-medium">
-            {t("spin_tagline")}
+            Spin the wheel and earn rewards every day!
           </p>
 
           {isAuthenticated && user && (

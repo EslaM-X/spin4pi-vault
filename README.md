@@ -139,7 +139,7 @@ App.tsx ├── SoundSettingsProvider ├── QueryClientProvider ├── 
 ## 🔗 Useful Links
 - Pi Network: [https://minepi.com](https://minepi.com)  
 - Supabase: [https://supabase.com](https://supabase.com)  
-- Spin4Pi GitHub: `https://github.com/EslaM-X/spin4pi-vault/tree/main?tab=readme-ov-file#-spin4pi---ultimate-pi-gaming-experience`
+- Spin4Pi GitHub: `https://github.com/EslaM-X/spin4pi-vault/tree/main`
 
 ---
 

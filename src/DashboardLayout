@@ -1,0 +1,89 @@
+// src/layouts/DashboardLayout.tsx
+import { ReactNode, useState } from "react";
+import { motion } from "framer-motion";
+import { Header } from "@/components/Header";
+
+type Props = {
+  children: ReactNode;
+  isAuthenticated: boolean;
+  username?: string | null;
+  balance: number;
+  onLogin: () => void;
+  onLogout: () => void;
+  piPrice: number;
+  piPriceTrend: 'up'|'down'|'neutral';
+};
+
+const DashboardLayout = ({
+  children,
+  isAuthenticated,
+  username,
+  balance,
+  onLogin,
+  onLogout,
+  piPrice,
+  piPriceTrend
+}: Props) => {
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isBlur, setIsBlur] = useState(false);
+
+  const toggleMenu = () => {
+    setIsMenuOpen(prev => !prev);
+    setIsBlur(prev => !prev);
+  };
+
+  return (
+    <div className={`min-h-screen bg-background overflow-hidden ${isBlur ? 'filter blur-sm' : ''}`}>
+      {/* Background Stars & Glow */}
+      <div className="fixed inset-0 bg-stars opacity-50 pointer-events-none" />
+      <div className="fixed inset-0 bg-gradient-radial from-pi-purple/10 via-transparent to-transparent pointer-events-none" />
+
+      {/* Header */}
+      <Header 
+        isLoggedIn={isAuthenticated} 
+        username={username} 
+        balance={balance} 
+        onLogin={onLogin} 
+        onLogout={onLogout} 
+        isMenuOpen={isMenuOpen}
+        toggleMenu={toggleMenu}
+        piPrice={piPrice}
+        piPriceTrend={piPriceTrend}
+      />
+
+      {/* Sidebar / Menu */}
+      {isMenuOpen && (
+        <>
+          <motion.div
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={toggleMenu}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          />
+          <motion.nav
+            className="fixed top-0 right-0 w-64 h-full bg-background z-50 shadow-xl p-6 flex flex-col gap-6"
+            initial={{ x: 300 }}
+            animate={{ x: 0 }}
+          >
+            <button onClick={toggleMenu} className="self-end text-2xl font-bold">&times;</button>
+            <a href="/profile" className="hover:text-gold">Profile</a>
+            <a href="/marketplace" className="hover:text-gold">Marketplace</a>
+            <a href="/vip" className="hover:text-gold">VIP</a>
+            <a href="/withdrawals" className="hover:text-gold">Withdrawals</a>
+            <a href="/achievements" className="hover:text-gold">Achievements</a>
+            <a href="/legal" className="hover:text-gold">Legal</a>
+            <a href="/admin" className="hover:text-gold">Admin</a>
+          </motion.nav>
+        </>
+      )}
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 pt-24 pb-12">
+        {children}
+      </main>
+    </div>
+  );
+};
+
+export default DashboardLayout;

@@ -2,8 +2,8 @@
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { piSDK } from "pi-sdk-js";
 import { useWallet } from "@/hooks/useWallet";
+import { usePiPayment } from "@/hooks/usePiPayment";
 
 interface SpinResult {
   success: boolean;
@@ -25,9 +25,12 @@ export function useSpin({ onSpinComplete, onError }: UseSpinOptions = {}) {
   // 🔑 ربط بالـ Wallet الحالي
   const { wallet, updateBalance, profileId, fetchWalletData } = useWallet();
 
+  // 🔑 دمج Pi Payment
+  const { createPayment, isPaying } = usePiPayment();
+
   const spin = useCallback(
     async (spinType: string, cost: number = 0) => {
-      if (isSpinning) return null;
+      if (isSpinning || isPaying) return null;
       if (!profileId) {
         toast.error("User not authenticated!");
         return null;
@@ -38,18 +41,8 @@ export function useSpin({ onSpinComplete, onError }: UseSpinOptions = {}) {
       try {
         // ===== الدفع باستخدام Pi SDK لو spin مدفوع =====
         if (cost > 0) {
-          if (!piSDK.isAvailable()) {
-            toast.error("Open in Pi Browser to perform paid spin");
-            setIsSpinning(false);
-            return null;
-          }
-
-          const paymentResult = await piSDK.requestPayment({
-            amount: cost,
-            reason: `Spin ${spinType}`,
-          });
-
-          if (!paymentResult.success) {
+          const payment = await createPayment(cost, `Spin ${spinType}`, profileId);
+          if (!payment.success) {
             toast.error("Payment failed, spin canceled");
             setIsSpinning(false);
             return null;
@@ -100,7 +93,7 @@ export function useSpin({ onSpinComplete, onError }: UseSpinOptions = {}) {
         setIsSpinning(false);
       }
     },
-    [isSpinning, wallet, profileId, updateBalance, fetchWalletData, onSpinComplete, onError]
+    [isSpinning, isPaying, wallet, profileId, updateBalance, fetchWalletData, createPayment, onSpinComplete, onError]
   );
 
   const completeAnimation = useCallback(() => {

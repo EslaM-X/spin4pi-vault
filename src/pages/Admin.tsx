@@ -1,66 +1,44 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
-import { Trophy, BarChart3, Plus, RefreshCw, Calendar, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, BarChart3, Trophy, Plus, RefreshCw, Calendar, Star, Gift } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useAuth } from '@/hooks/useAuth';
+import GlobalLoader from '@/components/GlobalLoader';
+import DashboardLayout from '@/layouts/DashboardLayout';
 
-interface Tournament {
-  id: string;
-  name: string;
-  description: string | null;
-  start_time: string;
-  end_time: string;
-  entry_fee: number;
-  prize_pool: number;
-  status: string;
-}
-
-interface WalletAnalytics {
-  totalUsers: number;
-  totalSpins: number;
-  totalDeposits: number;
-  totalWithdrawals: number;
-  jackpotAmount: number;
-  activeTournaments: number;
-  totalNFTs: number;
-  dailyRewardsClaimed: number;
-  activeBoosts: number;
-}
+interface Tournament { id: string; name: string; description: string | null; start_time: string; end_time: string; entry_fee: number; prize_pool: number; status: string; }
+interface NFT { id: string; name: string; owner: string; rarity: string; status: string; }
+interface Boost { id: string; name: string; multiplier: number; active: boolean; }
+interface DailyReward { id: string; user: string; amount: number; claimed: boolean; date: string; }
+interface WalletAnalytics { totalUsers: number; totalSpins: number; totalDeposits: number; totalWithdrawals: number; jackpotAmount: number; activeTournaments: number; totalNFTs: number; dailyRewardsClaimed: number; activeBoosts: number; }
 
 const Admin = () => {
+  const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [nftsData, setNftsData] = useState<NFT[]>([]);
+  const [boostsData, setBoostsData] = useState<Boost[]>([]);
+  const [dailyRewardsData, setDailyRewardsData] = useState<DailyReward[]>([]);
   const [analytics, setAnalytics] = useState<WalletAnalytics>({
-    totalUsers: 0,
-    totalSpins: 0,
-    totalDeposits: 0,
-    totalWithdrawals: 0,
-    jackpotAmount: 0,
-    activeTournaments: 0,
-    totalNFTs: 0,
-    dailyRewardsClaimed: 0,
-    activeBoosts: 0,
+    totalUsers: 0, totalSpins: 0, totalDeposits: 0, totalWithdrawals: 0,
+    jackpotAmount: 0, activeTournaments: 0, totalNFTs: 0, dailyRewardsClaimed: 0, activeBoosts: 0
   });
-  const [isLoading, setIsLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [newTournament, setNewTournament] = useState({
-    name: '',
-    description: '',
-    entry_fee: 0.1,
-    prize_pool: 10,
-    duration_hours: 24,
-  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [newTournament, setNewTournament] = useState({ name: '', description: '', entry_fee: 0.1, prize_pool: 10, duration_hours: 24 });
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (!authLoading && !user) navigate('/login');
+    if (user) fetchData();
+  }, [user, authLoading]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -72,9 +50,9 @@ const Admin = () => {
         { data: withdrawalsData },
         { data: jackpotData },
         { data: tournamentsData },
-        { data: nftsData },
-        { data: dailyRewardsData },
-        { data: boostsData },
+        { data: nfts },
+        { data: dailyRewards },
+        { data: boosts },
       ] = await Promise.all([
         supabase.from('profiles').select('', { count: 'exact', head: true }),
         supabase.from('spins').select('', { count: 'exact', head: true }),
@@ -92,23 +70,32 @@ const Admin = () => {
       const activeTournaments = tournamentsData?.filter(t => t.status === 'active').length || 0;
 
       setAnalytics({
-        totalUsers: usersCount || 0,
-        totalSpins: spinsCount || 0,
-        totalDeposits,
-        totalWithdrawals,
+        totalUsers: usersCount || 0, totalSpins: spinsCount || 0,
+        totalDeposits, totalWithdrawals,
         jackpotAmount: Number(jackpotData?.total_pi) || 0,
-        activeTournaments,
-        totalNFTs: nftsData?.length || 0,
-        dailyRewardsClaimed: dailyRewardsData?.length || 0,
-        activeBoosts: boostsData?.length || 0,
+        activeTournaments, totalNFTs: nfts?.length || 0,
+        dailyRewardsClaimed: dailyRewards?.length || 0,
+        activeBoosts: boosts?.length || 0
       });
 
       setTournaments(tournamentsData || []);
-    } catch (error) {
-      console.error('Error fetching admin data:', error);
-      toast.error('Failed to load admin data');
+      setNftsData(nfts || []);
+      setBoostsData(boosts || []);
+      setDailyRewardsData(dailyRewards || []);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to fetch admin data');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'text-green-500';
+      case 'completed': return 'text-muted-foreground';
+      case 'upcoming': return 'text-blue-500';
+      default: return 'text-foreground';
     }
   };
 
@@ -133,75 +120,38 @@ const Admin = () => {
       setNewTournament({ name: '', description: '', entry_fee: 0.1, prize_pool: 10, duration_hours: 24 });
       fetchData();
     } catch (error) {
-      console.error('Error creating tournament:', error);
+      console.error(error);
       toast.error('Failed to create tournament');
     } finally { setIsCreating(false); }
   };
 
-  const endTournament = async (tournamentId: string) => {
+  const endTournament = async (id: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('end-tournament', {
-        body: { tournament_id: tournamentId },
-      });
+      const { data, error } = await supabase.functions.invoke('end-tournament', { body: { tournament_id: id } });
       if (error) throw error;
-      toast.success(`Tournament ended! Prizes distributed to ${data.winners?.length || 0} winners`);
+      toast.success(`Tournament ended! Winners: ${data.winners?.length || 0}`);
       fetchData();
-    } catch (error) {
-      console.error('Error ending tournament:', error);
+    } catch (err) {
+      console.error(err);
       toast.error('Failed to end tournament');
     }
   };
 
-  const runCronJob = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('cron-end-tournaments');
-      if (error) throw error;
-      toast.success(`Cron job completed! Processed ${data.tournaments_processed} tournaments`);
-      fetchData();
-    } catch (error) {
-      console.error('Error running cron:', error);
-      toast.error('Failed to run cron job');
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'text-green-500';
-      case 'completed': return 'text-muted-foreground';
-      case 'upcoming': return 'text-blue-500';
-      default: return 'text-foreground';
-    }
-  };
+  if (authLoading || isLoading) return <GlobalLoader />;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="fixed inset-0 bg-stars opacity-50 pointer-events-none" />
-      <div className="fixed inset-0 bg-gradient-radial from-pi-purple/10 via-transparent to-transparent pointer-events-none" />
+    <DashboardLayout>
+      <div className="container mx-auto px-4 py-8 space-y-8">
 
-      <div className="container mx-auto px-4 py-8 relative">
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/"><ArrowLeft className="w-5 h-5" /></Link>
-            </Button>
-            <div>
-              <h1 className="text-3xl font-display font-bold text-foreground flex items-center gap-2">
-                <BarChart3 className="w-8 h-8 text-pi-purple" /> Admin Dashboard
-              </h1>
-              <p className="text-muted-foreground">Manage tournaments, wallet, NFTs, boosts & analytics</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={runCronJob} className="gap-2">
-              <RefreshCw className="w-4 h-4" /> Run Cron
-            </Button>
-            <Button onClick={fetchData} variant="outline" className="gap-2">
-              <RefreshCw className="w-4 h-4" /> Refresh
-            </Button>
-          </div>
-        </motion.div>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <Link to="/"><ArrowLeft className="w-6 h-6 text-foreground" /></Link>
+          <h1 className="text-3xl font-bold flex items-center gap-2"><BarChart3 /> Admin Dashboard</h1>
+          <Button onClick={fetchData} variant="outline"><RefreshCw /> Refresh</Button>
+        </div>
 
-        <motion.div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        {/* Analytics Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {Object.entries({
             Users: analytics.totalUsers,
             'Total Spins': analytics.totalSpins,
@@ -209,83 +159,38 @@ const Admin = () => {
             Withdrawals: `${analytics.totalWithdrawals.toFixed(2)} π`,
             Jackpot: `${analytics.jackpotAmount.toFixed(2)} π`,
             'Active Tournaments': analytics.activeTournaments,
-            'NFTs': analytics.totalNFTs,
+            NFTs: analytics.totalNFTs,
             'Daily Rewards': analytics.dailyRewardsClaimed,
-            'Active Boosts': analytics.activeBoosts,
+            'Active Boosts': analytics.activeBoosts
           }).map(([label, value], idx) => (
-            <Card key={idx} className="bg-card/50 border-border">
+            <Card key={idx} className="bg-card/50 border border-border">
               <CardContent className="pt-6">
-                {isLoading ? <div className="animate-pulse h-12 w-full bg-muted rounded-lg"></div> :
-                  <>
-                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                      <span className="text-sm">{label}</span>
-                    </div>
-                    <p className="text-2xl font-bold">{value}</p>
-                  </>}
+                <div className="text-muted-foreground text-sm">{label}</div>
+                <div className="text-2xl font-bold">{value}</div>
               </CardContent>
             </Card>
           ))}
-        </motion.div>
+        </div>
 
-        {/* Tournament Management */}
+        {/* Tournaments Table */}
         <Card className="bg-card/50 border-border">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-gold" /> Tournament Management
-            </CardTitle>
-            <Button onClick={() => setShowCreateForm(!showCreateForm)} className="gap-2">
-              <Plus className="w-4 h-4" /> New Tournament
-            </Button>
+          <CardHeader className="flex justify-between items-center">
+            <CardTitle className="flex items-center gap-2"><Trophy /> Tournaments</CardTitle>
+            <Button onClick={() => setShowCreateForm(p => !p)} className="gap-2"><Plus /> New Tournament</Button>
           </CardHeader>
+          {showCreateForm && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="p-4 bg-muted/30 rounded mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+                <div><Label>Name</Label><Input value={newTournament.name} onChange={e => setNewTournament(p => ({ ...p, name: e.target.value }))} /></div>
+                <div><Label>Description</Label><Input value={newTournament.description} onChange={e => setNewTournament(p => ({ ...p, description: e.target.value }))} /></div>
+                <div><Label>Entry Fee</Label><Input type="number" step="0.01" value={newTournament.entry_fee} onChange={e => setNewTournament(p => ({ ...p, entry_fee: parseFloat(e.target.value) || 0 }))} /></div>
+                <div><Label>Prize Pool</Label><Input type="number" step="0.1" value={newTournament.prize_pool} onChange={e => setNewTournament(p => ({ ...p, prize_pool: parseFloat(e.target.value) || 0 }))} /></div>
+                <div><Label>Duration (h)</Label><Input type="number" value={newTournament.duration_hours} onChange={e => setNewTournament(p => ({ ...p, duration_hours: parseInt(e.target.value) || 24 }))} /></div>
+              </div>
+              <div className="flex gap-2"><Button onClick={createTournament}>Create</Button><Button variant="outline" onClick={() => setShowCreateForm(false)}>Cancel</Button></div>
+            </motion.div>
+          )}
           <CardContent>
-            {showCreateForm && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mb-6 p-4 bg-muted/30 rounded-lg">
-                {isCreating ? (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                      {Array.from({ length: 5 }).map((_, idx) => (
-                        <div key={idx} className="h-12 bg-muted rounded animate-pulse"></div>
-                      ))}
-                    </div>
-                    <div className="flex gap-2 mt-4">
-                      <div className="h-10 w-32 bg-muted rounded animate-pulse"></div>
-                      <div className="h-10 w-32 bg-muted rounded animate-pulse"></div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-                    <div>
-                      <Label htmlFor="name">Name</Label>
-                      <Input id="name" value={newTournament.name} onChange={e => setNewTournament(p => ({ ...p, name: e.target.value }))} placeholder="Tournament name" />
-                    </div>
-                    <div>
-                      <Label htmlFor="description">Description</Label>
-                      <Input id="description" value={newTournament.description} onChange={e => setNewTournament(p => ({ ...p, description: e.target.value }))} placeholder="Optional description" />
-                    </div>
-                    <div>
-                      <Label htmlFor="entry_fee">Entry Fee (π)</Label>
-                      <Input id="entry_fee" type="number" step="0.01" value={newTournament.entry_fee} onChange={e => setNewTournament(p => ({ ...p, entry_fee: parseFloat(e.target.value) || 0 }))} />
-                    </div>
-                    <div>
-                      <Label htmlFor="prize_pool">Prize Pool (π)</Label>
-                      <Input id="prize_pool" type="number" step="0.1" value={newTournament.prize_pool} onChange={e => setNewTournament(p => ({ ...p, prize_pool: parseFloat(e.target.value) || 0 }))} />
-                    </div>
-                    <div>
-                      <Label htmlFor="duration">Duration (hours)</Label>
-                      <Input id="duration" type="number" value={newTournament.duration_hours} onChange={e => setNewTournament(p => ({ ...p, duration_hours: parseInt(e.target.value) || 24 }))} />
-                    </div>
-                  </div>
-                )}
-                {!isCreating && (
-                  <div className="flex gap-2">
-                    <Button onClick={createTournament}>Create Tournament</Button>
-                    <Button variant="outline" onClick={() => setShowCreateForm(false)}>Cancel</Button>
-                  </div>
-                )}
-              </motion.div>
-            )}
-
-            {/* Tournaments Table */}
             <Table>
               <TableHeader>
                 <TableRow>
@@ -299,33 +204,101 @@ const Admin = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? Array.from({ length: 3 }).map((_, idx) => (
-                  <TableRow key={idx} className="animate-pulse">
-                    {Array.from({ length: 7 }).map((__, i) => (
-                      <TableCell key={i}><div className="h-4 w-full bg-muted rounded" /></TableCell>
-                    ))}
-                  </TableRow>
-                )) : tournaments.map(t => (
+                {tournaments.map(t => (
                   <TableRow key={t.id}>
-                    <TableCell className="font-medium">{t.name}</TableCell>
-                    <TableCell><span className={`font-semibold ${getStatusColor(t.status || 'upcoming')}`}>{t.status || 'upcoming'}</span></TableCell>
+                    <TableCell>{t.name}</TableCell>
+                    <TableCell className={getStatusColor(t.status)}>{t.status}</TableCell>
                     <TableCell>{t.entry_fee} π</TableCell>
                     <TableCell className="text-gold font-bold">{t.prize_pool} π</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{new Date(t.start_time).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{new Date(t.end_time).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      {t.status === 'active' && <Button size="sm" variant="destructive" onClick={() => endTournament(t.id)}>End</Button>}
-                      {t.status === 'upcoming' && <span className="text-sm text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3"/>Scheduled</span>}
-                      {t.status === 'completed' && <span className="text-sm text-green-500">✓ Done</span>}
-                    </TableCell>
+                    <TableCell>{new Date(t.start_time).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(t.end_time).toLocaleDateString()}</TableCell>
+                    <TableCell>{t.status === 'active' && <Button size="sm" variant="destructive" onClick={() => endTournament(t.id)}>End</Button>}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
+
+        {/* NFTs Table */}
+        <Card className="bg-card/50 border-border">
+          <CardHeader><CardTitle className="flex items-center gap-2"><Star /> NFTs</CardTitle></CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Owner</TableHead>
+                  <TableHead>Rarity</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {nftsData.map(n => (
+                  <TableRow key={n.id}>
+                    <TableCell>{n.name}</TableCell>
+                    <TableCell>{n.owner}</TableCell>
+                    <TableCell>{n.rarity}</TableCell>
+                    <TableCell className={n.status === 'active' ? 'text-green-500' : 'text-muted-foreground'}>{n.status}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {/* Boosts Table */}
+        <Card className="bg-card/50 border-border">
+          <CardHeader><CardTitle className="flex items-center gap-2"><Gift /> Active Boosts</CardTitle></CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Multiplier</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {boostsData.map(b => (
+                  <TableRow key={b.id}>
+                    <TableCell>{b.name}</TableCell>
+                    <TableCell>{b.multiplier}x</TableCell>
+                    <TableCell className={b.active ? 'text-green-500' : 'text-muted-foreground'}>{b.active ? 'Active' : 'Inactive'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {/* Daily Rewards Table */}
+        <Card className="bg-card/50 border-border">
+          <CardHeader><CardTitle className="flex items-center gap-2"><Gift /> Daily Rewards Claimed</CardTitle></CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Amount (π)</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {dailyRewardsData.map(d => (
+                  <TableRow key={d.id}>
+                    <TableCell>{d.user}</TableCell>
+                    <TableCell>{d.amount}</TableCell>
+                    <TableCell>{new Date(d.date).toLocaleDateString()}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 

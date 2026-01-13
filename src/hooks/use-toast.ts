@@ -2,15 +2,14 @@
 import * as React from "react";
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 
-const TOAST_LIMIT = 3; // ممكن نزود العدد لو حابب
-const TOAST_REMOVE_DELAY = 5000; // 5 ثواني للـ auto-remove
+const TOAST_LIMIT = 3;
+const TOAST_REMOVE_DELAY = 5000;
 
 type ToasterToast = ToastProps & {
   id: string;
   title?: React.ReactNode;
   description?: React.ReactNode;
   action?: ToastActionElement;
-  type?: "success" | "error" | "info";
 };
 
 const actionTypes = {
@@ -91,8 +90,8 @@ function dispatch(action: Action) {
 }
 
 // ===== Toast Function =====
-type ToastInput = Omit<ToasterToast, "id" | "open"> & { type?: "success" | "error" | "info" };
-function toast({ type = "info", ...props }: ToastInput) {
+type ToastInput = Omit<ToasterToast, "id" | "open">;
+function toast(props: ToastInput) {
   const id = genId();
   const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id });
   const update = (props: Partial<ToasterToast>) =>
@@ -103,7 +102,6 @@ function toast({ type = "info", ...props }: ToastInput) {
     toast: {
       ...props,
       id,
-      type,
       open: true,
       onOpenChange: (open) => {
         if (!open) dismiss();

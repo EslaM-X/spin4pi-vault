@@ -1,3 +1,4 @@
+// src/hooks/usePiShare.ts - Pi Share Hook
 import { useCallback } from 'react';
 import { piSDK } from '@/lib/pi-sdk';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,13 +20,13 @@ export function usePiShare() {
 
     try {
       if (piSDK.isAvailable()) {
-        await piSDK.shareDialog(title, message);
+        piSDK.shareDialog(title, message);
         toast.success('Share dialog opened!');
       } else {
         fallbackShare(title, message);
       }
 
-      // ===== سجل المشاركة في Supabase + اعطاء المكافأة =====
+      // ===== Record share in Supabase + give reward =====
       if (profileId) {
         await supabase.from('shares').insert({
           profile_id: profileId,
@@ -33,10 +34,9 @@ export function usePiShare() {
           title,
           message,
           reward_pi: rewardPi,
-          created_at: new Date(),
         });
 
-        // تحديث رصيد Pi في wallet
+        // Update Pi balance in wallet
         const newBalance = (wallet.balance || 0) + rewardPi;
         updateBalance(newBalance, true);
       }
@@ -54,7 +54,7 @@ export function usePiShare() {
 
     try {
       if (piSDK.isAvailable()) {
-        await piSDK.shareDialog(title, message);
+        piSDK.shareDialog(title, message);
         toast.success('Share dialog opened!');
       } else {
         fallbackShare(title, message);
@@ -67,7 +67,6 @@ export function usePiShare() {
           title,
           message,
           reward_pi: prize,
-          created_at: new Date(),
         });
 
         const newBalance = (wallet.balance || 0) + prize;
@@ -86,7 +85,7 @@ export function usePiShare() {
 
     try {
       if (piSDK.isAvailable()) {
-        await piSDK.shareDialog(title, message);
+        piSDK.shareDialog(title, message);
         toast.success('Share dialog opened!');
       } else {
         fallbackShare(title, message);
@@ -98,8 +97,7 @@ export function usePiShare() {
           type: 'referral',
           title,
           message,
-          reward_pi: 0, // Referral reward يتم عادة عند التسجيل
-          created_at: new Date(),
+          reward_pi: 0,
         });
       }
     } catch (error) {
@@ -112,7 +110,7 @@ export function usePiShare() {
   const shareCustom = useCallback(async (options: ShareOptions) => {
     try {
       if (piSDK.isAvailable()) {
-        await piSDK.shareDialog(options.title, options.message);
+        piSDK.shareDialog(options.title, options.message);
         toast.success('Share dialog opened!');
       } else {
         fallbackShare(options.title, options.message);

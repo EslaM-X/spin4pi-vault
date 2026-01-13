@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, BarChart3, Trophy, Plus, RefreshCw, Calendar, Star, Gift } from 'lucide-react';
+import { ArrowLeft, BarChart3, Trophy, Plus, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -9,36 +9,57 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useAuth } from '@/hooks/useAuth';
-import GlobalLoader from '@/components/GlobalLoader';
+import { usePiAuth } from '@/hooks/usePiAuth';
+import GlobalLoading from '@/components/GlobalLoading';
 import DashboardLayout from '@/layouts/DashboardLayout';
 
-interface Tournament { id: string; name: string; description: string | null; start_time: string; end_time: string; entry_fee: number; prize_pool: number; status: string; }
-interface NFT { id: string; name: string; owner: string; rarity: string; status: string; }
-interface Boost { id: string; name: string; multiplier: number; active: boolean; }
-interface DailyReward { id: string; user: string; amount: number; claimed: boolean; date: string; }
-interface WalletAnalytics { totalUsers: number; totalSpins: number; totalDeposits: number; totalWithdrawals: number; jackpotAmount: number; activeTournaments: number; totalNFTs: number; dailyRewardsClaimed: number; activeBoosts: number; }
+interface Tournament {
+  id: string;
+  name: string;
+  description: string | null;
+  start_time: string;
+  end_time: string;
+  entry_fee: number;
+  prize_pool: number;
+  status: string;
+}
+
+interface WalletAnalytics {
+  totalUsers: number;
+  totalSpins: number;
+  totalDeposits: number;
+  totalWithdrawals: number;
+  jackpotAmount: number;
+  activeTournaments: number;
+}
 
 const Admin = () => {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, isAuthenticated } = usePiAuth();
   const navigate = useNavigate();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [nftsData, setNftsData] = useState<NFT[]>([]);
-  const [boostsData, setBoostsData] = useState<Boost[]>([]);
-  const [dailyRewardsData, setDailyRewardsData] = useState<DailyReward[]>([]);
   const [analytics, setAnalytics] = useState<WalletAnalytics>({
-    totalUsers: 0, totalSpins: 0, totalDeposits: 0, totalWithdrawals: 0,
-    jackpotAmount: 0, activeTournaments: 0, totalNFTs: 0, dailyRewardsClaimed: 0, activeBoosts: 0
+    totalUsers: 0,
+    totalSpins: 0,
+    totalDeposits: 0,
+    totalWithdrawals: 0,
+    jackpotAmount: 0,
+    activeTournaments: 0,
   });
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [newTournament, setNewTournament] = useState({ name: '', description: '', entry_fee: 0.1, prize_pool: 10, duration_hours: 24 });
+  const [newTournament, setNewTournament] = useState({
+    name: '',
+    description: '',
+    entry_fee: 0.1,
+    prize_pool: 10,
+    duration_hours: 24,
+  });
 
   useEffect(() => {
-    if (!authLoading && !user) navigate('/login');
-    if (user) fetchData();
-  }, [user, authLoading]);
+    if (!authLoading && !isAuthenticated) navigate('/');
+    if (isAuthenticated) fetchData();
+  }, [isAuthenticated, authLoading]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -50,9 +71,6 @@ const Admin = () => {
         { data: withdrawalsData },
         { data: jackpotData },
         { data: tournamentsData },
-        { data: nfts },
-        { data: dailyRewards },
-        { data: boosts },
       ] = await Promise.all([
         supabase.from('profiles').select('', { count: 'exact', head: true }),
         supabase.from('spins').select('', { count: 'exact', head: true }),
@@ -60,28 +78,22 @@ const Admin = () => {
         supabase.from('withdrawals').select('amount').eq('status', 'completed'),
         supabase.from('jackpot').select('total_pi').single(),
         supabase.from('tournaments').select('*').order('created_at', { ascending: false }),
-        supabase.from('nfts').select('*'),
-        supabase.from('daily_rewards').select('*').eq('claimed', true),
-        supabase.from('boosts').select('*').eq('active', true),
       ]);
 
       const totalDeposits = depositsData?.reduce((sum, d) => sum + Number(d.amount), 0) || 0;
       const totalWithdrawals = withdrawalsData?.reduce((sum, w) => sum + Number(w.amount), 0) || 0;
-      const activeTournaments = tournamentsData?.filter(t => t.status === 'active').length || 0;
+      const activeTournaments = tournamentsData?.filter((t) => t.status === 'active').length || 0;
 
       setAnalytics({
-        totalUsers: usersCount || 0, totalSpins: spinsCount || 0,
-        totalDeposits, totalWithdrawals,
+        totalUsers: usersCount || 0,
+        totalSpins: spinsCount || 0,
+        totalDeposits,
+        totalWithdrawals,
         jackpotAmount: Number(jackpotData?.total_pi) || 0,
-        activeTournaments, totalNFTs: nfts?.length || 0,
-        dailyRewardsClaimed: dailyRewards?.length || 0,
-        activeBoosts: boosts?.length || 0
+        activeTournaments,
       });
 
       setTournaments(tournamentsData || []);
-      setNftsData(nfts || []);
-      setBoostsData(boosts || []);
-      setDailyRewardsData(dailyRewards || []);
     } catch (err) {
       console.error(err);
       toast.error('Failed to fetch admin data');
@@ -92,10 +104,14 @@ const Admin = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'text-green-500';
-      case 'completed': return 'text-muted-foreground';
-      case 'upcoming': return 'text-blue-500';
-      default: return 'text-foreground';
+      case 'active':
+        return 'text-green-500';
+      case 'completed':
+        return 'text-muted-foreground';
+      case 'upcoming':
+        return 'text-blue-500';
+      default:
+        return 'text-foreground';
     }
   };
 
@@ -122,7 +138,9 @@ const Admin = () => {
     } catch (error) {
       console.error(error);
       toast.error('Failed to create tournament');
-    } finally { setIsCreating(false); }
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const endTournament = async (id: string) => {
@@ -137,17 +155,22 @@ const Admin = () => {
     }
   };
 
-  if (authLoading || isLoading) return <GlobalLoader />;
+  if (authLoading || isLoading) return <GlobalLoading isVisible={true} />;
 
   return (
     <DashboardLayout>
       <div className="container mx-auto px-4 py-8 space-y-8">
-
         {/* Header */}
         <div className="flex items-center justify-between">
-          <Link to="/"><ArrowLeft className="w-6 h-6 text-foreground" /></Link>
-          <h1 className="text-3xl font-bold flex items-center gap-2"><BarChart3 /> Admin Dashboard</h1>
-          <Button onClick={fetchData} variant="outline"><RefreshCw /> Refresh</Button>
+          <Link to="/">
+            <ArrowLeft className="w-6 h-6 text-foreground" />
+          </Link>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <BarChart3 /> Admin Dashboard
+          </h1>
+          <Button onClick={fetchData} variant="outline">
+            <RefreshCw /> Refresh
+          </Button>
         </div>
 
         {/* Analytics Cards */}
@@ -159,9 +182,6 @@ const Admin = () => {
             Withdrawals: `${analytics.totalWithdrawals.toFixed(2)} π`,
             Jackpot: `${analytics.jackpotAmount.toFixed(2)} π`,
             'Active Tournaments': analytics.activeTournaments,
-            NFTs: analytics.totalNFTs,
-            'Daily Rewards': analytics.dailyRewardsClaimed,
-            'Active Boosts': analytics.activeBoosts
           }).map(([label, value], idx) => (
             <Card key={idx} className="bg-card/50 border border-border">
               <CardContent className="pt-6">
@@ -175,19 +195,69 @@ const Admin = () => {
         {/* Tournaments Table */}
         <Card className="bg-card/50 border-border">
           <CardHeader className="flex justify-between items-center">
-            <CardTitle className="flex items-center gap-2"><Trophy /> Tournaments</CardTitle>
-            <Button onClick={() => setShowCreateForm(p => !p)} className="gap-2"><Plus /> New Tournament</Button>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy /> Tournaments
+            </CardTitle>
+            <Button onClick={() => setShowCreateForm((p) => !p)} className="gap-2">
+              <Plus /> New Tournament
+            </Button>
           </CardHeader>
           {showCreateForm && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="p-4 bg-muted/30 rounded mb-4">
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="p-4 bg-muted/30 rounded mb-4"
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-                <div><Label>Name</Label><Input value={newTournament.name} onChange={e => setNewTournament(p => ({ ...p, name: e.target.value }))} /></div>
-                <div><Label>Description</Label><Input value={newTournament.description} onChange={e => setNewTournament(p => ({ ...p, description: e.target.value }))} /></div>
-                <div><Label>Entry Fee</Label><Input type="number" step="0.01" value={newTournament.entry_fee} onChange={e => setNewTournament(p => ({ ...p, entry_fee: parseFloat(e.target.value) || 0 }))} /></div>
-                <div><Label>Prize Pool</Label><Input type="number" step="0.1" value={newTournament.prize_pool} onChange={e => setNewTournament(p => ({ ...p, prize_pool: parseFloat(e.target.value) || 0 }))} /></div>
-                <div><Label>Duration (h)</Label><Input type="number" value={newTournament.duration_hours} onChange={e => setNewTournament(p => ({ ...p, duration_hours: parseInt(e.target.value) || 24 }))} /></div>
+                <div>
+                  <Label>Name</Label>
+                  <Input
+                    value={newTournament.name}
+                    onChange={(e) => setNewTournament((p) => ({ ...p, name: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Description</Label>
+                  <Input
+                    value={newTournament.description}
+                    onChange={(e) => setNewTournament((p) => ({ ...p, description: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Entry Fee</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={newTournament.entry_fee}
+                    onChange={(e) => setNewTournament((p) => ({ ...p, entry_fee: parseFloat(e.target.value) || 0 }))}
+                  />
+                </div>
+                <div>
+                  <Label>Prize Pool</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={newTournament.prize_pool}
+                    onChange={(e) => setNewTournament((p) => ({ ...p, prize_pool: parseFloat(e.target.value) || 0 }))}
+                  />
+                </div>
+                <div>
+                  <Label>Duration (h)</Label>
+                  <Input
+                    type="number"
+                    value={newTournament.duration_hours}
+                    onChange={(e) => setNewTournament((p) => ({ ...p, duration_hours: parseInt(e.target.value) || 24 }))}
+                  />
+                </div>
               </div>
-              <div className="flex gap-2"><Button onClick={createTournament}>Create</Button><Button variant="outline" onClick={() => setShowCreateForm(false)}>Cancel</Button></div>
+              <div className="flex gap-2">
+                <Button onClick={createTournament} disabled={isCreating}>
+                  {isCreating ? 'Creating...' : 'Create'}
+                </Button>
+                <Button variant="outline" onClick={() => setShowCreateForm(false)}>
+                  Cancel
+                </Button>
+              </div>
             </motion.div>
           )}
           <CardContent>
@@ -204,7 +274,7 @@ const Admin = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tournaments.map(t => (
+                {tournaments.map((t) => (
                   <TableRow key={t.id}>
                     <TableCell>{t.name}</TableCell>
                     <TableCell className={getStatusColor(t.status)}>{t.status}</TableCell>
@@ -212,91 +282,19 @@ const Admin = () => {
                     <TableCell className="text-gold font-bold">{t.prize_pool} π</TableCell>
                     <TableCell>{new Date(t.start_time).toLocaleDateString()}</TableCell>
                     <TableCell>{new Date(t.end_time).toLocaleDateString()}</TableCell>
-                    <TableCell>{t.status === 'active' && <Button size="sm" variant="destructive" onClick={() => endTournament(t.id)}>End</Button>}</TableCell>
+                    <TableCell>
+                      {t.status === 'active' && (
+                        <Button size="sm" variant="destructive" onClick={() => endTournament(t.id)}>
+                          End
+                        </Button>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
-
-        {/* NFTs Table */}
-        <Card className="bg-card/50 border-border">
-          <CardHeader><CardTitle className="flex items-center gap-2"><Star /> NFTs</CardTitle></CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Owner</TableHead>
-                  <TableHead>Rarity</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {nftsData.map(n => (
-                  <TableRow key={n.id}>
-                    <TableCell>{n.name}</TableCell>
-                    <TableCell>{n.owner}</TableCell>
-                    <TableCell>{n.rarity}</TableCell>
-                    <TableCell className={n.status === 'active' ? 'text-green-500' : 'text-muted-foreground'}>{n.status}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        {/* Boosts Table */}
-        <Card className="bg-card/50 border-border">
-          <CardHeader><CardTitle className="flex items-center gap-2"><Gift /> Active Boosts</CardTitle></CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Multiplier</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {boostsData.map(b => (
-                  <TableRow key={b.id}>
-                    <TableCell>{b.name}</TableCell>
-                    <TableCell>{b.multiplier}x</TableCell>
-                    <TableCell className={b.active ? 'text-green-500' : 'text-muted-foreground'}>{b.active ? 'Active' : 'Inactive'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        {/* Daily Rewards Table */}
-        <Card className="bg-card/50 border-border">
-          <CardHeader><CardTitle className="flex items-center gap-2"><Gift /> Daily Rewards Claimed</CardTitle></CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Amount (π)</TableHead>
-                  <TableHead>Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {dailyRewardsData.map(d => (
-                  <TableRow key={d.id}>
-                    <TableCell>{d.user}</TableCell>
-                    <TableCell>{d.amount}</TableCell>
-                    <TableCell>{new Date(d.date).toLocaleDateString()}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
       </div>
     </DashboardLayout>
   );

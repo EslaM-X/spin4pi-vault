@@ -29,21 +29,21 @@ const Achievements = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [pageTransitionLoading, setPageTransitionLoading] = useState(true);
 
-  // GlobalLoading عند كل تغيير صفحة
+  // GlobalLoading on every page change
   useEffect(() => {
     setPageTransitionLoading(true);
     const timer = setTimeout(() => setPageTransitionLoading(false), 800);
     return () => clearTimeout(timer);
   }, [location.pathname]);
 
-  // حماية الصفحة: لو مش مسجل دخول، يرجع للصفحة الرئيسية
+  // Protect page: redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       navigate('/');
     }
   }, [isAuthenticated, authLoading]);
 
-  // fetch profile بعد ما user موجود
+  // Fetch profile after user is available
   useEffect(() => {
     if (user?.username) {
       fetchProfile(user.username);
@@ -73,7 +73,7 @@ const Achievements = () => {
     setIsChecking(true);
     try {
       const { data, error } = await supabase.functions.invoke('check-achievements', {
-        body: { pi_username: user.username }
+        body: { pi_username: user.username },
       });
       if (error) throw error;
 
@@ -144,10 +144,7 @@ const Achievements = () => {
 
         {/* Unlock Modal */}
         {unlockedAchievements.length > 0 && (
-          <AchievementUnlockModal
-            achievements={unlockedAchievements}
-            onClose={handleCloseModal}
-          />
+          <AchievementUnlockModal achievements={unlockedAchievements} onClose={handleCloseModal} />
         )}
       </div>
     </DashboardLayout>

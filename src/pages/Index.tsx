@@ -28,7 +28,6 @@ import { useSpin } from "@/hooks/useSpin";
 import { usePiAuth } from "@/hooks/usePiAuth";
 import { usePiPayment } from "@/hooks/usePiPayment";
 import { useWallet } from "@/hooks/useWallet";
-import { useSpinHandler } from "@/hooks/useSpinHandler";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -47,8 +46,7 @@ const Index = () => {
   } = usePiAuth();
 
   const { createPayment } = usePiPayment();
-  const { jackpot, leaderboard, isLoading: isGameLoading, refreshData } =
-    useGameData();
+  const { jackpot, leaderboard, isLoading: isGameLoading, refreshData } = useGameData();
 
   // ======= Wallet =======
   const {
@@ -61,39 +59,21 @@ const Index = () => {
   } = useWallet();
 
   // ======= Spin =======
-  const spinFn = useSpin({ onSpinComplete: null });
   const {
+    spin,
     isSpinning,
     setIsSpinning,
     targetResult,
-    handleSpinClick,
     setTargetResult,
-  } = useSpinHandler(
-    spinFn.spin,
-    updateBalance,
-    refreshData,
-    refreshProfile
-  );
+  } = useSpin({ onSpinComplete: null });
 
   // ======= UI States =======
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isBlur, setIsBlur] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [freeSpinTimer, setFreeSpinTimer] = useState("Available");
   const [showJackpotPopup, setShowJackpotPopup] = useState(false);
   const [showAdReward, setShowAdReward] = useState(false);
-  const [adRewardType, setAdRewardType] =
-    useState<"free_spin" | "bonus_pi" | "boost">("free_spin");
-
-  const toggleMenu = () => {
-    setIsMenuOpen((p) => !p);
-    setIsBlur((p) => !p);
-  };
-
-  // ======= Protect route =======
-  useEffect(() => {
-    if (!isAuthLoading && !isAuthenticated) navigate("/");
-  }, [isAuthenticated, isAuthLoading]);
+  const [adRewardType, setAdRewardType] = useState<"free_spin" | "bonus_pi" | "boost">("free_spin");
+  const [showResultModal, setShowResultModal] = useState(false);
 
   // ======= Free Spin Timer =======
   useEffect(() => {
@@ -105,14 +85,21 @@ const Index = () => {
     return () => clearInterval(interval);
   }, [getNextFreeSpinTime]);
 
-  // ======= Global Loading =======
+  // ======= Global Loading =====
   useEffect(() => {
-    if (!isAuthLoading && !isGameLoading && profileId) {
+    if (!isAuthLoading && !isGameLoading) {
       setIsLoading(false);
     }
-  }, [isAuthLoading, isGameLoading, profileId]);
+  }, [isAuthLoading, isGameLoading]);
 
-  if (isLoading) return <GlobalLoading />;
+  // ======= Show result modal when spin completes =====
+  useEffect(() => {
+    if (targetResult) {
+      setShowResultModal(true);
+    }
+  }, [targetResult]);
+
+  if (isLoading) return <GlobalLoading isVisible={true} />;
 
   // ======= Auth Handlers =======
   const handleLogin = async () => {
@@ -138,12 +125,30 @@ const Index = () => {
     toast.info("Logged out");
   };
 
+  // ======= Spin Handler =======
+  const handleSpinClick = async (spinType: string, cost: number) => {
+    if (!user) {
+      toast.error("Please login first");
+      return;
+    }
+
+    if (isSpinning) {
+      toast.info("Spin in progress...");
+      return;
+    }
+
+    if (spinType === "free" && !canFreeSpin()) {
+      toast.info("Free spin not available yet");
+      return;
+    }
+
+    await spin(spinType, cost);
+    refreshData();
+    await refreshProfile();
+  };
+
   return (
-    <div
-      className={`min-h-screen bg-background overflow-hidden ${
-        isBlur ? "blur-sm" : ""
-      }`}
-    >
+    <div className="min-h-screen bg-background overflow-hidden">
       {/* Background */}
       <div className="fixed inset-0 bg-stars opacity-50 pointer-events-none" />
       <div className="fixed inset-0 bg-gradient-radial from-pi-purple/10 via-transparent to-transparent pointer-events-none" />
@@ -154,8 +159,6 @@ const Index = () => {
         balance={wallet.balance}
         onLogin={handleLogin}
         onLogout={handleLogout}
-        isMenuOpen={isMenuOpen}
-        toggleMenu={toggleMenu}
       />
 
       <main className="container mx-auto px-4 pt-24 pb-12">
@@ -164,9 +167,7 @@ const Index = () => {
             <span className="text-gradient-gold">Spin</span>4
             <span className="text-gradient-purple">Pi</span>
           </h1>
-          <p className="text-muted-foreground text-xl">
-            Spin & win Pi rewards instantly!
-          </p>
+          <p className="text-muted-foreground text-xl">Spin & win Pi rewards instantly!</p>
 
           {user && (
             <DailyRewardButton
@@ -187,10 +188,7 @@ const Index = () => {
               onSpinComplete={() => setTargetResult(null)}
             />
             {user && (
-              <ActiveBoostsIndicator
-                piUsername={user.username}
-                isSpinning={isSpinning}
-              />
+              <ActiveBoostsIndicator piUsername={user.username} isSpinning={isSpinning} />
             )}
           </div>
 
@@ -199,14 +197,16 @@ const Index = () => {
             <TournamentPanel
               profileId={profileId}
               walletBalance={wallet.balance}
-              onRefresh={() => fetchWalletData(user!.username)}
+              onRefresh={() => fetchWalletData(user?.username)}
             />
             <Leaderboard entries={leaderboard} isLoading={isGameLoading} />
-            <StakingPanel
-              username={user!.username}
-              walletBalance={wallet.balance}
-              onBalanceUpdate={updateBalance}
-            />
+            {user && (
+              <StakingPanel
+                username={user.username}
+                walletBalance={wallet.balance}
+                onBalanceUpdate={updateBalance}
+              />
+            )}
             {wallet.referralCode && (
               <ReferralPanel
                 referralCode={wallet.referralCode}
@@ -218,9 +218,7 @@ const Index = () => {
         </div>
 
         <SpinButtons
-          onSpin={(type, cost) =>
-            handleSpinClick(type, cost, user, canFreeSpin, createPayment)
-          }
+          onSpin={handleSpinClick}
           disabled={isSpinning}
           canFreeSpin={canFreeSpin()}
           freeSpinTimer={freeSpinTimer}
@@ -232,16 +230,18 @@ const Index = () => {
       <Footer />
 
       <ResultModal
-        isOpen={!!targetResult}
-        onClose={() => setTargetResult(null)}
+        isOpen={showResultModal}
+        onClose={() => {
+          setShowResultModal(false);
+          setTargetResult(null);
+        }}
+        result={targetResult}
       />
 
       <PiAdsReward
         isOpen={showAdReward}
         onClose={() => setShowAdReward(false)}
-        onAdComplete={() =>
-          handleSpinClick("free", 0, user, canFreeSpin, createPayment)
-        }
+        onAdComplete={() => handleSpinClick("free", 0)}
         rewardType={adRewardType}
       />
 

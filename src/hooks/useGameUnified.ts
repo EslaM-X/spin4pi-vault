@@ -2,7 +2,7 @@
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { piSDK } from "@/lib/pi-sdk";
+import { piSDK, PaymentCallbacks } from "@/lib/pi-sdk";
 import { useWallet } from "@/hooks/useWallet";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 
@@ -38,7 +38,7 @@ export function useGameUnified({ onSpinComplete, onError }: UseGameOptions = {})
     playSpinSound();
 
     try {
-      // 💰 Spin مدفوع باستخدام Pi SDK
+      // 💰 Paid spin using Pi SDK with proper callbacks
       if (cost > 0) {
         if (!piSDK.isAvailable()) {
           toast.error("Open in Pi Browser to perform paid spin");
@@ -46,17 +46,44 @@ export function useGameUnified({ onSpinComplete, onError }: UseGameOptions = {})
           return null;
         }
 
-        const paymentResult = await piSDK.requestPayment({ amount: cost, reason: `Spin ${spinType}` });
-        if (!paymentResult.success) {
+        const paymentSuccess = await new Promise<boolean>((resolve) => {
+          const callbacks: PaymentCallbacks = {
+            onReadyForServerApproval: async (paymentId) => {
+              try {
+                await supabase.functions.invoke("approve-payment", {
+                  body: { payment_id: paymentId, pi_username: profileId, amount: cost, memo: `Spin ${spinType}` },
+                });
+              } catch {
+                resolve(false);
+              }
+            },
+            onReadyForServerCompletion: async (paymentId, txid) => {
+              try {
+                await supabase.functions.invoke("complete-payment", {
+                  body: { payment_id: paymentId, txid },
+                });
+                resolve(true);
+              } catch {
+                resolve(false);
+              }
+            },
+            onCancel: () => resolve(false),
+            onError: () => resolve(false),
+          };
+
+          piSDK.createPayment(cost, `Spin ${spinType}`, { pi_username: profileId }, callbacks);
+        });
+
+        if (!paymentSuccess) {
           toast.error("Payment failed, spin canceled");
           setIsSpinning(false);
           return null;
         }
       }
 
-      // 🔄 استدعاء Supabase function للنتيجة
+      // 🔄 Call Supabase function for result
       const { data, error } = await supabase.functions.invoke<SpinResult>("spin-result", {
-        body: { profile_id: profileId, spin_type: spinType },
+        body: { pi_username: profileId, spin_type: spinType },
       });
 
       if (error || !data) {
@@ -74,7 +101,7 @@ export function useGameUnified({ onSpinComplete, onError }: UseGameOptions = {})
         toast.info(`Next free spin available in ${hours}h ${mins}m`);
       }
 
-      // 💵 تحديث wallet بالـ reward
+      // 💵 Update wallet with reward
       const newBalance = (wallet.balance || 0) + data.reward_amount;
       updateBalance(newBalance, true);
 
@@ -82,7 +109,7 @@ export function useGameUnified({ onSpinComplete, onError }: UseGameOptions = {})
       onSpinComplete?.(data.result, data.reward_amount);
       fetchWalletData();
 
-      // 🔊 تشغيل الصوت المناسب
+      // 🔊 Play appropriate sound
       if (data.result === "LOSE") playLoseSound();
       else if (data.result === "JACKPOT_ENTRY") playJackpotSound();
       else playWinSound();

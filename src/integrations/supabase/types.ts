@@ -345,6 +345,44 @@ export type Database = {
           },
         ]
       }
+      shares: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          profile_id: string
+          reward_pi: number | null
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          profile_id: string
+          reward_pi?: number | null
+          title: string
+          type: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          profile_id?: string
+          reward_pi?: number | null
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shares_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spins: {
         Row: {
           cost: number | null

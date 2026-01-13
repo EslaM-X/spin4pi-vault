@@ -1,6 +1,6 @@
-// src/hooks/usePiAuthUnified.ts
+// src/hooks/usePiAuth.ts - Unified Pi Authentication Hook
 import { useState, useCallback, useEffect } from "react";
-import { piSDK } from "@/lib/pi-sdk"; // Pi SDK مدمج
+import { piSDK } from "@/lib/pi-sdk";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -17,9 +17,10 @@ interface ProfileData {
   total_winnings: number;
   last_free_spin: string | null;
   referral_code?: string;
+  wallet_balance?: number;
 }
 
-export function usePiAuthUnified() {
+function usePiAuthUnified() {
   const [user, setUser] = useState<PiUser | null>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,7 +30,7 @@ export function usePiAuthUnified() {
   useEffect(() => {
     const initSDK = async () => {
       try {
-        await piSDK.init(import.meta.env.DEV); // sandbox في DEV
+        await piSDK.init(import.meta.env.DEV);
         setIsInitialized(true);
       } catch (err) {
         console.error("Pi SDK initialization failed:", err);
@@ -171,3 +172,8 @@ export function usePiAuthUnified() {
     isAuthenticated: !!user,
   };
 }
+
+// Export both the function and as named export
+export { usePiAuthUnified };
+export const usePiAuth = usePiAuthUnified;
+export default usePiAuthUnified;

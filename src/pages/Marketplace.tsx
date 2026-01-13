@@ -33,14 +33,14 @@ export default function Marketplace() {
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
 
-  // حماية الدخول: لو مش مسجل دخول، يرجع للصفحة الرئيسية
+  // Protect route: redirect if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       navigate("/");
     }
   }, [isAuthenticated, isLoading]);
 
-  // fetch NFTs بس بعد ما يكون فيه user
+  // Fetch NFTs after user is available
   useEffect(() => {
     if (user?.username) fetchNFTs();
   }, [user]);
@@ -95,11 +95,7 @@ export default function Marketplace() {
         body: { pi_username: user.username, nft_id: nftId, equip },
       });
       if (!error && data?.success) {
-        setEquipped(
-          equip
-            ? [...equipped, nftId]
-            : equipped.filter((id) => id !== nftId)
-        );
+        setEquipped(equip ? [...equipped, nftId] : equipped.filter((id) => id !== nftId));
         toast.success(equip ? "NFT equipped!" : "NFT unequipped");
       }
     } catch (err: any) {
@@ -107,7 +103,7 @@ export default function Marketplace() {
     }
   };
 
-  // GlobalLoading أثناء التحقق من المستخدم أو تحميل NFTs
+  // GlobalLoading while checking user or loading NFTs
   if (isLoading || !isAuthenticated || loading) {
     return <GlobalLoading isVisible={true} />;
   }
@@ -130,9 +126,7 @@ export default function Marketplace() {
           <Sparkles className="inline w-8 h-8 text-gold mr-2" />
           NFT Marketplace
         </motion.h1>
-        <p className="text-muted-foreground mb-8">
-          Boost your rewards with powerful NFT power-ups
-        </p>
+        <p className="text-muted-foreground mb-8">Boost your rewards with powerful NFT power-ups</p>
 
         {nfts.length === 0 ? (
           <div className="text-center py-12 bg-card rounded-xl border border-border">
@@ -178,11 +172,7 @@ export default function Marketplace() {
                       {equipped.includes(nft.id) ? "Equipped" : "Equip"}
                     </Button>
                   ) : (
-                    <Button
-                      size="sm"
-                      onClick={() => handlePurchase(nft.id)}
-                      disabled={purchasing === nft.id}
-                    >
+                    <Button size="sm" onClick={() => handlePurchase(nft.id)} disabled={purchasing === nft.id}>
                       {purchasing === nft.id ? "Buying..." : "Buy"}
                     </Button>
                   )}

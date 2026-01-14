@@ -5,6 +5,34 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Pi Server API Base URL
+const PI_API_URL = "https://api.minepi.com";
+
+async function approvePiPayment(paymentId: string, piApiKey: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${PI_API_URL}/v2/payments/${paymentId}/approve`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Key ${piApiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Pi API approve error:', response.status, errorText);
+      return false;
+    }
+
+    const result = await response.json();
+    console.log('Pi API approve result:', result);
+    return true;
+  } catch (error) {
+    console.error('Pi API approve exception:', error);
+    return false;
+  }
+}
+
 Deno.serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -25,7 +53,25 @@ Deno.serve(async (req: Request) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const piApiKey = Deno.env.get('PI_SERVER_KEY') || Deno.env.get('MY_PI_API_KEY');
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    if (!piApiKey) {
+      console.error('PI_SERVER_KEY not configured');
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ===== Call Pi Server API to approve the deposit payment =====
+    const approved = await approvePiPayment(payment_id, piApiKey);
+    if (!approved) {
+      return new Response(
+        JSON.stringify({ error: "Pi Network payment approval failed" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Get or create profile
     let { data: profile, error: profileError } = await supabase
@@ -51,7 +97,7 @@ Deno.serve(async (req: Request) => {
       profile = newProfile;
     }
 
-    // Record the deposit as pending
+    // Record the deposit as approved
     const { data: deposit, error: depositError } = await supabase
       .from('deposits')
       .insert({
@@ -77,13 +123,13 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    console.log(`Deposit approved: ${deposit.id}`);
+    console.log(`Deposit approved via Pi API: ${deposit.id}`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         deposit_id: deposit.id,
-        message: 'Deposit approved, awaiting blockchain confirmation'
+        message: 'Deposit approved via Pi Network, awaiting blockchain confirmation'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

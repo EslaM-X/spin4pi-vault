@@ -10,6 +10,7 @@ import GlobalLoading from "@/components/GlobalLoading";
 
 import { usePiAuth } from "@/hooks/usePiAuth";
 import { useWallet } from "@/hooks/useWallet";
+import { useSpin } from "@/hooks/useSpin";
 
 interface SpinHistory {
   id: string;
@@ -31,12 +32,10 @@ const Profile = () => {
   const {
     wallet,
     fetchWalletData,
-    handleFreeSpin,
-    handlePaidSpin,
     leaderboard,
     isLoading: walletLoading,
-    isPaying,
   } = useWallet();
+  const { spin, isSpinning } = useSpin();
 
   const [freeSpinCountdown, setFreeSpinCountdown] = useState("00:00:00");
   const [loading, setLoading] = useState(true);
@@ -142,13 +141,19 @@ const Profile = () => {
 
         {/* ===== Spin Buttons ===== */}
         <div className="flex gap-4 mb-8">
-          <Button onClick={handleFreeSpin} disabled={freeSpinCountdown !== "Available!"}>
+          <Button 
+            onClick={() => { spin("free"); fetchWalletData(); }} 
+            disabled={!canFreeSpin() || isSpinning}
+          >
             {freeSpinCountdown === "Available!"
               ? "Free Spin"
               : `Next Free Spin in ${freeSpinCountdown}`}
           </Button>
-          <Button onClick={() => handlePaidSpin(1)} disabled={isPaying}>
-            {isPaying ? "Processing..." : "Spin 1 π"}
+          <Button 
+            onClick={() => { spin("paid"); fetchWalletData(); }} 
+            disabled={isSpinning || wallet.balance < 0.1}
+          >
+            {isSpinning ? "Processing..." : "Spin 0.1 π"}
           </Button>
         </div>
 

@@ -1,17 +1,49 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const REFERRAL_REWARD_PI = 0.5; // Referrer gets 0.5 Pi
-const NEW_USER_BONUS_PI = 0.25; // New user gets 0.25 Pi bonus
+const ApplyReferralRequestSchema = z.object({
+  pi_username: z.string().min(1).max(50),
+  referral_code: z.string().max(20).optional(),
+});
+
+const REFERRAL_REWARD_PI = 0.5;
+const NEW_USER_BONUS_PI = 0.25;
 
 function generateReferralCode(username: string): string {
   const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
   const userPart = username.substring(0, 4).toUpperCase();
   return `${userPart}${randomPart}`;
+}
+
+async function verifyPiAuth(req: Request): Promise<{ success: boolean; username?: string; error?: string }> {
+  const authHeader = req.headers.get('Authorization');
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return { success: false, error: 'Missing authorization' };
+  }
+
+  const token = authHeader.replace('Bearer ', '');
+  
+  try {
+    const response = await fetch('https://api.minepi.com/v2/me', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!response.ok) {
+      return { success: false, error: 'Invalid token' };
+    }
+
+    const userData = await response.json();
+    return { success: true, username: userData.username };
+  } catch (error) {
+    console.error('Pi auth error:', error);
+    return { success: false, error: 'Auth service unavailable' };
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -20,12 +52,40 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { pi_username, referral_code } = await req.json();
-
-    if (!pi_username) {
+    // Verify Pi Network authentication
+    const authResult = await verifyPiAuth(req);
+    if (!authResult.success) {
       return new Response(
-        JSON.stringify({ error: 'Missing pi_username' }),
+        JSON.stringify({ error: authResult.error || 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Parse and validate request body
+    let requestData;
+    try {
+      const text = await req.text();
+      if (text.length > 10240) {
+        return new Response(
+          JSON.stringify({ error: 'Request too large' }),
+          { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      requestData = ApplyReferralRequestSchema.parse(JSON.parse(text));
+    } catch (e) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid request data' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { pi_username, referral_code } = requestData;
+
+    // Verify the authenticated user matches the requested username
+    if (authResult.username?.toLowerCase() !== pi_username.toLowerCase()) {
+      return new Response(
+        JSON.stringify({ error: 'Cannot apply referral for other users' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -36,7 +96,7 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get or create profile for the new user
-    let { data: profile, error: profileError } = await supabase
+    let { data: profile } = await supabase
       .from('profiles')
       .select('*')
       .eq('pi_username', pi_username)
@@ -45,7 +105,6 @@ Deno.serve(async (req: Request) => {
     const isNewUser = !profile;
 
     if (!profile) {
-      // Generate unique referral code for new user
       const newReferralCode = generateReferralCode(pi_username);
       
       const { data: newProfile, error: createError } = await supabase
@@ -83,15 +142,13 @@ Deno.serve(async (req: Request) => {
 
     // If a referral code was provided, apply it
     if (referral_code && isNewUser) {
-      // Find the referrer
-      const { data: referrer, error: referrerError } = await supabase
+      const { data: referrer } = await supabase
         .from('profiles')
         .select('*')
         .eq('referral_code', referral_code)
         .maybeSingle();
 
       if (referrer && referrer.id !== profile.id) {
-        // Update the new user with referrer info and bonus
         const { error: updateUserError } = await supabase
           .from('profiles')
           .update({ 
@@ -100,11 +157,8 @@ Deno.serve(async (req: Request) => {
           })
           .eq('id', profile.id);
 
-        if (updateUserError) {
-          console.error('Error updating user referral:', updateUserError);
-        } else {
-          // Update referrer with reward
-          const { error: updateReferrerError } = await supabase
+        if (!updateUserError) {
+          await supabase
             .from('profiles')
             .update({ 
               referral_count: (referrer.referral_count || 0) + 1,
@@ -113,11 +167,6 @@ Deno.serve(async (req: Request) => {
             })
             .eq('id', referrer.id);
 
-          if (updateReferrerError) {
-            console.error('Error updating referrer:', updateReferrerError);
-          }
-
-          // Record the referral reward
           await supabase
             .from('referral_rewards')
             .insert({
@@ -152,7 +201,7 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     console.error('Apply referral error:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'An error occurred processing your request' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

@@ -1,9 +1,17 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Validation schemas
+const SpinTypeSchema = z.enum(['free', 'basic', 'pro', 'vault']);
+const SpinRequestSchema = z.object({
+  pi_username: z.string().min(1).max(50),
+  spin_type: SpinTypeSchema,
+});
 
 // Base reward probabilities (House Edge ~40%)
 const BASE_REWARDS = [
@@ -25,12 +33,12 @@ const SPIN_COSTS: Record<string, number> = {
 
 // NFT boost effects by utility type
 const NFT_BOOSTS: Record<string, { loseReduction: number; multiplier: number; jackpotBoost: number }> = {
-  'luck_boost': { loseReduction: 5, multiplier: 1, jackpotBoost: 0 },        // Lucky Clover
-  'multiplier': { loseReduction: 0, multiplier: 1.5, jackpotBoost: 0 },      // Golden Multiplier
-  'vip_access': { loseReduction: 3, multiplier: 1.2, jackpotBoost: 1 },      // VIP Pass
-  'discount': { loseReduction: 0, multiplier: 1, jackpotBoost: 0 },          // Discount Token (cost handled separately)
-  'jackpot_boost': { loseReduction: 0, multiplier: 1, jackpotBoost: 2 },     // Jackpot Hunter
-  'loss_protection': { loseReduction: 10, multiplier: 1, jackpotBoost: 0 },  // Pi Shield
+  'luck_boost': { loseReduction: 5, multiplier: 1, jackpotBoost: 0 },
+  'multiplier': { loseReduction: 0, multiplier: 1.5, jackpotBoost: 0 },
+  'vip_access': { loseReduction: 3, multiplier: 1.2, jackpotBoost: 1 },
+  'discount': { loseReduction: 0, multiplier: 1, jackpotBoost: 0 },
+  'jackpot_boost': { loseReduction: 0, multiplier: 1, jackpotBoost: 2 },
+  'loss_protection': { loseReduction: 10, multiplier: 1, jackpotBoost: 0 },
 };
 
 interface EquippedBoosts {
@@ -38,6 +46,32 @@ interface EquippedBoosts {
   totalMultiplier: number;
   totalJackpotBoost: number;
   hasDiscount: boolean;
+}
+
+async function verifyPiAuth(req: Request): Promise<{ success: boolean; username?: string; error?: string }> {
+  const authHeader = req.headers.get('Authorization');
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return { success: false, error: 'Missing authorization' };
+  }
+
+  const token = authHeader.replace('Bearer ', '');
+  
+  try {
+    const response = await fetch('https://api.minepi.com/v2/me', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!response.ok) {
+      return { success: false, error: 'Invalid token' };
+    }
+
+    const userData = await response.json();
+    return { success: true, username: userData.username };
+  } catch (error) {
+    console.error('Pi auth error:', error);
+    return { success: false, error: 'Auth service unavailable' };
+  }
 }
 
 async function getEquippedBoosts(supabase: any, profileId: string): Promise<EquippedBoosts> {
@@ -49,7 +83,6 @@ async function getEquippedBoosts(supabase: any, profileId: string): Promise<Equi
   };
 
   try {
-    // Get equipped NFT ownership records
     const { data: equippedNfts } = await supabase
       .from('nft_ownership')
       .select('nft_asset_id')
@@ -57,7 +90,6 @@ async function getEquippedBoosts(supabase: any, profileId: string): Promise<Equi
       .eq('is_equipped', true);
 
     if (equippedNfts && equippedNfts.length > 0) {
-      // Get the NFT assets for equipped items
       const nftIds = equippedNfts.map((n: { nft_asset_id: string }) => n.nft_asset_id);
       const { data: nftAssets } = await supabase
         .from('nft_assets')
@@ -65,7 +97,7 @@ async function getEquippedBoosts(supabase: any, profileId: string): Promise<Equi
         .in('id', nftIds);
 
       if (nftAssets) {
-        for (const nft of nftAssets) {
+        for (const nft of nftAssets as { utility: string }[]) {
           const utility = nft.utility;
           if (utility && NFT_BOOSTS[utility]) {
             const boost = NFT_BOOSTS[utility];
@@ -87,18 +119,15 @@ async function getEquippedBoosts(supabase: any, profileId: string): Promise<Equi
 }
 
 function applyBoostsToRewards(boosts: EquippedBoosts) {
-  // Clone base rewards
   const rewards = BASE_REWARDS.map(r => ({ ...r }));
   
-  // Apply lose reduction (cap at 30% reduction max)
   const loseReduction = Math.min(boosts.totalLoseReduction, 30);
   if (loseReduction > 0) {
     const loseIndex = rewards.findIndex(r => r.label === "LOSE");
     if (loseIndex !== -1) {
       const reducedChance = rewards[loseIndex].chance - loseReduction;
-      rewards[loseIndex].chance = Math.max(reducedChance, 15); // Minimum 15% lose chance
+      rewards[loseIndex].chance = Math.max(reducedChance, 15);
       
-      // Distribute reduced chance to winning outcomes
       const distribution = loseReduction / 3;
       rewards.forEach(r => {
         if (r.label.includes('_PI')) {
@@ -108,7 +137,6 @@ function applyBoostsToRewards(boosts: EquippedBoosts) {
     }
   }
   
-  // Apply jackpot boost
   if (boosts.totalJackpotBoost > 0) {
     const jackpotIndex = rewards.findIndex(r => r.label === "JACKPOT_ENTRY");
     if (jackpotIndex !== -1) {
@@ -120,18 +148,45 @@ function applyBoostsToRewards(boosts: EquippedBoosts) {
 }
 
 Deno.serve(async (req: Request) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { pi_username, spin_type } = await req.json();
-
-    if (!pi_username || !spin_type) {
+    // Verify Pi Network authentication
+    const authResult = await verifyPiAuth(req);
+    if (!authResult.success) {
       return new Response(
-        JSON.stringify({ error: "Missing pi_username or spin_type" }),
+        JSON.stringify({ error: authResult.error || 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Parse and validate request body
+    let requestData;
+    try {
+      const text = await req.text();
+      if (text.length > 10240) {
+        return new Response(
+          JSON.stringify({ error: 'Request too large' }),
+          { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      requestData = SpinRequestSchema.parse(JSON.parse(text));
+    } catch (e) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid request data' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { pi_username, spin_type } = requestData;
+
+    // Verify the authenticated user matches the requested username
+    if (authResult.username?.toLowerCase() !== pi_username.toLowerCase()) {
+      return new Response(
+        JSON.stringify({ error: 'Cannot perform actions for other users' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -187,6 +242,15 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // Check balance for paid spins
+    const cost = SPIN_COSTS[spin_type] || 0;
+    if (cost > 0 && (profile.wallet_balance || 0) < cost) {
+      return new Response(
+        JSON.stringify({ error: "Insufficient balance" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Get equipped NFT boosts
     const boosts = await getEquippedBoosts(supabase, profile.id);
     const boostedRewards = applyBoostsToRewards(boosts);
@@ -205,9 +269,9 @@ Deno.serve(async (req: Request) => {
     }
 
     // Apply cost (with discount if applicable)
-    let cost = SPIN_COSTS[spin_type] || 0;
-    if (boosts.hasDiscount && cost > 0) {
-      cost = cost * 0.9; // 10% discount
+    let finalCost = cost;
+    if (boosts.hasDiscount && finalCost > 0) {
+      finalCost = finalCost * 0.9;
     }
     
     // Apply multiplier to Pi rewards
@@ -217,24 +281,22 @@ Deno.serve(async (req: Request) => {
     }
 
     // Record the spin
-    const { error: spinError } = await supabase
+    await supabase
       .from('spins')
       .insert({
         profile_id: profile.id,
         spin_type,
-        cost,
+        cost: finalCost,
         result: result.label,
         reward_amount: finalRewardAmount,
       });
 
-    if (spinError) {
-      console.error('Error recording spin:', spinError);
-    }
-
     // Update profile
+    const newBalance = (profile.wallet_balance || 0) - finalCost + finalRewardAmount;
     const updates: Record<string, unknown> = {
       total_spins: (profile.total_spins || 0) + 1,
       total_winnings: (profile.total_winnings || 0) + finalRewardAmount,
+      wallet_balance: newBalance,
     };
 
     if (spin_type === 'free') {
@@ -247,8 +309,8 @@ Deno.serve(async (req: Request) => {
       .eq('id', profile.id);
 
     // Update jackpot (5% of paid spins go to jackpot)
-    if (cost > 0) {
-      const jackpotContribution = cost * 0.05;
+    if (finalCost > 0) {
+      const jackpotContribution = finalCost * 0.05;
       const { data: jackpot } = await supabase
         .from('jackpot')
         .select('*')
@@ -263,13 +325,14 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    console.log(`Spin result for ${pi_username}: ${result.label} (type: ${spin_type}, boosts: ${JSON.stringify(boosts)})`);
+    console.log(`Spin result for ${pi_username}: ${result.label}`);
 
     return new Response(
       JSON.stringify({
         success: true,
         result: result.label,
         reward_amount: finalRewardAmount,
+        new_balance: newBalance,
         profile_id: profile.id,
         boosts_applied: {
           multiplier: boosts.totalMultiplier,
@@ -283,9 +346,8 @@ Deno.serve(async (req: Request) => {
 
   } catch (error) {
     console.error('Spin result error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'An error occurred processing your request' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

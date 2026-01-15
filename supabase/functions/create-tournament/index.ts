@@ -6,9 +6,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const PurchaseNFTRequestSchema = z.object({
+const CreateTournamentRequestSchema = z.object({
   pi_username: z.string().min(1).max(50),
-  nft_id: z.string().uuid(),
+  name: z.string().min(1).max(100),
+  description: z.string().max(500).optional(),
+  entry_fee: z.number().min(0).max(100),
+  prize_pool: z.number().min(0).max(10000),
+  duration_hours: z.number().min(1).max(720), // 1 hour to 30 days
 });
 
 async function verifyPiAuth(req: Request): Promise<{ success: boolean; username?: string; error?: string }> {
@@ -62,7 +66,7 @@ Deno.serve(async (req: Request) => {
           { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      requestData = PurchaseNFTRequestSchema.parse(JSON.parse(text));
+      requestData = CreateTournamentRequestSchema.parse(JSON.parse(text));
     } catch (e) {
       return new Response(
         JSON.stringify({ error: 'Invalid request data' }),
@@ -70,129 +74,85 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { pi_username, nft_id } = requestData;
+    const { pi_username, name, description, entry_fee, prize_pool, duration_hours } = requestData;
 
     // Verify the authenticated user matches the requested username
     if (authResult.username?.toLowerCase() !== pi_username.toLowerCase()) {
       return new Response(
-        JSON.stringify({ error: 'Cannot purchase for other users' }),
+        JSON.stringify({ error: 'Username mismatch' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    console.log(`Processing NFT purchase: ${nft_id} for user ${pi_username}`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get user profile
+    // Check if user is admin
     const { data: profile } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id')
       .eq('pi_username', pi_username)
-      .maybeSingle();
+      .single();
 
     if (!profile) {
       return new Response(
-        JSON.stringify({ error: 'User not found' }),
+        JSON.stringify({ error: 'Profile not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Get NFT details
-    const { data: nft } = await supabase
-      .from('nft_assets')
-      .select('*')
-      .eq('id', nft_id)
-      .maybeSingle();
-
-    if (!nft) {
-      return new Response(
-        JSON.stringify({ error: 'NFT not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Check if user already owns this NFT
-    const { data: existingOwnership } = await supabase
-      .from('nft_ownership')
-      .select('id')
+    const { data: adminRole } = await supabase
+      .from('admin_roles')
+      .select('role')
       .eq('profile_id', profile.id)
-      .eq('nft_asset_id', nft_id)
       .maybeSingle();
 
-    if (existingOwnership) {
+    if (!adminRole) {
       return new Response(
-        JSON.stringify({ error: 'You already own this NFT' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Admin access required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Check wallet balance
-    const walletBalance = Number(profile.wallet_balance) || 0;
-    const nftPrice = Number(nft.price_pi);
+    // Create tournament
+    const startTime = new Date();
+    const endTime = new Date(startTime.getTime() + duration_hours * 60 * 60 * 1000);
 
-    if (walletBalance < nftPrice) {
-      return new Response(
-        JSON.stringify({ error: 'Insufficient wallet balance' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Deduct from wallet
-    const newBalance = walletBalance - nftPrice;
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ wallet_balance: newBalance })
-      .eq('id', profile.id);
-
-    if (updateError) {
-      console.error('Error updating balance:', updateError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to process purchase' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Create ownership record
-    const { data: ownership, error: ownershipError } = await supabase
-      .from('nft_ownership')
+    const { data: tournament, error: tournamentError } = await supabase
+      .from('tournaments')
       .insert({
-        profile_id: profile.id,
-        nft_asset_id: nft_id,
-        is_equipped: false
+        name,
+        description: description || null,
+        entry_fee,
+        prize_pool,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        status: 'active',
       })
       .select()
       .single();
 
-    if (ownershipError) {
-      // Refund the balance
-      await supabase
-        .from('profiles')
-        .update({ wallet_balance: walletBalance })
-        .eq('id', profile.id);
-      
-      console.error('Error creating ownership:', ownershipError);
+    if (tournamentError) {
+      console.error('Error creating tournament:', tournamentError);
       return new Response(
-        JSON.stringify({ error: 'Failed to record ownership' }),
+        JSON.stringify({ error: 'Failed to create tournament' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`NFT purchased successfully: ${ownership.id}`);
+    console.log(`Tournament ${name} created by admin ${pi_username}`);
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        ownership_id: ownership.id,
-        new_balance: newBalance,
-        nft: nft
+      JSON.stringify({
+        success: true,
+        tournament
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+
   } catch (error) {
-    console.error('Purchase NFT error:', error);
+    console.error('Create tournament error:', error);
     return new Response(
       JSON.stringify({ error: 'An error occurred processing your request' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

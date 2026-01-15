@@ -6,10 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const EquipNFTRequestSchema = z.object({
+const CheckAdminRequestSchema = z.object({
   pi_username: z.string().min(1).max(50),
-  nft_id: z.string().uuid(),
-  equip: z.boolean(),
 });
 
 async function verifyPiAuth(req: Request): Promise<{ success: boolean; username?: string; error?: string }> {
@@ -48,7 +46,7 @@ Deno.serve(async (req: Request) => {
     const authResult = await verifyPiAuth(req);
     if (!authResult.success) {
       return new Response(
-        JSON.stringify({ error: authResult.error || 'Unauthorized' }),
+        JSON.stringify({ error: authResult.error || 'Unauthorized', is_admin: false }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -59,90 +57,65 @@ Deno.serve(async (req: Request) => {
       const text = await req.text();
       if (text.length > 10240) {
         return new Response(
-          JSON.stringify({ error: 'Request too large' }),
+          JSON.stringify({ error: 'Request too large', is_admin: false }),
           { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      requestData = EquipNFTRequestSchema.parse(JSON.parse(text));
+      requestData = CheckAdminRequestSchema.parse(JSON.parse(text));
     } catch (e) {
       return new Response(
-        JSON.stringify({ error: 'Invalid request data' }),
+        JSON.stringify({ error: 'Invalid request data', is_admin: false }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const { pi_username, nft_id, equip } = requestData;
+    const { pi_username } = requestData;
 
     // Verify the authenticated user matches the requested username
     if (authResult.username?.toLowerCase() !== pi_username.toLowerCase()) {
       return new Response(
-        JSON.stringify({ error: 'Cannot modify NFTs for other users' }),
+        JSON.stringify({ error: 'Username mismatch', is_admin: false }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    console.log(`${equip ? 'Equipping' : 'Unequipping'} NFT: ${nft_id} for user ${pi_username}`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get user profile
+    // Get profile
     const { data: profile } = await supabase
       .from('profiles')
       .select('id')
       .eq('pi_username', pi_username)
-      .maybeSingle();
+      .single();
 
     if (!profile) {
       return new Response(
-        JSON.stringify({ error: 'User not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ is_admin: false }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Check ownership
-    const { data: ownership } = await supabase
-      .from('nft_ownership')
-      .select('*')
+    // Check admin role
+    const { data: adminRole } = await supabase
+      .from('admin_roles')
+      .select('role')
       .eq('profile_id', profile.id)
-      .eq('nft_asset_id', nft_id)
       .maybeSingle();
-
-    if (!ownership) {
-      return new Response(
-        JSON.stringify({ error: 'You do not own this NFT' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Update equipped status
-    const { error: updateError } = await supabase
-      .from('nft_ownership')
-      .update({ is_equipped: equip })
-      .eq('id', ownership.id);
-
-    if (updateError) {
-      console.error('Error updating equip status:', updateError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to update equip status' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log(`NFT ${equip ? 'equipped' : 'unequipped'} successfully`);
 
     return new Response(
       JSON.stringify({ 
-        success: true, 
-        is_equipped: equip
+        is_admin: !!adminRole,
+        role: adminRole?.role || null
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+
   } catch (error) {
-    console.error('Equip NFT error:', error);
+    console.error('Check admin access error:', error);
     return new Response(
-      JSON.stringify({ error: 'An error occurred processing your request' }),
+      JSON.stringify({ error: 'An error occurred', is_admin: false }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

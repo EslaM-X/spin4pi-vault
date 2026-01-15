@@ -1,9 +1,14 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const CheckAchievementsRequestSchema = z.object({
+  pi_username: z.string().min(1).max(50),
+});
 
 interface Achievement {
   id: string;
@@ -13,18 +18,72 @@ interface Achievement {
   reward_pi: number;
 }
 
+async function verifyPiAuth(req: Request): Promise<{ success: boolean; username?: string; error?: string }> {
+  const authHeader = req.headers.get('Authorization');
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return { success: false, error: 'Missing authorization' };
+  }
+
+  const token = authHeader.replace('Bearer ', '');
+  
+  try {
+    const response = await fetch('https://api.minepi.com/v2/me', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!response.ok) {
+      return { success: false, error: 'Invalid token' };
+    }
+
+    const userData = await response.json();
+    return { success: true, username: userData.username };
+  } catch (error) {
+    console.error('Pi auth error:', error);
+    return { success: false, error: 'Auth service unavailable' };
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { pi_username } = await req.json();
-
-    if (!pi_username) {
+    // Verify Pi Network authentication
+    const authResult = await verifyPiAuth(req);
+    if (!authResult.success) {
       return new Response(
-        JSON.stringify({ error: 'Missing pi_username' }),
+        JSON.stringify({ error: authResult.error || 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Parse and validate request body
+    let requestData;
+    try {
+      const text = await req.text();
+      if (text.length > 10240) {
+        return new Response(
+          JSON.stringify({ error: 'Request too large' }),
+          { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      requestData = CheckAchievementsRequestSchema.parse(JSON.parse(text));
+    } catch (e) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid request data' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { pi_username } = requestData;
+
+    // Verify the authenticated user matches the requested username
+    if (authResult.username?.toLowerCase() !== pi_username.toLowerCase()) {
+      return new Response(
+        JSON.stringify({ error: 'Cannot check achievements for other users' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -84,7 +143,6 @@ Deno.serve(async (req) => {
       }
 
       if (earned) {
-        // Award achievement
         await supabase
           .from('user_achievements')
           .insert({
@@ -122,7 +180,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Check achievements error:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'An error occurred processing your request' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

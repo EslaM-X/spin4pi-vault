@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { LogIn, User, Wallet, Sparkles, Plus, ArrowUpRight } from "lucide-react";
+import { LogIn, User, Wallet, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import logo from "@/assets/spin4pi-logo.png";
 import { SoundControls } from "./SoundControls";
-import { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 import { DepositModal } from "./DepositModal";
 import { WithdrawModal } from "./WithdrawModal";
 import { MobileMenu } from "./MobileMenu";
@@ -31,7 +30,6 @@ export function Header({
   onLogout,
   onDepositSuccess, 
   isLoading, 
-  shortcuts = [], 
   isAdmin = false 
 }: HeaderProps) {
   const [showDeposit, setShowDeposit] = useState(false);
@@ -40,7 +38,8 @@ export function Header({
   return (
     <>
       <motion.header
-        className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border"
+        // تم رفع الـ z-index هنا لضمان بقاء الهيدر فوق عناصر اللعبة
+        className="fixed top-0 left-0 right-0 z-[60] bg-background/80 backdrop-blur-lg border-b border-border"
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}

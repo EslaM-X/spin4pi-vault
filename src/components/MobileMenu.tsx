@@ -4,158 +4,145 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   X, Home, User, Trophy, Wallet, LogOut, ChevronRight, 
-  ShoppingBag, LayoutDashboard, Gem, Music, Sparkles, Zap, Menu
+  ShoppingBag, LayoutDashboard, Music, Menu
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
 
-// استيراد الشعارات الأصلية الخاصة بك
+// استيراد الشعارات الأصلية
 import logoIcon from "@/assets/spin4pi-logo.png";
 import logoText from "@/assets/spin4pi-text-logo.png";
 
-// =========================================================
-// ************ نظام الصوت الحماسي المدمج ************
-// =========================================================
-const GlobalSoundEngine = forwardRef((props: any, ref) => {
-  const [isMuted, setIsMuted] = useState(false);
-  const [volume, setVolume] = useState(70);
-  const [showSlider, setShowSlider] = useState(false);
+export function MobileMenu({ isLoggedIn, onLogout, isAdmin = false, balance = 0 }: any) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isAudioStarted, setIsAudioStarted] = useState(false);
   const bgMusic = useRef<HTMLAudioElement | null>(null);
+  const location = useLocation();
 
+  // نظام الصوت - التأكد من المسار والتشغيل
   useEffect(() => {
-    // موسيقى تقنية حماسية وفخمة
     const audio = new Audio("https://assets.mixkit.co/music/preview/mixkit-tech-house-vibes-130.mp3");
     audio.loop = true;
-    audio.volume = volume / 100;
+    audio.volume = 0.5;
     bgMusic.current = audio;
 
-    const startAudio = () => {
-      audio.play().catch(() => console.log("بانتظار تفاعل المستخدم لبدء الموسيقى..."));
-    };
-
-    window.addEventListener('click', startAudio, { once: true });
     return () => {
       audio.pause();
-      window.removeEventListener('click', startAudio);
     };
   }, []);
 
-  useEffect(() => {
-    if (bgMusic.current) {
-      bgMusic.current.volume = isMuted ? 0 : volume / 100;
-    }
-  }, [volume, isMuted]);
+  const handleStartAudio = () => {
+    bgMusic.current?.play().then(() => {
+      setIsAudioStarted(true);
+    }).catch(e => console.error("Audio error:", e));
+  };
 
-  useImperativeHandle(ref, () => ({
-    fadeOut: () => {
+  const fadeOutAndClose = () => {
+    if (bgMusic.current) {
       const interval = setInterval(() => {
-        if (bgMusic.current && bgMusic.current.volume > 0.05) {
-          bgMusic.current.volume -= 0.1;
+        if (bgMusic.current!.volume > 0.05) {
+          bgMusic.current!.volume -= 0.1;
         } else {
-          bgMusic.current?.pause();
+          bgMusic.current!.pause();
           clearInterval(interval);
+          onLogout?.();
+          setIsOpen(false);
         }
       }, 100);
     }
-  }));
-
-  return (
-    <div className="relative flex items-center gap-2">
-      <AnimatePresence>
-        {showSlider && (
-          <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}
-            className="absolute right-full mr-4 bg-black/80 border border-purple-500/30 p-3 rounded-xl backdrop-blur-md flex items-center gap-3">
-            <Slider value={[volume]} max={100} onValueChange={(v) => setVolume(v[0])} className="w-20" />
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <Button variant="ghost" size="icon" onClick={() => setShowSlider(!showSlider)} className="text-purple-400">
-        <Music size={18} className={!isMuted ? "animate-pulse" : ""} />
-      </Button>
-    </div>
-  );
-});
-
-// =========================================================
-// ************ المنيو الذكي (نفس شكل الصورة تماماً) ************
-// =========================================================
-export function MobileMenu({ isLoggedIn, onLogout, isAdmin = false, balance = 0 }: any) {
-  const [isOpen, setIsOpen] = useState(false);
-  const location = useLocation();
-  const soundRef = useRef<any>(null);
-
-  const toggleMenu = () => setIsOpen(!isOpen);
+  };
 
   const MenuContent = (
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          {/* خلفية معتمة جداً بتركيز على المنتصف */}
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setIsOpen(false)}
-            className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm" />
+            className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-md" 
+          />
 
+          {/* تصميم البطاقة العائمة - مطابق للصورة تماماً */}
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100000] w-[90%] max-w-[360px] 
-                       bg-[#0d0d0d]/90 border-[2px] border-purple-500/50 rounded-[40px] shadow-[0_0_50px_rgba(168,85,247,0.4)]
-                       flex flex-col overflow-hidden p-6 text-center"
+            initial={{ scale: 0.8, opacity: 0, x: "-50%", y: "-50%" }}
+            animate={{ scale: 1, opacity: 1, x: "-50%", y: "-50%" }}
+            exit={{ scale: 0.8, opacity: 0, x: "-50%", y: "-50%" }}
+            className="fixed top-1/2 left-1/2 z-[100000] w-[90%] max-w-[380px] 
+                       bg-[#0a0a0b] border-[2px] border-purple-500/40 rounded-[45px] 
+                       shadow-[0_0_60px_rgba(168,85,247,0.3)] flex flex-col p-8 overflow-hidden"
           >
-            {/* الشعار الأصلي - نفس وضعية الصورة */}
-            <div className="flex justify-between items-center mb-4 px-2">
-               <div className="w-10" /> {/* موازن */}
-               <div className="flex flex-col items-center gap-1">
-                  <img src={logoIcon} className="w-14 h-14 drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]" />
-                  <img src={logoText} className="h-5 w-auto" />
-                  <div className="bg-white/5 border border-white/10 px-3 py-0.5 rounded-full text-[9px] text-white/40 uppercase tracking-widest mt-1">
-                    Verified Ecosystem
-                  </div>
-               </div>
-               <button onClick={() => setIsOpen(false)} className="bg-white/5 p-2 rounded-full text-white/40 hover:text-white">
-                  <X size={18} />
-               </button>
+            {/* Header القائمة */}
+            <div className="relative flex flex-col items-center mb-6">
+              <button onClick={() => setIsOpen(false)} className="absolute -top-2 -right-2 p-2 text-white/20 hover:text-white">
+                <X size={20} />
+              </button>
+              
+              <motion.img 
+                animate={{ y: [0, -5, 0] }} transition={{ duration: 4, repeat: Infinity }}
+                src={logoIcon} className="w-16 h-16 mb-2 drop-shadow-[0_0_15px_rgba(234,179,8,0.6)]" 
+              />
+              <img src={logoText} className="h-6 w-auto mb-2" />
+              <div className="px-4 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] text-white/40 uppercase tracking-[0.2em]">
+                Verified Ecosystem
+              </div>
             </div>
 
-            <div className="text-left mb-4">
-               <p className="text-[12px] font-bold text-white/80 px-2">Player Profile</p>
-            </div>
+            {/* الروابط - ستايل الـ Premium Slots */}
+            <div className="space-y-3 mb-8">
+              <p className="text-[11px] font-bold text-white/30 uppercase tracking-widest ml-2 mb-2">Navigation</p>
+              
+              <Link to="/" onClick={() => setIsOpen(false)} className="flex items-center justify-between p-4 bg-white/[0.03] border border-white/5 rounded-2xl hover:bg-white/10 transition-all group">
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-purple-500/20 rounded-xl text-purple-400"><Home size={20} /></div>
+                  <span className="text-sm font-bold text-white">The Arena</span>
+                </div>
+                <ChevronRight size={16} className="text-white/20 group-hover:text-purple-400" />
+              </Link>
 
-            {/* الروابط بنفس ستايل الصورة */}
-            <nav className="space-y-3 mb-6">
-              <MenuLink to="/" icon={<Home size={18}/>} label="The Arena" active={location.pathname === '/'} />
               {isLoggedIn && (
                 <>
-                  <MenuLink to="/profile" icon={<User size={18}/>} label="My Account" active={location.pathname === '/profile'} />
-                  <MenuLink to="/achievements" icon={<Trophy size={18}/>} label="Rankings" active={location.pathname === '/achievements'} />
-                  <MenuLink to="/withdrawals" icon={<Wallet size={18}/>} label="Spin Log" active={location.pathname === '/withdrawals'} />
-                  <MenuLink to="/marketplace" icon={<ShoppingBag size={18}/>} label="Marketplace" active={location.pathname === '/marketplace'} />
+                  <Link to="/profile" onClick={() => setIsOpen(false)} className="flex items-center justify-between p-4 bg-white/[0.03] border border-white/5 rounded-2xl hover:bg-white/10 transition-all group">
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 bg-blue-500/20 rounded-xl text-blue-400"><User size={20} /></div>
+                      <span className="text-sm font-bold text-white">My Account</span>
+                    </div>
+                    <ChevronRight size={16} className="text-white/20 group-hover:text-blue-400" />
+                  </Link>
+
+                  <Link to="/achievements" onClick={() => setIsOpen(false)} className="flex items-center justify-between p-4 bg-white/[0.03] border border-white/5 rounded-2xl hover:bg-white/10 transition-all group">
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 bg-yellow-500/20 rounded-xl text-yellow-400"><Trophy size={20} /></div>
+                      <span className="text-sm font-bold text-white">Leaderboard</span>
+                    </div>
+                    <ChevronRight size={16} className="text-white/20 group-hover:text-yellow-400" />
+                  </Link>
                 </>
               )}
-              {isAdmin && (
-                <MenuLink to="/admin" icon={<LayoutDashboard size={18}/>} label="Admin Dashboard" active={location.pathname === '/admin'} color="text-purple-400" />
-              )}
-            </nav>
-
-            {/* زر الصوت المدمج */}
-            <div className="flex justify-center mb-6">
-               <GlobalSoundEngine ref={soundRef} />
             </div>
 
-            {/* زر الخروج - أحمر ونفس شكل الصورة */}
-            <div className="mt-auto flex flex-col items-center gap-2">
-              {isLoggedIn && (
-                <button 
-                  onClick={() => { 
-                    soundRef.current?.fadeOut();
-                    setTimeout(() => { onLogout?.(); setIsOpen(false); }, 1500);
-                  }}
-                  className="w-full py-3.5 bg-gradient-to-r from-[#e11d48] to-[#9f1239] rounded-2xl text-white font-bold text-sm shadow-[0_4px_15px_rgba(225,29,72,0.3)] transition-transform active:scale-95"
-                >
-                  Terminate Session
-                </button>
-              )}
-              <p className="text-[9px] text-white/20 font-bold tracking-widest uppercase">Piest Protocol v.1.2</p>
+            {/* التحكم بالصوت داخل المنيو */}
+            {!isAudioStarted ? (
+              <button 
+                onClick={handleStartAudio}
+                className="mb-6 py-3 px-6 bg-purple-600/20 border border-purple-500/50 rounded-2xl text-purple-400 text-xs font-bold animate-pulse"
+              >
+                Click to Enable Epic Sound
+              </button>
+            ) : (
+              <div className="mb-6 flex items-center justify-center gap-4 text-purple-400">
+                <Music size={16} className="animate-spin-slow" />
+                <span className="text-[10px] font-black uppercase tracking-widest">System Audio Active</span>
+              </div>
+            )}
+
+            {/* زر الخروج Terminal */}
+            <div className="mt-auto">
+              <button 
+                onClick={fadeOutAndClose}
+                className="w-full py-4 bg-gradient-to-r from-red-600 to-red-800 rounded-2xl text-white font-black text-xs uppercase tracking-[0.2em] shadow-[0_10px_20px_rgba(220,38,38,0.2)] active:scale-95 transition-all"
+              >
+                Terminate Session
+              </button>
+              <p className="text-center text-[8px] text-white/10 mt-4 font-bold tracking-[0.3em] uppercase">Piest Protocol v.2.0</p>
             </div>
           </motion.div>
         </>
@@ -165,25 +152,10 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin = false, balance = 0 
 
   return (
     <>
-      <button onClick={toggleMenu} className="p-2 text-white/80 hover:text-purple-400">
+      <button onClick={() => setIsOpen(true)} className="p-2 text-white/80 hover:text-purple-400">
         <Menu size={36} />
       </button>
       {createPortal(MenuContent, document.body)}
     </>
-  );
-}
-
-function MenuLink({ to, icon, label, active, color = "text-white" }: any) {
-  return (
-    <Link to={to} className="block group">
-      <div className={`flex items-center justify-between p-3.5 rounded-2xl transition-all border 
-        ${active ? 'bg-white/10 border-purple-500/40' : 'bg-white/[0.03] border-white/5 hover:bg-white/5'}`}>
-        <div className="flex items-center gap-4">
-          <div className={`${active ? 'text-purple-400' : 'text-purple-500/60'}`}>{icon}</div>
-          <span className={`text-[13px] font-bold ${active ? 'text-white' : 'text-white/60'}`}>{label}</span>
-        </div>
-        <ChevronRight size={14} className="text-white/20 group-hover:text-purple-400 transition-colors" />
-      </div>
-    </Link>
   );
 }

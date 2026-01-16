@@ -65,8 +65,13 @@ export function Header({
               </Button>
             )}
             
-            {/* نمرر الرصيد هنا ليظهر داخل القائمة الجديدة */}
-            <MobileMenu isLoggedIn={isLoggedIn} isAdmin={isAdmin} onLogout={onLogout} balance={balance} />
+            {/* القائمة الذكية */}
+            <MobileMenu 
+              isLoggedIn={isLoggedIn} 
+              isAdmin={isAdmin} 
+              onLogout={onLogout} 
+              balance={balance} 
+            />
           </div>
         </div>
       </motion.header>

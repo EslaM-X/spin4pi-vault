@@ -29,11 +29,14 @@ export function Header({
   return (
     <>
       <motion.header
-        className="fixed top-0 left-0 right-0 z-[100] bg-background/95 backdrop-blur-xl border-b border-white/10"
+        // تم إضافة pointer-events-none هنا لضمان أن الهيدر نفسه لا يعترض النقرات
+        className="fixed top-0 left-0 right-0 z-[100] bg-background/95 backdrop-blur-xl border-b border-white/10 pointer-events-none"
         initial={{ y: -100 }}
         animate={{ y: 0 }}
       >
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between pointer-events-auto">
+          {/* هنا قمنا بإعادة pointer-events-auto للعناصر الداخلية فقط لتعمل الأزرار */}
+          
           <Link to="/" className="flex items-center gap-2">
             <img src={logo} alt="Spin4Pi" className="h-10 w-auto drop-shadow-[0_0_8px_rgba(168,85,247,0.4)]" />
           </Link>
@@ -64,9 +67,9 @@ export function Header({
               </Button>
             )}
             
-            {/* القائمة الذكية الأسطورية */}
-            <div className="relative z-[1001]">
-               <MobileMenu 
+            {/* القائمة الذكية - تم وضعها في حاوية منعزلة بـ z-index فائق */}
+            <div style={{ position: 'relative', zIndex: 999999, pointerEvents: 'auto' }}>
+              <MobileMenu 
                 isLoggedIn={isLoggedIn} 
                 isAdmin={isAdmin} 
                 onLogout={onLogout} 

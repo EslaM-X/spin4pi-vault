@@ -25,21 +25,18 @@ export const usePiAuth = () => {
 
     setIsLoading(true);
     try {
-      // طلبScopes الأساسية من باي: الاسم واسم المستخدم
       const scopes = ["username", "payments"];
       
-      // استدعاء نافذة الموافقة الرسمية من متصفح باي
       const auth = await window.Pi.authenticate(scopes, (payment) => {
         console.log("Oncomplete payment callback", payment);
       });
 
       console.log("Authenticated successfully:", auth.user.username);
       
-      // حفظ بيانات المستخدم في حالة الـ Hook
       setUser(auth.user);
       setIsAuthenticated(true);
       
-      // مزامنة المستخدم مع قاعدة البيانات (Supabase)
+      // مزامنة صامتة مع قاعدة البيانات
       await syncUserWithDatabase(auth.user);
 
       return auth.user;
@@ -52,23 +49,27 @@ export const usePiAuth = () => {
     }
   }, []);
 
-  // 2. مزامنة بيانات المستخدم مع السيرفر (Supabase)
+  // 2. مزامنة بيانات المستخدم (تم تعديلها لتكون صامتة وبدون أخطاء مزعجة)
   const syncUserWithDatabase = async (piUser: PiUser) => {
     try {
       const { data, error } = await supabase
         .from("profiles")
         .upsert({
           pi_username: piUser.username,
-          wallet_address: piUser.uid, // استخدام الـ UID كعنوان للمحفظة مؤقتاً
+          wallet_address: piUser.uid, 
           last_login: new Date().toISOString(),
         }, { onConflict: 'pi_username' })
         .select()
         .single();
 
-      if (error) throw error;
-      console.log("Profile synced with Supabase:", data);
+      if (error) {
+        // تسجيل الخطأ في المطورين فقط وليس للمستخدم
+        console.warn("Database sync notice (Non-critical):", error.message);
+        return;
+      }
+      console.log("Profile synced successfully");
     } catch (err) {
-      console.error("Database sync error:", err);
+      console.error("Silent sync catch:", err);
     }
   };
 
@@ -76,12 +77,10 @@ export const usePiAuth = () => {
   const logout = useCallback(() => {
     setUser(null);
     setIsAuthenticated(false);
-    localStorage.removeItem("pi_username");
   }, []);
 
-  // 4. وظائف إضافية خاصة باللعبة (اللفات المجانية)
+  // 4. وظائف إضافية خاصة باللعبة
   const canFreeSpin = useCallback(() => {
-    // يمكن إضافة منطق هنا للتحقق من الوقت المتبقي للف المجاني
     return true; 
   }, []);
 
@@ -93,20 +92,33 @@ export const usePiAuth = () => {
     if (user) {
       await syncUserWithDatabase(user);
     }
-  }, [user]);
+  }, [user, syncUserWithDatabase]);
 
-  // تهيئة الـ SDK عند تحميل الـ Hook لأول مرة
+  // تهيئة الـ SDK
   useEffect(() => {
-    if (window.Pi) {
-      setIsInitialized(true);
-      setIsLoading(false);
-    } else {
-      // محاولة التحقق كل ثانية لو الـ SDK اتأخر في التحميل
-      const timer = setTimeout(() => {
-        if (window.Pi) setIsInitialized(true);
+    const checkPi = () => {
+      if (window.Pi) {
+        setIsInitialized(true);
         setIsLoading(false);
-      }, 1000);
-      return () => clearTimeout(timer);
+        return true;
+      }
+      return false;
+    };
+
+    if (!checkPi()) {
+      const timer = setInterval(() => {
+        if (checkPi()) clearInterval(timer);
+      }, 500);
+      
+      const timeout = setTimeout(() => {
+        clearInterval(timer);
+        setIsLoading(false);
+      }, 5000);
+
+      return () => {
+        clearInterval(timer);
+        clearTimeout(timeout);
+      };
     }
   }, []);
 

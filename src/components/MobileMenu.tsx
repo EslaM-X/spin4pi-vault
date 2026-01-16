@@ -16,7 +16,6 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin }: any) {
   const location = useLocation();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // نظام الموسيقى مع التلاشي (Fade-in)
   useEffect(() => {
     if (!audioRef.current) {
       audioRef.current = new Audio(bgMusic);
@@ -28,18 +27,17 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin }: any) {
       audioRef.current.play().then(() => {
         let vol = 0;
         const fadeIn = setInterval(() => {
-          if (vol < 0.3) {
-            vol += 0.02;
+          if (vol < 0.25) {
+            vol += 0.01;
             if (audioRef.current) audioRef.current.volume = vol;
           } else {
             clearInterval(fadeIn);
           }
-        }, 100);
+        }, 150);
       }).catch(() => console.log("Interaction needed"));
     } else {
       audioRef.current.pause();
     }
-
     return () => audioRef.current?.pause();
   }, [isLoggedIn, isMuted]);
 
@@ -60,94 +58,110 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin }: any) {
 
   return (
     <>
-      {/* الزر الذكي (Trigger) - تصميم تفاعلي فاخر */}
+      {/* حقن الأنيميشن الذكي: Bounce للأيقونات و Pulse للزر */}
+      <style>{`
+        @keyframes cyber-pulse {
+          0% { box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); transform: scale(1); }
+          50% { box-shadow: 0 0 22px rgba(168, 85, 247, 0.6); transform: scale(1.03); }
+          100% { box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); transform: scale(1); }
+        }
+        @keyframes icon-bounce {
+          0% { transform: scale(0.3) translateY(30px); opacity: 0; }
+          70% { transform: scale(1.1) translateY(-5px); opacity: 1; }
+          100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        @keyframes menu-fade {
+          from { opacity: 0; backdrop-filter: blur(0px); }
+          to { opacity: 1; backdrop-filter: blur(15px); }
+        }
+        .bounce-item {
+          animation: icon-bounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        .cyber-btn:active { transform: scale(0.92); }
+      `}</style>
+
+      {/* زر التشغيل الرئيسي */}
       <button 
+        className="cyber-btn"
         onClick={() => setIsOpen(!isOpen)}
         style={{ 
-          cursor: 'pointer', width: '50px', height: '50px', 
-          background: isOpen ? 'rgba(168, 85, 247, 0.2)' : '#121214', 
+          cursor: 'pointer', width: '52px', height: '52px', 
+          background: isOpen ? '#1a1a1b' : '#121214', 
           border: `2px solid ${isOpen ? '#f472b6' : '#a855f7'}`, 
           borderRadius: '16px', display: 'flex', flexDirection: 'column',
           justifyContent: 'center', alignItems: 'center', gap: isOpen ? '0' : '5px',
-          boxShadow: isOpen ? '0 0 25px rgba(244, 114, 182, 0.4)' : '0 0 20px rgba(168, 85, 247, 0.3)',
-          zIndex: 99999, transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          padding: 0, outline: 'none'
+          zIndex: 99999, transition: '0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          padding: 0, outline: 'none', position: 'relative',
+          animation: isOpen ? 'none' : 'cyber-pulse 2s infinite ease-in-out'
         }}
       >
         {isOpen ? (
           <X size={28} color="#fff" />
         ) : (
           <>
-            <div style={{ width: '24px', height: '3px', background: 'linear-gradient(to right, #a855f7, #f472b6)', borderRadius: '10px' }} />
-            <div style={{ width: '16px', height: '3px', background: '#d946ef', borderRadius: '10px', alignSelf: 'center' }} />
-            <div style={{ width: '24px', height: '3px', background: 'linear-gradient(to right, #f472b6, #a855f7)', borderRadius: '10px' }} />
+            <div style={{ width: '22px', height: '3px', background: 'linear-gradient(90deg, #a855f7, #f472b6)', borderRadius: '10px' }} />
+            <div style={{ width: '16px', height: '3px', background: '#d946ef', borderRadius: '10px' }} />
+            <div style={{ width: '22px', height: '3px', background: 'linear-gradient(90deg, #f472b6, #a855f7)', borderRadius: '10px' }} />
           </>
         )}
       </button>
 
       {isOpen && createPortal(
         <div style={{ 
-          position: 'fixed', inset: 0, backgroundColor: 'rgba(5, 5, 7, 0.98)', 
+          position: 'fixed', inset: 0, backgroundColor: 'rgba(5, 5, 7, 0.96)', 
           zIndex: 1000000, display: 'flex', justifyContent: 'center', alignItems: 'center',
-          backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)'
+          animation: 'menu-fade 0.3s ease-out'
         }}>
           <div style={{ 
-            position: 'relative', width: '92%', maxWidth: '420px', background: '#080809',
-            border: '1.5px solid rgba(168, 85, 247, 0.4)', borderRadius: '40px',
-            padding: '35px 20px', boxShadow: '0 0 80px rgba(168, 85, 247, 0.25)',
-            maxHeight: '90vh', overflowY: 'auto'
+            position: 'relative', width: '92%', maxWidth: '400px', background: '#0a0a0b',
+            border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: '40px',
+            padding: '40px 24px', boxShadow: '0 20px 60px rgba(0,0,0,0.8)',
+            maxHeight: '88vh', overflowY: 'auto'
           }}>
             
-            {/* الهيدر الخاص بالقائمة */}
-            <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-              <img src={logoIcon} style={{ width: '85px', height: '85px', filter: 'drop-shadow(0 0 20px rgba(168,85,247,0.5))', marginBottom: '15px' }} />
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                <Sparkles size={18} color="#f472b6" />
-                <span style={{ fontSize: '18px', color: '#fff', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase', background: 'linear-gradient(to right, #fff, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                  Spin4Pi Vault
-                </span>
-                <Sparkles size={18} color="#f472b6" />
-              </div>
+            <div style={{ textAlign: 'center', marginBottom: '35px' }}>
+              <img src={logoIcon} style={{ width: '85px', height: '85px', filter: 'drop-shadow(0 0 15px rgba(168,85,247,0.4))', marginBottom: '15px' }} />
+              <h2 style={{ color: '#fff', fontSize: '20px', fontWeight: '900', letterSpacing: '3px', margin: 0 }}>
+                SPIN<span style={{ color: '#a855f7' }}>4</span>PI
+              </h2>
             </div>
 
-            {/* الخيارات - شبكة عصرية */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '25px' }}>
-              <MenuOption onClick={() => handleNavigation('/')} icon={<LayoutGrid size={22} color="#a855f7" />} label="Gaming Arena" />
-              <MenuOption onClick={() => handleNavigation('/profile')} icon={<UserCircle size={22} color="#3b82f6" />} label="Player Profile" />
-              <MenuOption onClick={() => handleNavigation('/leaderboard')} icon={<Trophy size={22} color="#fbbf24" />} label="Champions Board" />
-              <MenuOption onClick={() => handleNavigation('/achievements')} icon={<Medal size={22} color="#f472b6" />} label="Achievements" />
-              <MenuOption onClick={() => handleNavigation('/marketplace')} icon={<ShoppingCart size={22} color="#22c55e" />} label="Marketplace" />
-              <MenuOption onClick={() => handleNavigation('/vip-benefits')} icon={<Sparkles size={22} color="#8b5cf6" />} label="VIP Benefits" />
-              <MenuOption onClick={() => handleNavigation('/withdrawal-history')} icon={<History size={22} color="#94a3b8" />} label="Withdrawal History" />
-              <MenuOption onClick={() => handleNavigation('/legal')} icon={<Info size={22} color="#64748b" />} label="Legal Center" />
-              
-              {isAdmin && (
-                <MenuOption onClick={() => handleNavigation('/admin')} icon={<Settings size={22} color="#ef4444" />} label="Admin Terminal" />
-              )}
+            {/* شبكة الأيقونات مع تأثير الارتداد (Bounce) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '30px' }}>
+              <QuickAction className="bounce-item" delay="0.1s" onClick={() => handleNavigation('/')} icon={<LayoutGrid size={22} />} label="Arena" color="#a855f7" />
+              <QuickAction className="bounce-item" delay="0.2s" onClick={() => handleNavigation('/profile')} icon={<UserCircle size={22} />} label="Profile" color="#3b82f6" />
+              <QuickAction className="bounce-item" delay="0.3s" onClick={() => handleNavigation('/leaderboard')} icon={<Trophy size={22} />} label="Rank" color="#fbbf24" />
+              <QuickAction className="bounce-item" delay="0.4s" onClick={() => handleNavigation('/marketplace')} icon={<ShoppingCart size={22} />} label="Shop" color="#22c55e" />
             </div>
 
-            {/* التحكم بالصوت (Switch) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '30px' }}>
+              <MenuOption onClick={() => handleNavigation('/achievements')} icon={<Medal size={20} color="#f472b6" />} label="Achievements" />
+              <MenuOption onClick={() => handleNavigation('/vip-benefits')} icon={<Sparkles size={20} color="#8b5cf6" />} label="VIP Benefits" />
+              <MenuOption onClick={() => handleNavigation('/legal')} icon={<Info size={20} color="#64748b" />} label="Legal Center" />
+            </div>
+
+            {/* Atmosphere Toggle */}
             <div 
               onClick={toggleMute}
               style={{ 
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '18px 22px', background: 'rgba(168, 85, 247, 0.08)', borderRadius: '25px',
-                border: '1px solid rgba(168, 85, 247, 0.2)', cursor: 'pointer', marginBottom: '20px'
+                padding: '16px 20px', background: 'rgba(255,255,255,0.03)', borderRadius: '24px',
+                border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', marginBottom: '25px'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <Volume2 size={22} color={isMuted ? "#ef4444" : "#a855f7"} />
-                <span style={{ color: 'white', fontSize: '15px', fontWeight: 'bold' }}>Atmosphere</span>
+                <Volume2 size={20} color={isMuted ? "#666" : "#a855f7"} />
+                <span style={{ color: '#fff', fontSize: '14px', fontWeight: '700' }}>Atmosphere</span>
               </div>
               <div style={{ 
-                width: '46px', height: '24px', borderRadius: '20px', 
-                background: isMuted ? '#2d2d2e' : 'linear-gradient(to right, #a855f7, #f472b6)', 
-                position: 'relative', transition: '0.4s' 
+                width: '44px', height: '22px', borderRadius: '20px', 
+                background: isMuted ? '#222' : 'linear-gradient(to right, #a855f7, #f472b6)', 
+                position: 'relative', transition: '0.3s' 
               }}>
                 <div style={{ 
-                  position: 'absolute', top: '3px', left: isMuted ? '4px' : '24px', 
-                  width: '18px', height: '18px', background: 'white', 
-                  borderRadius: '50%', transition: '0.4s' 
+                  position: 'absolute', top: '3px', left: isMuted ? '4px' : '22px', 
+                  width: '16px', height: '16px', background: '#fff', 
+                  borderRadius: '50%', transition: '0.3s' 
                 }} />
               </div>
             </div>
@@ -156,12 +170,12 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin }: any) {
               <button 
                 onClick={() => { onLogout?.(); setIsOpen(false); }}
                 style={{ 
-                  width: '100%', padding: '20px', background: 'linear-gradient(to right, rgba(239,68,68,0.1), rgba(239,68,68,0.25))',
-                  border: '1.5px solid #ef4444', borderRadius: '25px', color: '#fff',
-                  fontWeight: '900', fontSize: '13px', letterSpacing: '2px', cursor: 'pointer', textTransform: 'uppercase'
+                  width: '100%', padding: '18px', background: 'rgba(239,68,68,0.1)',
+                  border: '1px solid #ef4444', borderRadius: '20px', color: '#ef4444',
+                  fontWeight: '800', fontSize: '12px', letterSpacing: '2px', cursor: 'pointer'
                 }}
               >
-                Terminate Session
+                LOGOUT SYSTEM
               </button>
             )}
           </div>
@@ -172,23 +186,36 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin }: any) {
   );
 }
 
-function MenuOption({ onClick, icon, label }: any) {
+// مكون الأزرار مع دعم الأنيميشن المتأخر
+function QuickAction({ onClick, icon, label, color, className, delay }: any) {
   return (
     <div 
-      onClick={onClick}
+      className={className}
+      onClick={onClick} 
       style={{ 
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '14px 20px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px',
-        border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer', transition: '0.2s'
+        background: 'rgba(255,255,255,0.03)', padding: '20px 10px', borderRadius: '24px',
+        border: `1px solid rgba(255,255,255,0.05)`, cursor: 'pointer', textAlign: 'center',
+        animationDelay: delay, opacity: 0 // يبدأ مخفي ثم يظهر بالأنيميشن
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-        <div style={{ width: '40px', height: '40px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'rgba(255,255,255,0.05)', borderRadius: '12px' }}>
-          {icon}
-        </div>
-        <span style={{ color: 'white', fontSize: '15px', fontWeight: '700' }}>{label}</span>
+      <div style={{ color: color, marginBottom: '10px', display: 'flex', justifyContent: 'center' }}>{icon}</div>
+      <div style={{ color: '#fff', fontSize: '13px', fontWeight: '800' }}>{label}</div>
+    </div>
+  );
+}
+
+function MenuOption({ onClick, icon, label }: any) {
+  return (
+    <div onClick={onClick} style={{ 
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '14px 20px', background: 'rgba(255,255,255,0.01)', borderRadius: '18px',
+      cursor: 'pointer'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {icon}
+        <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px', fontWeight: '600' }}>{label}</span>
       </div>
-      <ChevronRight size={18} color="rgba(255,255,255,0.3)" />
+      <ChevronRight size={16} color="rgba(255,255,255,0.2)" />
     </div>
   );
 }

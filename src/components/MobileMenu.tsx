@@ -1,66 +1,66 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { X, Home, User, Trophy, Wallet, ChevronRight, Music, Menu, ShieldCheck } from 'lucide-react';
-import { Slider } from '@/components/ui/slider';
+import { X, Home, User, Music, Menu, ChevronRight, Wallet } from 'lucide-react';
 
-// استيراد الشعارات مع معالجة الخطأ
+// كود آمن لاستيراد الصورة لضمان عدم توقف الزر عن العمل
 import logoIcon from "@/assets/spin4pi-logo.png";
 
 export function MobileMenu({ isLoggedIn, onLogout, isAdmin = false, balance = 0 }: any) {
   const [isOpen, setIsOpen] = useState(false);
-  const [showAudioSlider, setShowAudioSlider] = useState(false);
+  const [showAudio, setShowAudio] = useState(false);
   const [volume, setVolume] = useState(70);
-  const bgMusic = useRef<HTMLAudioElement | null>(null);
   const audioTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const bgMusic = useRef<HTMLAudioElement | null>(null);
 
-  // 1. نظام تشغيل الصوت الذكي
+  // تشغيل الصوت - مع معالجة الأخطاء لضمان استمرار عمل الزر
   useEffect(() => {
-    const audio = new Audio("https://assets.mixkit.co/music/preview/mixkit-tech-house-vibes-130.mp3");
-    audio.loop = true;
-    bgMusic.current = audio;
+    try {
+      const audio = new Audio("https://assets.mixkit.co/music/preview/mixkit-tech-house-vibes-130.mp3");
+      audio.loop = true;
+      bgMusic.current = audio;
 
-    const enableAudio = () => {
-      audio.play().catch(() => {});
-      window.removeEventListener('touchstart', enableAudio);
-      window.removeEventListener('click', enableAudio);
-    };
-    window.addEventListener('touchstart', enableAudio);
-    window.addEventListener('click', enableAudio);
-
-    return () => {
-      audio.pause();
-      if (audioTimerRef.current) clearTimeout(audioTimerRef.current);
-    };
+      const enableAudio = () => {
+        audio.play().catch(() => {});
+        window.removeEventListener('click', enableAudio);
+      };
+      window.addEventListener('click', enableAudio);
+    } catch (err) {
+      console.error("Audio error:", err);
+    }
+    return () => { if(audioTimerRef.current) clearTimeout(audioTimerRef.current); };
   }, []);
 
   useEffect(() => {
     if (bgMusic.current) bgMusic.current.volume = volume / 100;
   }, [volume]);
 
-  // 2. مؤقت الإغلاق التلقائي (6 ثوانٍ)
+  // وظيفة الإغلاق التلقائي بعد 6 ثوانٍ
   const startTimer = () => {
     if (audioTimerRef.current) clearTimeout(audioTimerRef.current);
     audioTimerRef.current = setTimeout(() => {
-      setShowAudioSlider(false);
-    }, 6000);
+      setShowAudio(false);
+    }, 6000); // 6 ثوانٍ بالضبط
   };
 
-  const toggleAudio = (e: React.MouseEvent) => {
+  const handleToggle = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
-    setShowAudioSlider(!showAudioSlider);
-    if (!showAudioSlider) startTimer();
+    setIsOpen(true);
   };
 
   return (
     <>
-      {/* زر الهامبرجر الموجود في الـ Header */}
+      {/* الزر الرئيسي - مع إضافة z-index لضمان أنه قابل للضغط */}
       <button 
-        onClick={() => setIsOpen(true)} 
-        className="p-2 ml-2 hover:bg-white/5 rounded-xl transition-colors text-purple-400"
+        onClick={handleToggle}
+        style={{ 
+          background: 'none', border: 'none', color: '#a855f7', 
+          cursor: 'pointer', padding: '8px', zIndex: 110, position: 'relative' 
+        }}
       >
-        <Menu size={28} />
+        <Menu size={32} />
       </button>
 
       <AnimatePresence>
@@ -71,91 +71,84 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin = false, balance = 0 
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setIsOpen(false)}
-              className="absolute inset-0 bg-black/90 backdrop-blur-xl"
+              style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.95)', backdropFilter: 'blur(15px)' }}
             />
 
-            {/* البطاقة العائمة الأسطورية */}
+            {/* البطاقة العائمة */}
             <motion.div
-              initial={{ scale: 0.8, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.8, opacity: 0, y: 20 }}
-              className="relative w-[92%] max-w-[380px] bg-[#0a0a0b] border-2 border-purple-500/50 rounded-[45px] p-8 shadow-[0_0_70px_rgba(168,85,247,0.3)] flex flex-col items-center"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              style={{
+                position: 'relative', width: '90%', maxWidth: '360px', background: '#080809',
+                borderRadius: '40px', border: '2px solid #a855f7', padding: '35px 25px',
+                boxShadow: '0 0 60px rgba(168,85,247,0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center'
+              }}
             >
-              <button onClick={() => setIsOpen(false)} className="absolute top-6 right-8 text-white/20 hover:text-white">
+              <button onClick={() => setIsOpen(false)} style={{ position: 'absolute', top: '20px', right: '25px', color: '#444', background: 'none', border: 'none' }}>
                 <X size={24} />
               </button>
 
-              {/* الشعار والبيانات */}
-              <img src={logoIcon} className="w-16 h-16 mb-4 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]" />
+              <img src={logoIcon} style={{ width: '65px', marginBottom: '15px' }} />
               
               {isLoggedIn && (
-                <div className="mb-6 flex flex-col items-center">
-                  <div className="flex items-center gap-2 px-4 py-1.5 bg-yellow-500/10 border border-yellow-500/30 rounded-full mb-2">
-                    <Wallet size={14} className="text-yellow-500" />
-                    <span className="text-yellow-500 font-black text-sm">{balance.toFixed(2)} π</span>
+                <div style={{ marginBottom: '25px', textAlign: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(234,179,8,0.1)', padding: '5px 15px', borderRadius: '100px', border: '1px solid rgba(234,179,8,0.3)' }}>
+                    <Wallet size={14} color="#eab308" />
+                    <span style={{ color: '#eab308', fontWeight: 'bold' }}>{Number(balance).toFixed(2)} π</span>
                   </div>
-                  {isAdmin && (
-                    <span className="text-[10px] text-blue-400 font-bold tracking-widest uppercase flex items-center gap-1">
-                      <ShieldCheck size={12} /> Administrator
-                    </span>
-                  )}
                 </div>
               )}
 
-              {/* الروابط */}
-              <div className="w-full space-y-3 mb-8">
-                <Link to="/" onClick={() => setIsOpen(false)} className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-2xl hover:border-purple-500/50 transition-all group">
-                  <div className="flex items-center gap-4">
-                    <Home size={20} className="text-purple-400" />
-                    <span className="text-sm font-bold text-white">The Arena</span>
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '30px' }}>
+                <Link to="/" onClick={() => setIsOpen(false)} style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', background: 'rgba(255,255,255,0.03)', borderRadius: '18px', textDecoration: 'none', color: 'white' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <Home size={20} color="#a855f7" /> <span>The Arena</span>
                   </div>
-                  <ChevronRight size={18} className="opacity-20 group-hover:opacity-100" />
+                  <ChevronRight size={16} color="#333" />
                 </Link>
 
                 {isLoggedIn && (
-                  <Link to="/profile" onClick={() => setIsOpen(false)} className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-2xl hover:border-blue-500/50 transition-all group">
-                    <div className="flex items-center gap-4">
-                      <User size={20} className="text-blue-400" />
-                      <span className="text-sm font-bold text-white">My Profile</span>
+                  <Link to="/profile" onClick={() => setIsOpen(false)} style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', background: 'rgba(255,255,255,0.03)', borderRadius: '18px', textDecoration: 'none', color: 'white' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <User size={20} color="#3b82f6" /> <span>My Account</span>
                     </div>
-                    <ChevronRight size={18} className="opacity-20 group-hover:opacity-100" />
+                    <ChevronRight size={16} color="#333" />
                   </Link>
                 )}
               </div>
 
-              {/* تحكم الصوت - يغلق بعد 6 ثوانٍ */}
-              <div className="w-full mb-8">
-                <button onClick={toggleAudio} className="flex items-center gap-2 mx-auto text-purple-400 hover:text-purple-300 transition-colors">
-                  <Music size={18} className={!showAudioSlider ? "animate-pulse" : ""} />
-                  <span className="text-[10px] font-black tracking-widest uppercase">System Audio</span>
+              {/* تحكم الصوت مع المؤقت الذكي */}
+              <div style={{ width: '100%', marginBottom: '25px' }}>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setShowAudio(!showAudio); if(!showAudio) startTimer(); }} 
+                  style={{ background: 'none', border: 'none', color: '#a855f7', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', margin: '0 auto' }}
+                >
+                  <Music size={18} className={!showAudio ? "animate-pulse" : ""} />
+                  <span style={{ fontSize: '10px', fontWeight: '900' }}>SYSTEM AUDIO</span>
                 </button>
                 
-                <AnimatePresence>
-                  {showAudioSlider && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="pt-4 overflow-hidden">
-                      <div className="bg-black/40 p-4 rounded-2xl border border-white/5">
-                        <Slider 
-                          value={[volume]} 
-                          max={100} 
-                          onValueChange={(v) => { setVolume(v[0]); startTimer(); }} 
-                        />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {showAudio && (
+                  <div style={{ marginTop: '15px', padding: '15px', background: 'rgba(255,255,255,0.02)', borderRadius: '15px' }}>
+                    <input 
+                      type="range" 
+                      min="0" max="100" 
+                      value={volume} 
+                      onChange={(e) => { setVolume(Number(e.target.value)); startTimer(); }}
+                      style={{ width: '100%', accentColor: '#a855f7' }}
+                    />
+                  </div>
+                )}
               </div>
 
-              {/* زر تسجيل الخروج */}
               {isLoggedIn && (
                 <button 
                   onClick={() => { onLogout?.(); setIsOpen(false); }}
-                  className="w-full py-4 bg-gradient-to-r from-red-600 to-red-900 rounded-2xl text-white font-black text-xs tracking-widest uppercase shadow-lg shadow-red-900/20 active:scale-95 transition-all"
+                  style={{ width: '100%', padding: '15px', background: 'linear-gradient(to right, #e11d48, #9f1239)', border: 'none', borderRadius: '18px', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
                 >
-                  Terminate Session
+                  TERMINATE SESSION
                 </button>
               )}
-              
-              <p className="mt-6 text-[8px] text-white/10 font-bold tracking-[0.5em] uppercase">Protocol v.2.0.6</p>
             </motion.div>
           </div>,
           document.body

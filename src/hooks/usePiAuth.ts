@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-// تعريف واجهة بيانات المستخدم القادمة من Pi SDK
 interface PiUser {
   uid: string;
   username: string;
@@ -14,44 +13,9 @@ export const usePiAuth = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // 1. وظيفة تسجيل الدخول والمصادقة
-  const authenticate = useCallback(async () => {
-    if (!window.Pi) {
-      const errorMsg = "Pi SDK not found. Please open in Pi Browser.";
-      console.error(errorMsg);
-      toast.error(errorMsg);
-      return null;
-    }
-
-    setIsLoading(true);
-    try {
-      const scopes = ["username", "payments"];
-      
-      const auth = await window.Pi.authenticate(scopes, (payment) => {
-        console.log("Oncomplete payment callback", payment);
-      });
-
-      console.log("Authenticated successfully:", auth.user.username);
-      
-      setUser(auth.user);
-      setIsAuthenticated(true);
-      
-      // مزامنة صامتة مع قاعدة البيانات
-      await syncUserWithDatabase(auth.user);
-
-      return auth.user;
-    } catch (err) {
-      console.error("Authentication failed:", err);
-      toast.error("Failed to authenticate with Pi Network");
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // 2. مزامنة بيانات المستخدم (تم تعديلها لتكون صامتة وبدون أخطاء مزعجة)
   const syncUserWithDatabase = async (piUser: PiUser) => {
     try {
+      // محاولة تحديث أو إنشاء البروفايل لضمان وجود المستخدم في قاعدة البيانات
       const { data, error } = await supabase
         .from("profiles")
         .upsert({
@@ -63,38 +27,67 @@ export const usePiAuth = () => {
         .single();
 
       if (error) {
-        // تسجيل الخطأ في المطورين فقط وليس للمستخدم
-        console.warn("Database sync notice (Non-critical):", error.message);
+        console.error("Database sync error:", error.message);
         return;
       }
-      console.log("Profile synced successfully");
+      console.log("Database successfully synced for user:", piUser.username);
     } catch (err) {
-      console.error("Silent sync catch:", err);
+      console.error("Critical Auth Sync Error:", err);
     }
   };
 
-  // 3. وظيفة تسجيل الخروج
+  const authenticate = useCallback(async () => {
+    if (!window.Pi) {
+      toast.error("Please open this app inside Pi Browser.");
+      return null;
+    }
+
+    setIsLoading(true);
+    try {
+      const scopes = ["username", "payments"];
+      const auth = await window.Pi.authenticate(scopes, (onIncompletePaymentFound) => {
+        console.log("Incomplete payment found:", onIncompletePaymentFound);
+      });
+
+      console.log("Pi Network Auth Success:", auth.user.username);
+      
+      setUser(auth.user);
+      setIsAuthenticated(true);
+      
+      // مزامنة فورية مع السيرفر لفتح الميزات
+      await syncUserWithDatabase(auth.user);
+      
+      toast.success(`Welcome, ${auth.user.username}!`);
+      return auth.user;
+    } catch (err) {
+      console.error("Auth failed:", err);
+      toast.error("Failed to login with Pi. Try again.");
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const logout = useCallback(() => {
     setUser(null);
     setIsAuthenticated(false);
   }, []);
 
-  // 4. وظائف إضافية خاصة باللعبة
+  // تحسين وظيفة التحقق من اللفات المجانية
   const canFreeSpin = useCallback(() => {
-    return true; 
-  }, []);
+    return isAuthenticated; 
+  }, [isAuthenticated]);
 
   const getNextFreeSpinTime = useCallback(() => {
-    return "Available";
-  }, []);
+    return isAuthenticated ? "Available" : "Login Required";
+  }, [isAuthenticated]);
 
   const refreshProfile = useCallback(async () => {
     if (user) {
       await syncUserWithDatabase(user);
     }
-  }, [user, syncUserWithDatabase]);
+  }, [user]);
 
-  // تهيئة الـ SDK
   useEffect(() => {
     const checkPi = () => {
       if (window.Pi) {
@@ -107,18 +100,11 @@ export const usePiAuth = () => {
 
     if (!checkPi()) {
       const timer = setInterval(() => {
-        if (checkPi()) clearInterval(timer);
+        if (checkPi()) {
+          clearInterval(timer);
+        }
       }, 500);
-      
-      const timeout = setTimeout(() => {
-        clearInterval(timer);
-        setIsLoading(false);
-      }, 5000);
-
-      return () => {
-        clearInterval(timer);
-        clearTimeout(timeout);
-      };
+      return () => clearInterval(timer);
     }
   }, []);
 

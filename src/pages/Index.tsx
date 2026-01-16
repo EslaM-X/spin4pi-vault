@@ -71,9 +71,6 @@ const Index = () => {
   // ======= UI States =======
   const [isLoading, setIsLoading] = useState(true);
   const [freeSpinTimer, setFreeSpinTimer] = useState("Available");
-  const [showJackpotPopup, setShowJackpotPopup] = useState(false);
-  const [showAdReward, setShowAdReward] = useState(false);
-  const [adRewardType, setAdRewardType] = useState<"free_spin" | "bonus_pi" | "boost">("free_spin");
   const [showResultModal, setShowResultModal] = useState(false);
 
   // ======= Free Spin Timer =======
@@ -102,14 +99,27 @@ const Index = () => {
 
   if (isLoading) return <GlobalLoading isVisible={true} />;
 
-  // ======= Auth Handlers =======
+  // ======= Mofified Auth Handler =======
   const handleLogin = async () => {
-    const result = await authenticate();
-    if (result) {
-      localStorage.setItem("pi_username", result.username);
-      await applyReferral(result.username, searchParams.get("ref"));
-      await fetchWalletData(result.username);
-      toast.success(`Welcome, ${result.username}`);
+    try {
+      console.log("Initiating Pi Authentication...");
+      const result = await authenticate();
+      
+      if (result && result.username) {
+        localStorage.setItem("pi_username", result.username);
+        
+        // Parallel data fetching for better UX
+        await Promise.all([
+          applyReferral(result.username, searchParams.get("ref")),
+          fetchWalletData(result.username),
+          refreshData()
+        ]);
+        
+        toast.success(`Welcome, ${result.username}!`);
+      }
+    } catch (error) {
+      console.error("Login sequence failed:", error);
+      toast.error("Login failed. Make sure you are in Pi Browser.");
     }
   };
 
@@ -128,15 +138,12 @@ const Index = () => {
 
   // ======= Spin Handler =======
   const handleSpinClick = async (spinType: string, cost: number) => {
-    if (!user) {
-      toast.error("Please login first");
+    if (!isAuthenticated || !user) {
+      toast.error("Please login with Pi first");
       return;
     }
 
-    if (isSpinning) {
-      toast.info("Spin in progress...");
-      return;
-    }
+    if (isSpinning) return;
 
     if (spinType === "free" && !canFreeSpin()) {
       toast.info("Free spin not available yet");
@@ -150,7 +157,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background overflow-hidden">
-      {/* Background */}
       <div className="fixed inset-0 bg-stars opacity-50 pointer-events-none" />
       <div className="fixed inset-0 bg-gradient-radial from-pi-purple/10 via-transparent to-transparent pointer-events-none" />
 
@@ -160,6 +166,7 @@ const Index = () => {
         balance={wallet.balance}
         onLogin={handleLogin}
         onLogout={handleLogout}
+        isLoading={isAuthLoading}
       />
 
       <main className="container mx-auto px-4 pt-24 pb-12">
@@ -244,20 +251,6 @@ const Index = () => {
         result={targetResult}
       />
 
-      <PiAdsReward
-        isOpen={showAdReward}
-        onClose={() => setShowAdReward(false)}
-        onAdComplete={() => handleSpinClick("free", 0)}
-        rewardType={adRewardType}
-      />
-
-      <JackpotPopup
-        isOpen={showJackpotPopup}
-        onClose={() => setShowJackpotPopup(false)}
-        jackpotAmount={jackpot}
-      />
-
-      {/* Backend Health Check Widget */}
       <BackendHealthCheck />
     </div>
   );

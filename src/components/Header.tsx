@@ -30,6 +30,7 @@ export function Header({
   return (
     <>
       <motion.header
+        // زيادة الـ z-index للهيدر والتأكد من أنه لا يحجب ما بداخله
         className="fixed top-0 left-0 right-0 z-[100] bg-background/95 backdrop-blur-xl border-b border-white/10"
         initial={{ y: -100 }}
         animate={{ y: 0 }}
@@ -65,22 +66,36 @@ export function Header({
               </Button>
             )}
             
-            {/* القائمة الذكية */}
-            <MobileMenu 
-              isLoggedIn={isLoggedIn} 
-              isAdmin={isAdmin} 
-              onLogout={onLogout} 
-              balance={balance} 
-            />
+            {/* القائمة الذكية - وضعها داخل حاوية بـ z-index مرتفع جداً لضمان النقر */}
+            <div className="relative z-[1001] pointer-events-auto">
+              <MobileMenu 
+                isLoggedIn={isLoggedIn} 
+                isAdmin={isAdmin} 
+                onLogout={onLogout} 
+                balance={balance} 
+              />
+            </div>
           </div>
         </div>
       </motion.header>
 
+      {/* النوافذ المنبثقة */}
       {showDeposit && username && (
-        <DepositModal isOpen={showDeposit} onClose={() => setShowDeposit(false)} username={username} onSuccess={onDepositSuccess} />
+        <DepositModal 
+          isOpen={showDeposit} 
+          onClose={() => setShowDeposit(false)} 
+          username={username} 
+          onSuccess={onDepositSuccess} 
+        />
       )}
       {showWithdraw && username && (
-        <WithdrawModal isOpen={showWithdraw} onClose={() => setShowWithdraw(false)} piUsername={username} currentBalance={balance} onWithdrawSuccess={onDepositSuccess} />
+        <WithdrawModal 
+          isOpen={showWithdraw} 
+          onClose={() => setShowWithdraw(false)} 
+          piUsername={username} 
+          currentBalance={balance} 
+          onWithdrawSuccess={onDepositSuccess} 
+        />
       )}
     </>
   );

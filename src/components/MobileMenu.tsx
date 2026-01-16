@@ -8,44 +8,45 @@ import {
 } from 'lucide-react';
 import logoIcon from "@/assets/spin4pi-logo.png";
 
-// استيراد ملف الصوت (تأكد من وجوده في هذا المسار)
 import bgMusic from "@/assets/sounds/bg-music.mp3";
 
 export function MobileMenu({ isLoggedIn, onLogout, isAdmin }: any) {
   const [isOpen, setIsOpen] = useState(false);
-  // قراءة حالة الكتم من التخزين المحلي فور التحميل
   const [isMuted, setIsMuted] = useState(() => localStorage.getItem('isMuted') === 'true');
   const navigate = useNavigate();
   const location = useLocation();
-  
-  // استخدام useRef للتحكم في كائن الصوت لضمان استقراره عبر دورات إعادة الرندر
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // إنشاء كائن الصوت لمرة واحدة عند تحميل المكون
     if (!audioRef.current) {
       audioRef.current = new Audio(bgMusic);
       audioRef.current.loop = true;
-      audioRef.current.volume = 0.3; // مستوى صوت هادئ
     }
 
-    // منطق التشغيل التلقائي عند تسجيل الدخول
-    // المتصفحات تسمح بالصوت هنا لأن زر "Login" يعتبر تفاعل مستخدم (User Interaction)
     if (isLoggedIn && !isMuted) {
-      audioRef.current.play().catch(err => console.log("Audio playback waiting for interaction"));
+      // بدء الصوت من الصفر لتفعيل التلاشي
+      audioRef.current.volume = 0;
+      audioRef.current.play().then(() => {
+        // دالة التلاشي (Fade-in)
+        let vol = 0;
+        const fadeInInterval = setInterval(() => {
+          if (vol < 0.3) { // 0.3 هو مستوى الصوت النهائي المريح
+            vol += 0.02;
+            if (audioRef.current) audioRef.current.volume = vol;
+          } else {
+            clearInterval(fadeInInterval);
+          }
+        }, 100); // زيادة الصوت كل 100 مللي ثانية
+      }).catch(err => console.log("Waiting for user interaction"));
     } else {
       audioRef.current.pause();
     }
 
-    // تنظيف عند مسح المكون من الذاكرة
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
+      if (audioRef.current) audioRef.current.pause();
     };
-  }, [isLoggedIn]); // يعمل الكود كلما تغيرت حالة تسجيل الدخول
+  }, [isLoggedIn]);
 
-  // دالة تبديل الكتم
   const toggleMute = () => {
     const newState = !isMuted;
     setIsMuted(newState);
@@ -55,6 +56,7 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin }: any) {
       if (newState) {
         audioRef.current.pause();
       } else if (isLoggedIn) {
+        audioRef.current.volume = 0.3; // العودة للمستوى الطبيعي مباشرة عند إلغاء الكتم
         audioRef.current.play();
       }
     }
@@ -135,7 +137,6 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin }: any) {
               )}
             </div>
 
-            {/* التحكم بالصوت - تم ربط الـ onClick بدالة toggleMute */}
             <div 
               onClick={toggleMute}
               style={{ 
@@ -186,9 +187,7 @@ function MenuOption({ onClick, icon, label }: any) {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-        <div style={{ width: '38px', height: '38px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'rgba(255,255,255,0.04)', borderRadius: '12px' }}>
-          {icon}
-        </div>
+        <div style={{ width: '38px', height: '38px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'rgba(255,255,255,0.04)', borderRadius: '12px' }}>{icon}</div>
         <span style={{ color: 'white', fontSize: '14px', fontWeight: '700' }}>{label}</span>
       </div>
       <ChevronRight size={18} color="rgba(255,255,255,0.2)" />

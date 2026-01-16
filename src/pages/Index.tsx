@@ -21,6 +21,7 @@ import StakingPanel from "@/components/StakingPanel";
 import PiAdsReward from "@/components/PiAdsReward";
 import GlobalLoading from "@/components/GlobalLoading";
 import JackpotPopup from "@/components/JackpotPopup";
+import { BackendHealthCheck } from "@/components/BackendHealthCheck";
 
 // ======= Hooks =======
 import { useGameData } from "@/hooks/useGameData";
@@ -46,7 +47,7 @@ const Index = () => {
   } = usePiAuth();
 
   const { createPayment } = usePiPayment();
-  const { jackpot, leaderboard, isLoading: isGameLoading, refreshData } = useGameData();
+  const { jackpot, leaderboard, isLoading: isGameLoading, error: gameError, refreshData } = useGameData();
 
   // ======= Wallet =======
   const {
@@ -199,7 +200,12 @@ const Index = () => {
               walletBalance={wallet.balance}
               onRefresh={() => fetchWalletData(user?.username)}
             />
-            <Leaderboard entries={leaderboard} isLoading={isGameLoading} />
+            <Leaderboard 
+              entries={leaderboard} 
+              isLoading={isGameLoading} 
+              error={gameError}
+              onRetry={refreshData}
+            />
             {user && (
               <StakingPanel
                 username={user.username}
@@ -250,6 +256,9 @@ const Index = () => {
         onClose={() => setShowJackpotPopup(false)}
         jackpotAmount={jackpot}
       />
+
+      {/* Backend Health Check Widget */}
+      <BackendHealthCheck />
     </div>
   );
 };

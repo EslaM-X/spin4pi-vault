@@ -50,15 +50,15 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const piApiKey = Deno.env.get('PI_SERVER_KEY') || Deno.env.get('MY_PI_API_KEY');
+    const supabaseUrl = Deno.env.get('MY_SUPABASE_URL') || Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('MY_SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const piApiKey = Deno.env.get('MY_PI_API_KEY');
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     if (!piApiKey) {
-      console.error('PI_SERVER_KEY not configured');
+      console.error('MY_PI_API_KEY not configured');
       return new Response(
-        JSON.stringify({ error: "Server configuration error" }),
+        JSON.stringify({ error: "Server configuration error: PI API key missing" }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

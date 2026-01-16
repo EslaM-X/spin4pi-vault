@@ -47,6 +47,38 @@ export type Database = {
         }
         Relationships: []
       }
+      ad_spin_claims: {
+        Row: {
+          ads_watched: number
+          claimed_at: string
+          id: string
+          profile_id: string
+          s4p_reward: number | null
+        }
+        Insert: {
+          ads_watched?: number
+          claimed_at?: string
+          id?: string
+          profile_id: string
+          s4p_reward?: number | null
+        }
+        Update: {
+          ads_watched?: number
+          claimed_at?: string
+          id?: string
+          profile_id?: string
+          s4p_reward?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_spin_claims_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_roles: {
         Row: {
           created_at: string | null
@@ -282,6 +314,7 @@ export type Database = {
           referral_count: number | null
           referral_earnings: number | null
           referred_by: string | null
+          s4p_balance: number | null
           total_login_rewards: number | null
           total_spins: number | null
           total_winnings: number | null
@@ -299,6 +332,7 @@ export type Database = {
           referral_count?: number | null
           referral_earnings?: number | null
           referred_by?: string | null
+          s4p_balance?: number | null
           total_login_rewards?: number | null
           total_spins?: number | null
           total_winnings?: number | null
@@ -316,6 +350,7 @@ export type Database = {
           referral_count?: number | null
           referral_earnings?: number | null
           referred_by?: string | null
+          s4p_balance?: number | null
           total_login_rewards?: number | null
           total_spins?: number | null
           total_winnings?: number | null
@@ -368,6 +403,41 @@ export type Database = {
           {
             foreignKeyName: "referral_rewards_referrer_id_fkey"
             columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      s4p_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          profile_id: string
+          transaction_type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          profile_id: string
+          transaction_type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          profile_id?: string
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "s4p_transactions_profile_id_fkey"
+            columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

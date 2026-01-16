@@ -23,14 +23,7 @@ interface HeaderProps {
 }
 
 export function Header({ 
-  isLoggedIn, 
-  username, 
-  balance, 
-  onLogin, 
-  onLogout,
-  onDepositSuccess, 
-  isLoading, 
-  isAdmin = false 
+  isLoggedIn, username, balance, onLogin, onLogout, onDepositSuccess, isLoading, isAdmin = false 
 }: HeaderProps) {
   const [showDeposit, setShowDeposit] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
@@ -38,99 +31,44 @@ export function Header({
   return (
     <>
       <motion.header
-        // تم رفع الـ z-index هنا لضمان بقاء الهيدر فوق عناصر اللعبة
-        className="fixed top-0 left-0 right-0 z-[60] bg-background/80 backdrop-blur-lg border-b border-border"
+        // تم رفع الـ z-index إلى 100 لضمان السيادة فوق جميع عناصر الصفحة
+        className="fixed top-0 left-0 right-0 z-[100] bg-background/95 backdrop-blur-xl border-b border-white/10"
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        transition={{ duration: 0.5 }}
       >
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <motion.div className="flex items-center gap-3" whileHover={{ scale: 1.02 }}>
-            <Link to="/" className="flex items-center">
-              <img src={logo} alt="Spin4Pi" className="h-10 sm:h-12 w-auto" />
-            </Link>
-          </motion.div>
+          <Link to="/" className="flex items-center gap-2">
+            <img src={logo} alt="Spin4Pi" className="h-10 w-auto" />
+          </Link>
           
-          <div className={`hidden ${isLoggedIn ? 'lg:block' : 'sm:block'}`}>
-            <PiPriceDisplay />
-          </div>
-          
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <PiPriceDisplay className="hidden md:block" />
             <SoundControls />
             
             {isLoggedIn ? (
-              <>
-                <motion.div
-                  className="flex items-center gap-1 px-3 py-2 bg-gradient-to-r from-card to-muted rounded-full border border-gold/30"
-                  whileHover={{ scale: 1.02 }}
-                >
-                  <Wallet className="w-4 h-4 text-gold" />
-                  <span className="font-display font-bold text-gold text-sm sm:text-base">
-                    {(balance || 0).toFixed(2)} π
-                  </span>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6 ml-1 hover:bg-gold/20"
-                    onClick={() => setShowDeposit(true)}
-                  >
-                    <Plus className="w-3 h-3 text-gold" />
-                  </Button>
-                </motion.div>
-                
-                <Link to="/profile" className="hidden sm:block">
-                  <motion.div
-                    className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-pi-purple/20 to-card rounded-full border border-pi-purple/30"
-                    whileHover={{ scale: 1.02 }}
-                  >
-                    <User className="w-4 h-4 text-pi-purple" />
-                    <span className="font-medium text-foreground">{username}</span>
-                  </motion.div>
-                </Link>
-              </>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full border border-yellow-500/30">
+                <Wallet className="w-4 h-4 text-yellow-500" />
+                <span className="text-yellow-500 font-bold text-sm">{(balance || 0).toFixed(2)} π</span>
+                <Button size="icon" variant="ghost" className="h-6 w-6 hover:bg-yellow-500/20" onClick={() => setShowDeposit(true)}>
+                  <Plus className="w-3 h-3 text-yellow-500" />
+                </Button>
+              </div>
             ) : (
-              <motion.button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  onLogin();
-                }}
-                disabled={isLoading}
-                className="flex items-center gap-2 px-4 sm:px-6 py-2 bg-gradient-to-r from-pi-purple to-pi-purple-dark text-white font-display font-bold rounded-full shadow-lg shadow-pi-purple/20 disabled:opacity-50"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <LogIn className="w-5 h-5" />
-                <span>{isLoading ? 'Connecting...' : 'Login'}</span>
-              </motion.button>
+              <Button onClick={onLogin} disabled={isLoading} className="bg-purple-600 hover:bg-purple-700 rounded-full px-6">
+                {isLoading ? '...' : 'Login'}
+              </Button>
             )}
             
-            <MobileMenu 
-              isLoggedIn={isLoggedIn} 
-              isAdmin={isAdmin} 
-              onLogout={onLogout}
-            />
+            <MobileMenu isLoggedIn={isLoggedIn} isAdmin={isAdmin} onLogout={onLogout} />
           </div>
         </div>
       </motion.header>
 
       {showDeposit && username && (
-        <DepositModal
-          isOpen={showDeposit}
-          onClose={() => setShowDeposit(false)}
-          username={username}
-          onSuccess={() => onDepositSuccess?.()}
-        />
+        <DepositModal isOpen={showDeposit} onClose={() => setShowDeposit(false)} username={username} onSuccess={onDepositSuccess} />
       )}
-
       {showWithdraw && username && (
-        <WithdrawModal
-          isOpen={showWithdraw}
-          onClose={() => setShowWithdraw(false)}
-          piUsername={username}
-          currentBalance={balance}
-          onWithdrawSuccess={() => onDepositSuccess?.()}
-        />
+        <WithdrawModal isOpen={showWithdraw} onClose={() => setShowWithdraw(false)} piUsername={username} currentBalance={balance} onWithdrawSuccess={onDepositSuccess} />
       )}
     </>
   );

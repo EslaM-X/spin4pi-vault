@@ -1,71 +1,95 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { Home, User, ChevronRight, LogOut, X } from 'lucide-react';
-import logoIcon from "@/assets/spin4pi-logo.png";
+import { X, Home, User, LogOut, ChevronRight } from 'lucide-react';
 
 export function MobileMenu({ isLoggedIn, onLogout }: any) {
   const [isOpen, setIsOpen] = useState(false);
 
+  // دالة بسيطة جداً لضمان التفاعل
+  const toggle = () => {
+    console.log("Menu clicked");
+    setIsOpen(!isOpen);
+  };
+
   return (
     <>
-      <button 
-        // استخدام onClick مباشرة مع التأكد من أنه زر حقيقي
-        onClick={() => setIsOpen(true)}
-        className="relative group flex flex-col gap-1.5 justify-center items-center active:scale-90 transition-all cursor-pointer shadow-2xl"
+      {/* زر الهامبرجر الأسطوري - مبسط تقنياً */}
+      <div 
+        onClick={toggle}
         style={{ 
-          background: '#1a1a1b',
-          borderRadius: '16px',
-          border: '2px solid #a855f7',
-          width: '48px',
-          height: '48px',
-          padding: '0',
-          display: 'flex'
+          cursor: 'pointer',
+          width: '40px',
+          height: '40px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '4px',
+          background: 'rgba(168,85,247,0.15)',
+          border: '1px solid #a855f7',
+          borderRadius: '10px',
+          zIndex: 101 // أعلى من الهيدر بقليل
         }}
       >
-        <motion.span className="h-[3px] w-6 bg-purple-400 rounded-full" />
-        <motion.span className="h-[3px] w-4 bg-purple-500 rounded-full self-end mr-2" />
-        <motion.span className="h-[3px] w-6 bg-pink-500 rounded-full" />
-      </button>
+        <div style={{ width: '20px', height: '2px', background: '#a855f7', borderRadius: '2px' }} />
+        <div style={{ width: '14px', height: '2px', background: '#d946ef', borderRadius: '2px', alignSelf: 'flex-end', marginRight: '10px' }} />
+        <div style={{ width: '20px', height: '2px', background: '#a855f7', borderRadius: '2px' }} />
+      </div>
 
-      <AnimatePresence>
-        {isOpen && createPortal(
-          <div style={{ position: 'fixed', inset: 0, zIndex: 10000000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setIsOpen(false)}
-              className="absolute inset-0 bg-black/95 backdrop-blur-xl"
-            />
+      {isOpen && createPortal(
+        <div style={{ 
+          position: 'fixed', 
+          top: 0, left: 0, right: 0, bottom: 0, 
+          backgroundColor: 'rgba(0,0,0,0.95)', 
+          zIndex: 999999,
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '40px 20px'
+        }}>
+          {/* رأس القائمة */}
+          <div style={{ display: 'flex', justifyContent: 'right', marginBottom: '40px' }}>
+            <button onClick={() => setIsOpen(false)} style={{ background: 'none', border: 'none', color: 'white' }}>
+              <X size={32} />
+            </button>
+          </div>
 
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-[90%] max-w-[360px] bg-[#0a0a0b] border-2 border-purple-500/50 rounded-[40px] p-8 flex flex-col items-center"
-            >
-              <button onClick={() => setIsOpen(false)} className="absolute top-6 right-8 text-white/50"><X size={24} /></button>
-              <img src={logoIcon} className="w-16 mb-6" />
-              
-              <div className="w-full space-y-4 mb-8">
-                <Link to="/" onClick={() => setIsOpen(false)} className="flex items-center justify-between p-5 bg-white/5 rounded-3xl text-white no-underline font-bold">
-                  <span>The Arena</span> <ChevronRight size={18} />
-                </Link>
-                {isLoggedIn && (
-                  <Link to="/profile" onClick={() => setIsOpen(false)} className="flex items-center justify-between p-5 bg-white/5 rounded-3xl text-white no-underline font-bold">
-                    <span>Commander Profile</span> <ChevronRight size={18} />
-                  </Link>
-                )}
-              </div>
+          {/* الروابط */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <a href="/" onClick={() => setIsOpen(false)} style={{ 
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '20px', background: 'rgba(255,255,255,0.05)', borderRadius: '15px',
+              color: 'white', textDecoration: 'none', fontWeight: 'bold'
+            }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><Home size={20} color="#a855f7"/> Arena</span>
+              <ChevronRight size={18} />
+            </a>
 
-              {isLoggedIn && (
-                <button onClick={() => { onLogout?.(); setIsOpen(false); }} className="w-full py-5 bg-red-600 rounded-2xl text-white font-black uppercase tracking-widest text-[10px]">
-                  Terminate Session
-                </button>
-              )}
-            </motion.div>
-          </div>,
-          document.body
-        )}
-      </AnimatePresence>
+            {isLoggedIn && (
+              <a href="/profile" onClick={() => setIsOpen(false)} style={{ 
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '20px', background: 'rgba(255,255,255,0.05)', borderRadius: '15px',
+                color: 'white', textDecoration: 'none', fontWeight: 'bold'
+              }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><User size={20} color="#3b82f6"/> Profile</span>
+                <ChevronRight size={18} />
+              </a>
+            )}
+
+            {isLoggedIn && (
+              <button 
+                onClick={() => { onLogout?.(); setIsOpen(false); }}
+                style={{ 
+                  marginTop: '20px', padding: '20px', background: '#e11d48', color: 'white',
+                  border: 'none', borderRadius: '15px', fontWeight: 'bold', fontSize: '16px'
+                }}
+              >
+                LOGOUT
+              </button>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
     </>
   );
 }

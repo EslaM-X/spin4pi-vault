@@ -2,27 +2,24 @@ import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Home, User, Trophy, Wallet, LogOut, ChevronRight, Star, ShieldCheck } from 'lucide-react';
+import { Menu, X, Home, User, Trophy, Wallet, LogOut, ChevronRight, Zap, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function MobileMenu({ isLoggedIn, onLogout }: any) {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
 
-  // وظيفة لتشغيل أصوات الواجهة الفاخرة
   const playSound = useCallback((type: 'open' | 'click') => {
     const audio = new Audio(
       type === 'open' 
-        ? 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3' // صوت سحب ناعم
-        : 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3' // صوت نقرة خفيفة
+        ? 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3' 
+        : 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'
     );
-    audio.volume = 0.2;
-    audio.play().catch(() => {}); // تجنب أخطاء المتصفح إذا لم يتفاعل المستخدم بعد
+    audio.volume = 0.15;
+    audio.play().catch(() => {});
   }, []);
 
-  useEffect(() => {
-    setIsOpen(false);
-  }, [location.pathname]);
+  useEffect(() => { setIsOpen(false); }, [location.pathname]);
 
   const handleOpen = () => {
     playSound('open');
@@ -33,7 +30,7 @@ export function MobileMenu({ isLoggedIn, onLogout }: any) {
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* خلفية Blur سينمائية مع تعتيم متدرج */}
+          {/* خلفية Blur سينمائية عميقة */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -41,79 +38,75 @@ export function MobileMenu({ isLoggedIn, onLogout }: any) {
             onClick={() => setIsOpen(false)}
             style={{ 
               position: 'fixed', inset: 0, zIndex: 99999, 
-              background: 'radial-gradient(circle at center, rgba(15, 17, 23, 0.4) 0%, rgba(0,0,0,0.9) 100%)',
-              backdropFilter: 'blur(20px)' 
+              background: 'rgba(7, 8, 12, 0.85)',
+              backdropFilter: 'blur(16px)' 
             }}
           />
 
-          {/* لوحة القائمة الملكية */}
+          {/* لوحة المنيو الفاخرة - بتصميم منحني وألوان متدرجة */}
           <motion.div
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 180 }}
+            initial={{ x: '100%', filter: 'blur(10px)' }}
+            animate={{ x: 0, filter: 'blur(0px)' }}
+            exit={{ x: '100%', filter: 'blur(10px)' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 200 }}
             style={{ 
-              position: 'fixed', top: 0, right: 0, height: '100%', width: '320px', 
-              zIndex: 100000, backgroundColor: '#0A0C10', 
-              boxShadow: '-20px 0 60px rgba(0,0,0,1)', 
-              display: 'flex', flexDirection: 'column',
-              borderLeft: '2px solid rgba(168, 85, 247, 0.3)'
+              position: 'fixed', top: '10px', right: '10px', bottom: '10px', width: '320px', 
+              zIndex: 100000, backgroundColor: '#0F111A', 
+              borderRadius: '32px', border: '1px solid rgba(168, 85, 247, 0.2)',
+              boxShadow: '-20px 0 80px rgba(0,0,0,0.8), inset 0 0 20px rgba(168, 85, 247, 0.05)',
+              display: 'flex', flexDirection: 'column', overflow: 'hidden'
             }}
           >
-            {/* Header: تصميم مستوحى من كروت الـ VIP */}
-            <div className="relative p-10 border-b border-white/5 bg-gradient-to-br from-purple-900/20 via-transparent to-transparent">
-              <div className="absolute top-0 right-0 w-40 h-40 bg-purple-500/10 blur-[60px] rounded-full" />
+            {/* Header: شعار مضيء */}
+            <div className="relative p-8 pt-12 text-center border-b border-white/5 bg-gradient-to-b from-purple-900/10 to-transparent">
+              <motion.div 
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="inline-block p-4 rounded-3xl bg-gradient-to-br from-purple-600 to-pink-600 shadow-[0_0_30px_rgba(168,85,247,0.4)] mb-4"
+              >
+                <Zap size={32} className="text-white fill-white" />
+              </motion.div>
+              <h2 className="text-2xl font-black text-white tracking-widest italic">SPIN<span className="text-purple-500">4PI</span></h2>
+              <p className="text-[10px] text-purple-300/50 font-bold uppercase tracking-[0.4em] mt-1 text-center">Elite Navigation</p>
               
-              <div className="relative flex justify-between items-start">
-                <div>
-                  <motion.h2 
-                    initial={{ y: -10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    className="text-3xl font-black italic tracking-tighter"
-                  >
-                    <span className="text-white">SPIN</span>
-                    <span className="bg-gradient-to-r from-purple-400 via-pink-500 to-yellow-500 bg-clip-text text-transparent">4PI</span>
-                  </motion.h2>
-                  <div className="flex items-center gap-2 mt-2 px-2 py-1 bg-white/5 rounded-full w-fit border border-white/10">
-                    <ShieldCheck size={12} className="text-purple-400" />
-                    <span className="text-[9px] uppercase tracking-widest text-purple-200 font-bold">Verified Interface</span>
-                  </div>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="text-white/40 hover:text-white hover:bg-white/10 rounded-full transition-all">
-                  <X size={32} />
-                </Button>
-              </div>
+              <Button 
+                variant="ghost" size="icon" onClick={() => setIsOpen(false)} 
+                className="absolute top-6 right-6 text-white/30 hover:text-white rounded-full bg-white/5"
+              >
+                <X size={20} />
+              </Button>
             </div>
 
-            {/* Navigation: روابط بتأثيرات حركية فاخرة */}
-            <nav className="flex-1 px-6 py-8 space-y-5 overflow-y-auto">
-              <MenuLink to="/" icon={<Home size={22} />} label="Gaming Lobby" sub="Return to main wheel" active={location.pathname === '/'} onClick={() => {playSound('click'); setIsOpen(false);}} />
-              
+            {/* Navigation: روابط بتأثير حركي متسلسل */}
+            <nav className="flex-1 px-6 py-8 space-y-4 overflow-y-auto">
+              <MenuLink to="/" icon={<Home />} label="The Arena" delay={0.1} onClick={() => {playSound('click'); setIsOpen(false);}} />
               {isLoggedIn && (
                 <>
-                  <MenuLink to="/profile" icon={<User size={22} />} label="Personal Profile" sub="Check your statistics" active={location.pathname === '/profile'} onClick={() => {playSound('click'); setIsOpen(false);}} />
-                  <MenuLink to="/withdrawals" icon={<Wallet size={22} />} label="Financial Vault" sub="Wallet & Transactions" active={location.pathname === '/withdrawals'} onClick={() => {playSound('click'); setIsOpen(false);}} />
-                  <MenuLink to="/achievements" icon={<Trophy size={22} />} label="Hall of Fame" sub="Global rankings" active={location.pathname === '/achievements'} onClick={() => {playSound('click'); setIsOpen(false);}} />
+                  <MenuLink to="/profile" icon={<User />} label="Commander" delay={0.2} onClick={() => {playSound('click'); setIsOpen(false);}} />
+                  <MenuLink to="/withdrawals" icon={<Wallet />} label="Iron Vault" delay={0.3} onClick={() => {playSound('click'); setIsOpen(false);}} />
+                  <MenuLink to="/achievements" icon={<Trophy />} label="Grand Hall" delay={0.4} onClick={() => {playSound('click'); setIsOpen(false);}} />
                 </>
               )}
             </nav>
 
-            {/* Footer: منطقة الخروج بتصميم معتم وراقي */}
-            <div className="p-8 bg-black/60 border-t border-white/10">
-              {isLoggedIn && (
+            {/* Footer: منطقة الخروج بتصميم نيون */}
+            <div className="p-8 bg-black/40 border-t border-white/5">
+              {isLoggedIn ? (
                 <motion.button
-                  whileHover={{ scale: 1.02, backgroundColor: 'rgba(239, 68, 68, 0.2)' }}
+                  whileHover={{ scale: 1.02, boxShadow: '0 0 20px rgba(239, 68, 68, 0.2)' }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => { playSound('click'); onLogout?.(); setIsOpen(false); }}
-                  className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-500 font-black text-xs tracking-widest shadow-[0_0_30px_rgba(239,68,68,0.1)] transition-all"
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-red-500/10 to-red-900/10 border border-red-500/20 text-red-500 font-black text-xs tracking-widest uppercase transition-all"
                 >
-                  <LogOut size={18} />
-                  TERMINATE SESSION
+                  Terminate Link
                 </motion.button>
+              ) : (
+                <div className="flex items-center justify-center gap-2 text-purple-400/40 italic">
+                  <Crown size={14} />
+                  <span className="text-[10px] font-bold tracking-widest uppercase">Guest Mode</span>
+                </div>
               )}
-              <div className="mt-6 text-center">
-                <p className="text-[9px] text-white/20 font-bold tracking-[0.3em]">PI NETWORK • CRYPTO-GAMING ECOSYSTEM</p>
-              </div>
             </div>
           </motion.div>
         </>
@@ -124,10 +117,10 @@ export function MobileMenu({ isLoggedIn, onLogout }: any) {
   return (
     <>
       <motion.button
-        whileHover={{ scale: 1.1, rotate: 5 }}
+        whileHover={{ scale: 1.1, rotate: -5 }}
         whileTap={{ scale: 0.9 }}
         onClick={handleOpen}
-        className="p-3 text-white/90 hover:text-white"
+        className="relative z-50 p-2 text-white/90 hover:text-purple-400 transition-colors"
       >
         <Menu size={36} />
       </motion.button>
@@ -136,26 +129,22 @@ export function MobileMenu({ isLoggedIn, onLogout }: any) {
   );
 }
 
-function MenuLink({ to, icon, label, sub, active, onClick }: any) {
+function MenuLink({ to, icon, label, delay, onClick }: any) {
   return (
-    <Link to={to} onClick={onClick} className="block">
-      <motion.div
-        whileHover={{ x: 8, backgroundColor: 'rgba(255,255,255,0.08)' }}
-        className={`flex items-center gap-5 p-5 rounded-2xl transition-all border ${
-          active 
-          ? 'bg-gradient-to-r from-purple-600/20 to-transparent border-purple-500/50 shadow-[0_0_30px_rgba(168,85,247,0.2)]' 
-          : 'bg-white/5 border-white/5 hover:border-white/10'
-        }`}
-      >
-        <div className={`p-3 rounded-xl shadow-inner ${active ? 'bg-purple-500 text-white' : 'bg-[#151921] text-purple-400'}`}>
-          {icon}
+    <motion.div
+      initial={{ x: 50, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      transition={{ delay }}
+    >
+      <Link to={to} onClick={onClick} className="group block">
+        <div className="flex items-center gap-5 p-5 rounded-2xl bg-white/5 border border-white/5 group-hover:bg-purple-600/10 group-hover:border-purple-500/40 transition-all duration-300">
+          <div className="text-purple-400 group-hover:text-purple-300 group-hover:scale-110 transition-transform">
+            {icon}
+          </div>
+          <span className="flex-1 text-sm font-bold text-white/80 group-hover:text-white tracking-wide uppercase">{label}</span>
+          <ChevronRight size={16} className="text-white/10 group-hover:text-purple-400 group-hover:translate-x-1 transition-all" />
         </div>
-        <div className="flex-1">
-          <p className={`text-sm font-black tracking-tight ${active ? 'text-white' : 'text-white/80'}`}>{label}</p>
-          <p className="text-[10px] text-white/30 font-medium">{sub}</p>
-        </div>
-        <ChevronRight size={18} className={`${active ? 'text-purple-400' : 'text-white/10'}`} />
-      </motion.div>
-    </Link>
+      </Link>
+    </motion.div>
   );
 }

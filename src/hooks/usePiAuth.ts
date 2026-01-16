@@ -1,57 +1,124 @@
-import { createRoot } from "react-dom/client";
 import { useState, useEffect, useCallback } from "react";
-import App from "./App.tsx";
-import { SplashScreen } from "./components/SplashScreen.tsx";
-import { usePiAuth } from "./hooks/usePiAuth.ts";
-import "./index.css";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-function Root() {
-  const [showSplash, setShowSplash] = useState(true);
-  const { isInitialized, authenticate, user } = usePiAuth();
+// تعريف واجهة بيانات المستخدم القادمة من Pi SDK
+interface PiUser {
+  uid: string;
+  username: string;
+}
 
-  const handleSplashComplete = useCallback(() => {
-    setShowSplash(false);
-  }, []);
+export const usePiAuth = () => {
+  const [user, setUser] = useState<PiUser | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // 1. تهيئة الـ SDK فور تشغيل التطبيق
-  useEffect(() => {
-    const initPi = async () => {
-      try {
-        // التأكد من أن الـ SDK متاح عالمياً من ملف index.html
-        if (window.Pi) {
-          await window.Pi.init({ version: "2.0", sandbox: false });
-          console.log("Pi SDK initialized successfully via main.tsx");
-        }
-      } catch (err) {
-        console.error("Initialization error:", err);
-      } finally {
-        // تأخير بسيط لضمان ظهور الـ Splash Screen بشكل جميل
-        setTimeout(() => setShowSplash(false), 2000);
-      }
-    };
-    initPi();
-  }, []);
-
-  // 2. محاولة التعرف على المستخدم المسجل سابقاً فقط
-  useEffect(() => {
-    if (isInitialized && !user) {
-      const savedUser = localStorage.getItem("pi_username");
-      if (savedUser) {
-        // إذا كان هناك مستخدم سابق، نحاول استعادة جلسته بهدوء
-        authenticate().catch(() => console.log("Silent auth failed"));
-      }
+  // 1. وظيفة تسجيل الدخول والمصادقة
+  const authenticate = useCallback(async () => {
+    if (!window.Pi) {
+      const errorMsg = "Pi SDK not found. Please open in Pi Browser.";
+      console.error(errorMsg);
+      toast.error(errorMsg);
+      return null;
     }
-  }, [isInitialized, user, authenticate]);
 
-  return (
-    <>
-      {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
-      {!showSplash && <App />}
-    </>
-  );
-}
+    setIsLoading(true);
+    try {
+      // طلبScopes الأساسية من باي: الاسم واسم المستخدم
+      const scopes = ["username", "payments"];
+      
+      // استدعاء نافذة الموافقة الرسمية من متصفح باي
+      const auth = await window.Pi.authenticate(scopes, (payment) => {
+        console.log("Oncomplete payment callback", payment);
+      });
 
-const rootElement = document.getElementById("root");
-if (rootElement) {
-  createRoot(rootElement).render(<Root />);
-}
+      console.log("Authenticated successfully:", auth.user.username);
+      
+      // حفظ بيانات المستخدم في حالة الـ Hook
+      setUser(auth.user);
+      setIsAuthenticated(true);
+      
+      // مزامنة المستخدم مع قاعدة البيانات (Supabase)
+      await syncUserWithDatabase(auth.user);
+
+      return auth.user;
+    } catch (err) {
+      console.error("Authentication failed:", err);
+      toast.error("Failed to authenticate with Pi Network");
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // 2. مزامنة بيانات المستخدم مع السيرفر (Supabase)
+  const syncUserWithDatabase = async (piUser: PiUser) => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .upsert({
+          pi_username: piUser.username,
+          wallet_address: piUser.uid, // استخدام الـ UID كعنوان للمحفظة مؤقتاً
+          last_login: new Date().toISOString(),
+        }, { onConflict: 'pi_username' })
+        .select()
+        .single();
+
+      if (error) throw error;
+      console.log("Profile synced with Supabase:", data);
+    } catch (err) {
+      console.error("Database sync error:", err);
+    }
+  };
+
+  // 3. وظيفة تسجيل الخروج
+  const logout = useCallback(() => {
+    setUser(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem("pi_username");
+  }, []);
+
+  // 4. وظائف إضافية خاصة باللعبة (اللفات المجانية)
+  const canFreeSpin = useCallback(() => {
+    // يمكن إضافة منطق هنا للتحقق من الوقت المتبقي للف المجاني
+    return true; 
+  }, []);
+
+  const getNextFreeSpinTime = useCallback(() => {
+    return "Available";
+  }, []);
+
+  const refreshProfile = useCallback(async () => {
+    if (user) {
+      await syncUserWithDatabase(user);
+    }
+  }, [user]);
+
+  // تهيئة الـ SDK عند تحميل الـ Hook لأول مرة
+  useEffect(() => {
+    if (window.Pi) {
+      setIsInitialized(true);
+      setIsLoading(false);
+    } else {
+      // محاولة التحقق كل ثانية لو الـ SDK اتأخر في التحميل
+      const timer = setTimeout(() => {
+        if (window.Pi) setIsInitialized(true);
+        setIsLoading(false);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  return {
+    user,
+    isAuthenticated,
+    isLoading,
+    isInitialized,
+    authenticate,
+    logout,
+    refreshProfile,
+    canFreeSpin,
+    getNextFreeSpinTime
+  };
+};

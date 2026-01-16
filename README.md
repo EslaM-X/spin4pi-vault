@@ -543,5 +543,5 @@ MIT License - See [LICENSE](./LICENSE) for details.
   <br/>
   <strong>Built with ❤️ for the Pi Network Community</strong>
   <br/>
-  <sub>© 2024 Spin4Pi. All rights reserved.</sub>
+  <sub>© 2026 Spin4Pi. All rights reserved.</sub>
 </p>

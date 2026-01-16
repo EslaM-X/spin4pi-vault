@@ -42,11 +42,7 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin = false, balance = 0 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsOpen(false)}
-            style={{ 
-              position: 'fixed', inset: 0, zIndex: 99999, 
-              background: 'rgba(0,0,0,0.85)',
-              backdropFilter: 'blur(20px)' 
-            }}
+            style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(20px)' }}
           />
 
           <motion.div
@@ -55,109 +51,82 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin = false, balance = 0 
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             style={{ 
-              position: 'fixed', top: 0, right: 0, height: '100%', width: '340px', 
+              position: 'fixed', top: 0, right: 0, height: '100%', width: '330px', 
               zIndex: 100000, backgroundColor: '#050608', 
-              boxShadow: '-10px 0 50px rgba(0,0,0,1)',
-              display: 'flex', flexDirection: 'column',
-              borderLeft: '1px solid rgba(168, 85, 247, 0.2)'
+              borderLeft: '1px solid rgba(168, 85, 247, 0.2)',
+              display: 'flex', flexDirection: 'column'
             }}
           >
-            {/* 1. شعار علوي مع تأثير البريق المتحرك */}
+            {/* الهيدر اللامع */}
             <div className="relative p-8 pt-12 flex flex-col items-center border-b border-white/5 overflow-hidden">
-               {/* تأثير ضوء متحرك في الخلفية */}
-              <motion.div 
-                animate={{ opacity: [0.1, 0.3, 0.1], scale: [1, 1.2, 1] }} 
-                transition={{ duration: 4, repeat: Infinity }}
-                className="absolute inset-0 bg-purple-600/10 blur-[80px] rounded-full" 
-              />
+              <motion.div animate={{ opacity: [0.1, 0.2, 0.1] }} transition={{ duration: 4, repeat: Infinity }} className="absolute inset-0 bg-purple-600/10 blur-[60px]" />
               
               <div className="relative flex items-center gap-3 mb-6">
-                <motion.img 
-                  animate={{ y: [0, -5, 0] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                  src={logoIcon} className="w-14 h-14 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]" 
-                />
-                <img src={logoText} className="h-8 w-auto brightness-125" />
+                <motion.img animate={{ y: [0, -4, 0] }} transition={{ duration: 3, repeat: Infinity }} src={logoIcon} className="w-12 h-12 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]" />
+                <h2 className="text-2xl font-black text-white italic tracking-tighter">SPIN<span className="text-purple-500">4PI</span></h2>
               </div>
 
-              {/* 2. بطاقة رصيد VIP مدمجة */}
               {isLoggedIn && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="w-full bg-gradient-to-r from-purple-900/40 to-transparent border border-white/10 rounded-3xl p-4 flex items-center justify-between shadow-inner"
-                >
+                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between shadow-inner">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-yellow-500/10 rounded-xl border border-yellow-500/20">
-                      <Wallet size={18} className="text-yellow-500" />
+                      <Wallet size={16} className="text-yellow-500" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">Available Balance</p>
-                      <p className="text-lg font-black text-yellow-500 tracking-tight">{balance.toFixed(2)} <span className="text-xs">π</span></p>
+                      <p className="text-[9px] text-white/30 font-bold uppercase tracking-widest">Balance</p>
+                      <p className="text-base font-black text-yellow-500">{(balance || 0).toFixed(2)} π</p>
                     </div>
                   </div>
-                  <Sparkles size={16} className="text-purple-400 animate-pulse" />
+                  <Sparkles size={14} className="text-purple-400 animate-pulse" />
                 </motion.div>
               )}
 
-              <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="absolute top-6 right-6 text-white/20 hover:text-white rounded-full bg-white/5">
+              <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="absolute top-4 right-4 text-white/20 hover:text-white rounded-full">
                 <X size={20} />
               </Button>
             </div>
 
-            {/* 3. التحكم في الصوت بتصميم "Cyberpunk" */}
-            <div className="px-8 py-4 bg-white/[0.02] border-b border-white/5 flex items-center justify-between">
+            {/* نظام الصوت المدمج */}
+            <div className="px-8 py-3 bg-white/[0.02] border-b border-white/5 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Music size={14} className="text-purple-500" />
-                <span className="text-[9px] font-bold text-white/40 uppercase tracking-[0.3em]">Audio Environment</span>
+                <span className="text-[9px] font-bold text-white/40 uppercase tracking-[0.2em]">Environment</span>
               </div>
-              <div className="scale-90 origin-right">
-                <SoundControls />
-              </div>
+              <SoundControls />
             </div>
 
-            {/* 4. قائمة الروابط المقسمة بذكاء */}
-            <nav className="flex-1 px-6 py-6 space-y-2 overflow-y-auto custom-scrollbar">
-              <MenuLink to="/" icon={<Home size={20}/>} label="The Arena" sub="Main Gaming Floor" active={location.pathname === '/'} />
+            {/* الروابط المقسمة */}
+            <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto custom-scrollbar">
+              <MenuLink to="/" icon={<Home size={18}/>} label="The Arena" active={location.pathname === '/'} onClick={() => playSound('click')} />
               
               {isLoggedIn && (
                 <>
-                  <SectionTitle title="Player Base" />
-                  <MenuLink to="/profile" icon={<User size={20}/>} label="My Identity" sub="Achievements & Stats" active={location.pathname === '/profile'} />
-                  <MenuLink to="/vip-benefits" icon={<Gem size={20}/>} label="VIP Lounge" sub="Exclusive Benefits" active={location.pathname === '/vip-benefits'} />
-                  <MenuLink to="/achievements" icon={<Trophy size={20}/>} label="Global Ranks" sub="Leaderboard" active={location.pathname === '/achievements'} />
+                  <p className="text-[8px] text-white/20 font-black uppercase tracking-[0.4em] pt-4 pb-2 px-4">Profile</p>
+                  <MenuLink to="/profile" icon={<User size={18}/>} label="Account" active={location.pathname === '/profile'} onClick={() => playSound('click')} />
+                  <MenuLink to="/achievements" icon={<Trophy size={18}/>} label="Rankings" active={location.pathname === '/achievements'} onClick={() => playSound('click')} />
+                  <MenuLink to="/vip-benefits" icon={<Gem size={18}/>} label="VIP Lounge" active={location.pathname === '/vip-benefits'} onClick={() => playSound('click')} />
                   
-                  <SectionTitle title="Assets & Trade" />
-                  <MenuLink to="/withdrawals" icon={<Wallet size={20}/>} label="Vault" sub="Withdraw Funds" active={location.pathname === '/withdrawals'} />
-                  <MenuLink to="/marketplace" icon={<ShoppingBag size={20}/>} label="Market" sub="NFT Items" active={location.pathname === '/marketplace'} />
-                  <MenuLink to="/withdrawal-history" icon={<History size={20}/>} label="Ledger" sub="Transaction History" active={location.pathname === '/withdrawal-history'} />
+                  <p className="text-[8px] text-white/20 font-black uppercase tracking-[0.4em] pt-4 pb-2 px-4">Assets</p>
+                  <MenuLink to="/withdrawals" icon={<Wallet size={18}/>} label="Vault" active={location.pathname === '/withdrawals'} onClick={() => playSound('click')} />
+                  <MenuLink to="/marketplace" icon={<ShoppingBag size={18}/>} label="Market" active={location.pathname === '/marketplace'} onClick={() => playSound('click')} />
+                  <MenuLink to="/withdrawal-history" icon={<History size={18}/>} label="History" active={location.pathname === '/withdrawal-history'} onClick={() => playSound('click')} />
                 </>
               )}
 
               {isAdmin && (
                 <div className="mt-4 pt-4 border-t border-white/5">
-                  <MenuLink to="/admin" icon={<LayoutDashboard size={20} className="text-red-500"/>} label="Core Engine" sub="System Admin" active={location.pathname === '/admin'} />
+                  <MenuLink to="/admin" icon={<LayoutDashboard size={18} className="text-red-500"/>} label="Admin Engine" active={location.pathname === '/admin'} onClick={() => playSound('click')} />
                 </div>
               )}
             </nav>
 
-            {/* 5. تذييل فاخر مع زر تسجيل خروج سينمائي */}
             <div className="p-8 bg-black">
               {isLoggedIn ? (
-                <motion.button
-                  whileHover={{ scale: 1.02, boxShadow: '0 0 20px rgba(239, 68, 68, 0.2)' }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => { playSound('click'); onLogout?.(); setIsOpen(false); }}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-red-600/20 to-red-900/20 border border-red-500/30 text-red-500 font-black text-[11px] tracking-widest uppercase flex items-center justify-center gap-3"
-                >
-                  <LogOut size={16} />
-                  Terminate Link
-                </motion.button>
+                <button onClick={() => { playSound('click'); onLogout?.(); setIsOpen(false); }} className="w-full py-4 rounded-xl bg-red-600/10 border border-red-500/20 text-red-500 font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-3 transition-all hover:bg-red-600/20">
+                  <LogOut size={16} /> Disconnect
+                </button>
               ) : (
-                <div className="flex items-center justify-center gap-2 opacity-20">
-                  <ShieldCheck size={14} className="text-white" />
-                  <span className="text-[9px] font-bold tracking-[0.5em] uppercase text-white">Secure Encrypted</span>
-                </div>
+                <p className="text-[8px] text-white/10 text-center font-bold tracking-[0.4em] uppercase">Secure System v2.0</p>
               )}
             </div>
           </motion.div>
@@ -167,45 +136,19 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin = false, balance = 0 
   );
 
   return (
-    <>
-      <motion.button
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        onClick={handleOpen}
-        className="relative z-50 p-2 text-white/80 hover:text-purple-400 transition-colors"
-      >
-        <Menu size={36} />
-      </motion.button>
-      {typeof document !== 'undefined' && createPortal(MenuContent, document.body)}
-    </>
+    <motion.button whileTap={{ scale: 0.9 }} onClick={handleOpen} className="relative z-50 p-2 text-white/80 hover:text-purple-400">
+      <Menu size={36} />
+    </motion.button>
   );
 }
 
-// مكونات فرعية للتنظيم
-function SectionTitle({ title }: { title: string }) {
-  return <p className="text-[9px] text-white/20 font-black uppercase tracking-[0.3em] pt-4 pb-2 px-4">{title}</p>;
-}
-
-function MenuLink({ to, icon, label, sub, active }: any) {
+function MenuLink({ to, icon, label, active, onClick }: any) {
   return (
-    <Link to={to} className="group block">
-      <motion.div
-        whileHover={{ x: 6, backgroundColor: 'rgba(168, 85, 247, 0.05)' }}
-        className={`flex items-center gap-4 p-4 rounded-2xl transition-all border ${
-          active 
-          ? 'bg-purple-600/10 border-purple-500/40 shadow-lg' 
-          : 'bg-transparent border-transparent hover:border-white/5'
-        }`}
-      >
-        <div className={`p-2.5 rounded-xl ${active ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(168, 85, 247, 0.4)]' : 'bg-white/5 text-purple-400 group-hover:text-white transition-colors'}`}>
-          {icon}
-        </div>
-        <div className="flex-1">
-          <span className={`block text-[13px] font-black tracking-tight uppercase ${active ? 'text-white' : 'text-white/60 group-hover:text-white'}`}>{label}</span>
-          <span className="text-[9px] text-white/20 font-bold group-hover:text-white/40 transition-colors uppercase">{sub}</span>
-        </div>
-        <ChevronRight size={14} className={`transition-all ${active ? 'text-purple-400' : 'text-white/5 group-hover:text-purple-400'}`} />
-      </motion.div>
+    <Link to={to} onClick={onClick} className="group block">
+      <div className={`flex items-center gap-4 p-4 rounded-xl transition-all ${active ? 'bg-purple-600/10 border border-purple-500/30' : 'hover:bg-white/5 border border-transparent'}`}>
+        <div className={`${active ? 'text-purple-400' : 'text-white/40 group-hover:text-purple-400'}`}>{icon}</div>
+        <span className={`text-[12px] font-black uppercase tracking-wide ${active ? 'text-white' : 'text-white/60 group-hover:text-white'}`}>{label}</span>
+      </div>
     </Link>
   );
 }

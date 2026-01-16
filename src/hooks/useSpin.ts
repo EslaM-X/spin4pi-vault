@@ -1,4 +1,4 @@
-// src/hooks/useSpin.ts - Unified Spin Hook
+// src/hooks/useSpin.ts - Unified Spin Hook (Enhanced Security Version)
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,7 +38,7 @@ function useSpinUnified({ onSpinComplete, onError }: UseSpinOptions = {}) {
       setIsSpinning(true);
 
       try {
-        // ===== Paid spin using Pi SDK =====
+        // ===== Paid spin logic with Pi SDK =====
         if (cost > 0) {
           if (!piSDK.isAvailable()) {
             toast.error("Open in Pi Browser to perform paid spin");
@@ -46,7 +46,6 @@ function useSpinUnified({ onSpinComplete, onError }: UseSpinOptions = {}) {
             return null;
           }
 
-          // Create payment with proper callbacks
           const paymentSuccess = await new Promise<boolean>((resolve) => {
             const callbacks: PaymentCallbacks = {
               onReadyForServerApproval: async (paymentId) => {
@@ -69,6 +68,7 @@ function useSpinUnified({ onSpinComplete, onError }: UseSpinOptions = {}) {
                     body: { payment_id: paymentId, txid },
                   });
                   if (error) {
+                    console.error("Completion failed:", error);
                     resolve(false);
                   } else {
                     resolve(true);
@@ -78,74 +78,73 @@ function useSpinUnified({ onSpinComplete, onError }: UseSpinOptions = {}) {
                   resolve(false);
                 }
               },
-              onCancel: () => resolve(false),
-              onError: () => resolve(false),
+              onCancel: () => {
+                toast.info("Payment cancelled");
+                resolve(false);
+              },
+              onError: (error) => {
+                toast.error("Payment error: " + error.message);
+                resolve(false);
+              },
             };
 
             piSDK.createPayment(cost, `Spin ${spinType}`, { pi_username: profileId }, callbacks);
           });
 
           if (!paymentSuccess) {
-            toast.error("Payment failed, spin canceled");
             setIsSpinning(false);
             return null;
           }
         }
 
-        // ===== Call Supabase to get spin result =====
+        // ===== Fetch spin result from Supabase Edge Function =====
         const { data, error } = await supabase.functions.invoke<SpinResult>("spin-result", {
           body: { pi_username: profileId, spin_type: spinType },
         });
 
         if (error || !data) {
-          const msg = error?.message || "Spin failed";
+          const msg = error?.message || "Failed to fetch spin result";
           toast.error(msg);
           onError?.(msg);
           setIsSpinning(false);
           return null;
         }
 
-        // ===== Set target result for wheel animation =====
+        // Set results for animation
         setTargetResult(data.result);
         setLastResult(data);
 
-        // ===== Free spin cooldown notification =====
+        // Notify cooldown if it's a free spin
         if (data.next_free_spin_in) {
           const hours = Math.floor(data.next_free_spin_in / 3600000);
           const mins = Math.floor((data.next_free_spin_in % 3600000) / 60000);
           toast.info(`Next free spin available in ${hours}h ${mins}m`);
         }
 
-        // ===== Update wallet with reward =====
+        // Update balances and play sounds
         const newBalance = (wallet.balance || 0) + data.reward_amount;
         updateBalance(newBalance, true);
-
-        // ===== Play appropriate sound =====
         playResultSound(data.result);
 
-        // ===== Callback after spin =====
-        onSpinComplete?.(data.result, data.reward_amount);
-
-        // Refresh wallet data
+        // Finalize state
         fetchWalletData();
-
         return data;
+
       } catch (err) {
-        const msg = err instanceof Error ? err.message : "Spin failed";
+        const msg = err instanceof Error ? err.message : "An unexpected error occurred during spin";
         console.error("Spin error:", err);
         toast.error(msg);
         onError?.(msg);
-        return null;
-      } finally {
         setIsSpinning(false);
+        return null;
       }
     },
-    [isSpinning, profileId, wallet, updateBalance, fetchWalletData, onSpinComplete, onError, playResultSound]
+    [isSpinning, profileId, wallet, updateBalance, fetchWalletData, onError, playResultSound]
   );
 
   const completeAnimation = useCallback(() => {
-    if (lastResult) {
-      onSpinComplete?.(lastResult.result, lastResult.reward_amount);
+    if (lastResult && onSpinComplete) {
+      onSpinComplete(lastResult.result, lastResult.reward_amount);
     }
     setIsSpinning(false);
   }, [lastResult, onSpinComplete]);
@@ -161,7 +160,6 @@ function useSpinUnified({ onSpinComplete, onError }: UseSpinOptions = {}) {
   };
 }
 
-// Export both the function and as named export
 export { useSpinUnified };
 export const useSpin = useSpinUnified;
 export default useSpinUnified;

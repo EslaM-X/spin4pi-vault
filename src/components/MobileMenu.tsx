@@ -7,13 +7,13 @@ import {
   Crown, ShieldCheck, History, ShoppingBag, Scale, LayoutDashboard, Gem 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import logo from "@/assets/spin4pi-logo.png"; // تأكد أن هذا هو مسار شعار Spin4Pi الذهبي
+import logoText from "@/assets/spin4pi-text-logo.png"; // تأكد من وجود ملف الشعار النصي هنا
+import logoIcon from "@/assets/spin4pi-logo.png"; // تأكد من وجود ملف الشعار الأيقوني هنا
 
 export function MobileMenu({ isLoggedIn, onLogout, isAdmin = false }: any) {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
 
-  // نظام أصوات تفاعلي فاخر
   const playSound = useCallback((type: 'open' | 'click') => {
     const audio = new Audio(
       type === 'open' 
@@ -62,7 +62,7 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin = false }: any) {
               display: 'flex', flexDirection: 'column', overflow: 'hidden'
             }}
           >
-            {/* الهيدر: الشعار الذهبي وكلمة SPIN4PI بدون أي قطع */}
+            {/* الهيدر: الشعار النصي مع أيقونة التطبيق بجودة عالية */}
             <div className="relative p-10 pb-8 text-center border-b border-white/5 bg-gradient-to-br from-purple-900/10 via-transparent to-transparent">
               <motion.div 
                 initial={{ y: -20, opacity: 0 }}
@@ -71,13 +71,15 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin = false }: any) {
               >
                 <div className="flex items-center justify-center gap-3">
                   <img 
-                    src={logo} 
-                    alt="Spin4Pi Logo" 
+                    src={logoIcon} 
+                    alt="Spin4Pi Icon" 
                     className="w-14 h-14 object-contain drop-shadow-[0_0_20px_rgba(234,179,8,0.6)]"
                   />
-                  <h2 className="text-3xl font-black text-white italic tracking-tighter flex items-center">
-                    SPIN<span className="bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">4PI</span>
-                  </h2>
+                  <img
+                    src={logoText}
+                    alt="Spin4Pi Text Logo"
+                    className="h-9 w-auto object-contain drop-shadow-[0_0_20px_rgba(168,85,247,0.6)]"
+                  />
                 </div>
                 <div className="flex items-center gap-2 px-4 py-1.5 bg-white/5 rounded-full border border-white/10 shadow-inner">
                   <ShieldCheck size={14} className="text-purple-400" />
@@ -106,11 +108,12 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin = false }: any) {
                   
                   <p className="text-[9px] text-white/20 font-bold uppercase tracking-[0.3em] pt-4 px-4">Financials</p>
                   <MenuLink to="/withdrawals" icon={<Wallet size={20}/>} label="Iron Vault" sub="Withdraw Pi" active={location.pathname === '/withdrawals'} onClick={() => playSound('click')} />
-                  <MenuLink to="/history" icon={<History size={20}/>} label="Spin Log" sub="Transaction History" active={location.pathname === '/history'} onClick={() => playSound('click')} />
+                  <MenuLink to="/withdrawal-history" icon={<History size={20}/>} label="Spin Log" sub="Transaction History" active={location.pathname === '/withdrawal-history'} onClick={() => playSound('click')} />
                   
                   <p className="text-[9px] text-white/20 font-bold uppercase tracking-[0.3em] pt-4 px-4">Ecosystem</p>
                   <MenuLink to="/marketplace" icon={<ShoppingBag size={20}/>} label="Marketplace" sub="NFTs & Items" active={location.pathname === '/marketplace'} onClick={() => playSound('click')} />
                   <MenuLink to="/legal" icon={<Scale size={20}/>} label="Legal" sub="Terms & Privacy" active={location.pathname === '/legal'} onClick={() => playSound('click')} />
+                  <MenuLink to="/not-found" icon={<X size={20}/>} label="Broken Link" sub="Error Page" active={location.pathname === '/not-found'} onClick={() => playSound('click')} />
                 </>
               )}
 
@@ -165,18 +168,18 @@ function MenuLink({ to, icon, label, sub, active, onClick }: any) {
   return (
     <Link to={to} onClick={onClick} className="group block">
       <motion.div
-        whileHover={{ x: 8 }}
+        whileHover={{ x: 6 }}
         className={`flex items-center gap-4 p-4 rounded-[28px] transition-all duration-300 border ${
           active 
           ? 'bg-gradient-to-r from-purple-600/30 to-transparent border-purple-500/60 shadow-[0_15px_40px_rgba(168,85,247,0.15)]' 
-          : 'bg-white/[0.02] border-white/[0.04] hover:border-white/10 hover:bg-white/[0.05]'
+          : 'bg-white/[0.02] border-white/[0.04] hover:border-white/10'
         }`}
       >
         <div className={`p-3 rounded-2xl transition-all shadow-inner ${active ? 'bg-purple-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.5)]' : 'bg-black/40 text-purple-400 group-hover:text-purple-300'}`}>
           {icon}
         </div>
         <div className="flex-1 overflow-hidden">
-          <span className={`block text-[13px] font-black tracking-tight uppercase truncate ${active ? 'text-white' : 'text-white/80 group-hover:text-white'}`}>{label}</span>
+          <span className={`block text-[13px] font-black tracking-tight uppercase truncate ${active ? 'text-white' : 'text-white/70 group-hover:text-white'}`}>{label}</span>
           <span className="text-[9px] text-white/20 font-bold uppercase tracking-tighter truncate block">{sub}</span>
         </div>
         <ChevronRight size={16} className={`transition-all ${active ? 'text-purple-400' : 'text-white/5 group-hover:text-purple-400 group-hover:translate-x-1'}`} />

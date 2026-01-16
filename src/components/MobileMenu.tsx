@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   X, LayoutGrid, UserCircle, Trophy, Users, 
-  Settings, Volume2, ChevronRight, Sparkles
+  Settings, Volume2, ChevronRight, Sparkles,
+  ShieldAlert, ShoppingCart, Info, History, Medal
 } from 'lucide-react';
 import logoIcon from "@/assets/spin4pi-logo.png";
 
@@ -22,10 +23,9 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin }: any) {
 
   return (
     <>
-      {/* الزر الرئيسي المطور - بتصميم بارز جداً لتعرف أنه تغير */}
+      {/* الزر الرئيسي المطور */}
       <div 
         onClick={toggle}
-        id="legendary-menu-btn"
         style={{ 
           cursor: 'pointer', width: '48px', height: '48px', 
           background: '#1a1a1b', border: '2.5px solid #a855f7', 
@@ -46,83 +46,50 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin }: any) {
           zIndex: 1000000, display: 'flex', justifyContent: 'center', alignItems: 'center',
           backdropFilter: 'blur(25px)', WebkitBackdropFilter: 'blur(25px)'
         }}>
-          {/* الحاوية الرئيسية الفخمة */}
           <div style={{ 
-            position: 'relative', width: '92%', maxWidth: '380px', background: '#080809',
+            position: 'relative', width: '92%', maxWidth: '400px', background: '#080809',
             border: '1.5px solid rgba(168, 85, 247, 0.5)', borderRadius: '40px',
-            padding: '40px 25px', boxShadow: '0 0 100px rgba(168, 85, 247, 0.3)',
-            maxHeight: '90vh', overflowY: 'auto'
+            padding: '30px 20px', boxShadow: '0 0 100px rgba(168, 85, 247, 0.3)',
+            maxHeight: '92vh', overflowY: 'auto'
           }}>
             
-            {/* الجزء العلوي: Spin4Pi Menu */}
-            <div style={{ textAlign: 'center', marginBottom: '35px' }}>
-              <button 
-                onClick={() => setIsOpen(false)} 
-                style={{ position: 'absolute', top: '25px', right: '25px', background: 'none', border: 'none', color: '#fff', opacity: 0.5, cursor: 'pointer' }}
-              >
-                <X size={30} />
-              </button>
-              
-              <img src={logoIcon} style={{ width: '90px', height: '90px', filter: 'drop-shadow(0 0 25px rgba(168,85,247,0.7))', marginBottom: '15px' }} />
-              
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                <Sparkles size={18} color="#f472b6" />
-                <span style={{ 
-                  fontSize: '16px', color: '#fff', fontWeight: '900', 
-                  letterSpacing: '2px', textTransform: 'uppercase',
-                  background: 'linear-gradient(to right, #fff, #a855f7)',
-                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
-                }}>
-                  Spin4Pi Menu
-                </span>
-                <Sparkles size={18} color="#f472b6" />
+            {/* الجزء العلوي المبدع */}
+            <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+              <button onClick={() => setIsOpen(false)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', color: '#fff', opacity: 0.5 }}><X size={30} /></button>
+              <img src={logoIcon} style={{ width: '80px', height: '80px', filter: 'drop-shadow(0 0 20px rgba(168,85,247,0.6))', marginBottom: '10px' }} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <Sparkles size={16} color="#f472b6" />
+                <span style={{ fontSize: '15px', color: '#fff', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase', background: 'linear-gradient(to right, #fff, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Spin4Pi Menu</span>
+                <Sparkles size={16} color="#f472b6" />
               </div>
             </div>
 
-            {/* الروابط الاحترافية */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '30px' }}>
-              <MenuOption href="/" icon={<LayoutGrid size={24} color="#a855f7" />} label="Gaming Arena" />
-              <MenuOption href="/profile" icon={<UserCircle size={24} color="#3b82f6" />} label="Player Profile" />
-              <MenuOption href="/leaderboard" icon={<Trophy size={24} color="#fbbf24" />} label="Champions Board" />
-              <MenuOption href="/referral" icon={<Users size={24} color="#22c55e" />} label="Earn Rewards" />
-              {isAdmin && <MenuOption href="/admin" icon={<Settings size={24} color="#ef4444" />} label="Admin Panel" />}
+            {/* قائمة الصفحات الشاملة بناءً على مجلد pages */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '25px' }}>
+              <MenuOption href="/" icon={<LayoutGrid size={22} color="#a855f7" />} label="Gaming Arena" />
+              <MenuOption href="/profile" icon={<UserCircle size={22} color="#3b82f6" />} label="Player Profile" />
+              <MenuOption href="/leaderboard" icon={<Trophy size={22} color="#fbbf24" />} label="Champions Board" />
+              <MenuOption href="/achievements" icon={<Medal size={22} color="#f472b6" />} label="Achievements" />
+              <MenuOption href="/marketplace" icon={<ShoppingCart size={22} color="#22c55e" />} label="NFT Marketplace" />
+              <MenuOption href="/vip-benefits" icon={<Star size={22} color="#8b5cf6" />} label="VIP Benefits" />
+              <MenuOption href="/withdrawal-history" icon={<History size={22} color="#94a3b8" />} label="Withdrawal History" />
+              <MenuOption href="/legal" icon={<Info size={22} color="#64748b" />} label="Legal Info" />
+              {isAdmin && <MenuOption href="/admin" icon={<ShieldAlert size={22} color="#ef4444" />} label="Admin Terminal" />}
             </div>
 
             {/* زر الصوت المطور */}
-            <div 
-              onClick={() => setIsMuted(!isMuted)}
-              style={{ 
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '20px', background: 'rgba(168, 85, 247, 0.08)', borderRadius: '25px',
-                border: '1px solid rgba(168, 85, 247, 0.3)', cursor: 'pointer', marginBottom: '30px'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                <Volume2 size={24} color={isMuted ? "#ef4444" : "#d946ef"} />
-                <span style={{ color: 'white', fontSize: '15px', fontWeight: '800' }}>Sound Effects</span>
+            <div onClick={() => setIsMuted(!isMuted)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', background: 'rgba(168, 85, 247, 0.05)', borderRadius: '20px', border: '1px solid rgba(168, 85, 247, 0.2)', cursor: 'pointer', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Volume2 size={20} color={isMuted ? "#ef4444" : "#d946ef"} />
+                <span style={{ color: 'white', fontSize: '14px', fontWeight: 'bold' }}>Sound Effects</span>
               </div>
-              <div style={{ 
-                width: '46px', height: '24px', borderRadius: '20px', 
-                background: isMuted ? '#333' : '#a855f7', position: 'relative'
-              }}>
-                <div style={{ 
-                  position: 'absolute', top: '4px', left: isMuted ? '4px' : '26px',
-                  width: '16px', height: '16px', background: 'white', borderRadius: '50%', transition: '0.3s'
-                }} />
+              <div style={{ width: '40px', height: '20px', borderRadius: '20px', background: isMuted ? '#333' : '#a855f7', position: 'relative' }}>
+                <div style={{ position: 'absolute', top: '3px', left: isMuted ? '3px' : '23px', width: '14px', height: '14px', background: 'white', borderRadius: '50%', transition: '0.3s' }} />
               </div>
             </div>
 
             {isLoggedIn && (
-              <button 
-                onClick={() => { onLogout?.(); setIsOpen(false); }}
-                style={{ 
-                  width: '100%', padding: '20px', background: 'linear-gradient(to right, rgba(239,68,68,0.2), rgba(239,68,68,0.4))',
-                  border: '2px solid #ef4444', borderRadius: '25px', color: '#fff',
-                  fontWeight: '900', fontSize: '14px', letterSpacing: '2px', cursor: 'pointer'
-                }}
-              >
-                LOGOUT ACCOUNT
-              </button>
+              <button onClick={() => { onLogout?.(); setIsOpen(false); }} style={{ width: '100%', padding: '18px', background: 'linear-gradient(to right, rgba(239,68,68,0.1), rgba(239,68,68,0.3))', border: '1.5px solid #ef4444', borderRadius: '22px', color: '#fff', fontWeight: '900', fontSize: '12px', letterSpacing: '2px', cursor: 'pointer' }}>LOGOUT ACCOUNT</button>
             )}
           </div>
         </div>,
@@ -134,18 +101,12 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin }: any) {
 
 function MenuOption({ href, icon, label }: any) {
   return (
-    <a href={href} style={{ 
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '25px',
-      border: '1px solid rgba(255,255,255,0.08)', textDecoration: 'none'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
-        <div style={{ width: '40px', height: '40px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'rgba(255,255,255,0.05)', borderRadius: '12px' }}>
-          {icon}
-        </div>
-        <span style={{ color: 'white', fontSize: '15px', fontWeight: '700' }}>{label}</span>
+    <a href={href} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', background: 'rgba(255,255,255,0.02)', borderRadius: '18px', border: '1px solid rgba(255,255,255,0.05)', textDecoration: 'none' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div style={{ width: '36px', height: '36px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'rgba(255,255,255,0.04)', borderRadius: '10px' }}>{icon}</div>
+        <span style={{ color: 'white', fontSize: '13px', fontWeight: '700' }}>{label}</span>
       </div>
-      <ChevronRight size={20} color="rgba(255,255,255,0.2)" />
+      <ChevronRight size={16} color="rgba(255,255,255,0.2)" />
     </a>
   );
 }

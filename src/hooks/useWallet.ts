@@ -38,7 +38,7 @@ function useWalletUnified() {
   const [isLoading, setIsLoading] = useState(true);
   const [isPaying, setIsPaying] = useState(false);
 
-  // ===== Fetch Wallet & Profile =====
+  // ===== Fetch Wallet & Profile (التعديل هنا لإزالة الإزعاج) =====
   const fetchWalletData = useCallback(async (username?: string) => {
     const piUsername = username || user?.username;
     if (!piUsername) return;
@@ -51,22 +51,27 @@ function useWalletUnified() {
         .eq("pi_username", piUsername)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.warn("Silent notification: Wallet data not ready yet", error.message);
+        return;
+      }
 
-      setWallet({
-        balance: profileData?.wallet_balance || 0,
-        totalSpins: profileData?.total_spins || 0,
-        referralCode: profileData?.referral_code || "",
-        referralCount: profileData?.referral_count || 0,
-        referralEarnings: profileData?.referral_earnings || 0,
-        recentSpins: [],
-        lastFreeSpin: profileData?.last_free_spin || null,
-      });
+      if (profileData) {
+        setWallet({
+          balance: profileData.wallet_balance || 0,
+          totalSpins: profileData.total_spins || 0,
+          referralCode: profileData.referral_code || "",
+          referralCount: profileData.referral_count || 0,
+          referralEarnings: profileData.referral_earnings || 0,
+          recentSpins: [],
+          lastFreeSpin: profileData.last_free_spin || null,
+        });
+      }
 
       await fetchLeaderboard();
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to fetch wallet");
+      // تم إلغاء toast.error هنا لمنع الإزعاج
+      console.error("Wallet fetch error (handled):", err);
     } finally {
       setIsLoading(false);
     }
@@ -79,10 +84,10 @@ function useWalletUnified() {
       await supabase.functions.invoke("apply-referral", {
         body: { pi_username: username, referral_code: ref }
       });
-      toast.success(`Referral ${ref} applied!`);
+      toast.success(`Referral applied successfully!`);
       await fetchWalletData(username);
     } catch (err) {
-      console.error(err);
+      console.error("Referral error:", err);
     }
   }, [fetchWalletData]);
 
@@ -93,8 +98,7 @@ function useWalletUnified() {
       try {
         await supabase.from("profiles").update({ wallet_balance: amount }).eq("id", profileId);
       } catch (err) {
-        console.error(err);
-        toast.error("Failed to update balance");
+        console.error("Balance update error:", err);
       }
     }
   }, [profileId]);
@@ -115,7 +119,7 @@ function useWalletUnified() {
         totalWinnings: p.wallet_balance || 0,
       })) || []);
     } catch (err) {
-      console.error(err);
+      console.error("Leaderboard error:", err);
     }
   }, []);
 
@@ -137,7 +141,6 @@ function useWalletUnified() {
   };
 }
 
-// Export both the function and as named export
 export { useWalletUnified };
 export const useWallet = useWalletUnified;
 export default useWalletUnified;

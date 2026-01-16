@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -8,24 +8,68 @@ import {
 } from 'lucide-react';
 import logoIcon from "@/assets/spin4pi-logo.png";
 
+// استيراد ملف الصوت (تأكد من وجوده في هذا المسار)
+import bgMusic from "@/assets/sounds/bg-music.mp3";
+
 export function MobileMenu({ isLoggedIn, onLogout, isAdmin }: any) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  // قراءة حالة الكتم من التخزين المحلي فور التحميل
+  const [isMuted, setIsMuted] = useState(() => localStorage.getItem('isMuted') === 'true');
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // استخدام useRef للتحكم في كائن الصوت لضمان استقراره عبر دورات إعادة الرندر
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // إغلاق القائمة تلقائياً عند تغيير المسار
+  useEffect(() => {
+    // إنشاء كائن الصوت لمرة واحدة عند تحميل المكون
+    if (!audioRef.current) {
+      audioRef.current = new Audio(bgMusic);
+      audioRef.current.loop = true;
+      audioRef.current.volume = 0.3; // مستوى صوت هادئ
+    }
+
+    // منطق التشغيل التلقائي عند تسجيل الدخول
+    // المتصفحات تسمح بالصوت هنا لأن زر "Login" يعتبر تفاعل مستخدم (User Interaction)
+    if (isLoggedIn && !isMuted) {
+      audioRef.current.play().catch(err => console.log("Audio playback waiting for interaction"));
+    } else {
+      audioRef.current.pause();
+    }
+
+    // تنظيف عند مسح المكون من الذاكرة
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, [isLoggedIn]); // يعمل الكود كلما تغيرت حالة تسجيل الدخول
+
+  // دالة تبديل الكتم
+  const toggleMute = () => {
+    const newState = !isMuted;
+    setIsMuted(newState);
+    localStorage.setItem('isMuted', String(newState));
+
+    if (audioRef.current) {
+      if (newState) {
+        audioRef.current.pause();
+      } else if (isLoggedIn) {
+        audioRef.current.play();
+      }
+    }
+  };
+
   useEffect(() => {
     setIsOpen(false);
   }, [location.pathname]);
 
-  const toggle = (e: any) => {
+  const toggleMenu = (e: any) => {
     e.preventDefault();
     e.stopPropagation();
     setIsOpen(!isOpen);
   };
 
-  // دالة التوجيه لضمان عمل الروابط في Pi Browser
   const handleNavigation = (path: string) => {
     navigate(path);
     setIsOpen(false);
@@ -33,9 +77,8 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin }: any) {
 
   return (
     <>
-      {/* الزر الرئيسي (Trigger) */}
       <div 
-        onClick={toggle}
+        onClick={toggleMenu}
         style={{ 
           cursor: 'pointer', width: '48px', height: '48px', 
           background: '#1a1a1b', border: '2.5px solid #a855f7', 
@@ -63,7 +106,6 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin }: any) {
             maxHeight: '92vh', overflowY: 'auto'
           }}>
             
-            {/* الجزء العلوي: Spin4Pi Menu */}
             <div style={{ textAlign: 'center', marginBottom: '25px' }}>
               <button onClick={() => setIsOpen(false)} style={{ position: 'absolute', top: '25px', right: '25px', background: 'none', border: 'none', color: '#fff', opacity: 0.5, cursor: 'pointer' }}>
                 <X size={30} />
@@ -78,7 +120,6 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin }: any) {
               </div>
             </div>
 
-            {/* شبكة الروابط بناءً على ملفات المجلد التي ارسلتها */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '25px' }}>
               <MenuOption onClick={() => handleNavigation('/')} icon={<LayoutGrid size={22} color="#a855f7" />} label="Gaming Arena" />
               <MenuOption onClick={() => handleNavigation('/profile')} icon={<UserCircle size={22} color="#3b82f6" />} label="Player Profile" />
@@ -94,9 +135,9 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin }: any) {
               )}
             </div>
 
-            {/* التحكم بالصوت */}
+            {/* التحكم بالصوت - تم ربط الـ onClick بدالة toggleMute */}
             <div 
-              onClick={() => setIsMuted(!isMuted)}
+              onClick={toggleMute}
               style={{ 
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 padding: '16px 20px', background: 'rgba(168, 85, 247, 0.05)', borderRadius: '25px',
@@ -134,7 +175,6 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin }: any) {
   );
 }
 
-// مكون الخيار الواحد مع دعم النقر البرمجي
 function MenuOption({ onClick, icon, label }: any) {
   return (
     <div 

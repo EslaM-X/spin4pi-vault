@@ -6,10 +6,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const WithdrawRequestSchema = z.object({
+const ClaimAdSpinRequestSchema = z.object({
   pi_username: z.string().min(1).max(50),
-  amount: z.number().positive().min(0.1).max(1000),
+  ads_watched: z.number().min(3).max(5), // Must watch 3-5 ads (value > basic spin cost 0.1 Pi)
 });
+
+// Minimum ads required to earn a free spin (ensures profit for developer)
+const MIN_ADS_FOR_FREE_SPIN = 3;
+const S4P_REWARD_PER_AD = 10; // S4P tokens per ad watched
 
 async function verifyPiAuth(req: Request): Promise<{ success: boolean; username?: string; error?: string }> {
   const authHeader = req.headers.get('Authorization');
@@ -62,20 +66,20 @@ Deno.serve(async (req: Request) => {
           { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      requestData = WithdrawRequestSchema.parse(JSON.parse(text));
+      requestData = ClaimAdSpinRequestSchema.parse(JSON.parse(text));
     } catch (e) {
       return new Response(
-        JSON.stringify({ error: 'Invalid request data. Amount must be between 0.1 and 1000 Pi.' }),
+        JSON.stringify({ error: `Invalid request. You must watch at least ${MIN_ADS_FOR_FREE_SPIN} ads.` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const { pi_username, amount } = requestData;
+    const { pi_username, ads_watched } = requestData;
 
     // Verify the authenticated user matches the requested username
     if (authResult.username?.toLowerCase() !== pi_username.toLowerCase()) {
       return new Response(
-        JSON.stringify({ error: 'Cannot withdraw for other users' }),
+        JSON.stringify({ error: 'Cannot claim for other users' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -84,78 +88,107 @@ Deno.serve(async (req: Request) => {
     const supabaseKey = Deno.env.get('MY_SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get profile
-    const { data: profile, error: profileError } = await supabase
+    // Get or create profile
+    let { data: profile } = await supabase
       .from('profiles')
       .select('*')
       .eq('pi_username', pi_username)
-      .single();
+      .maybeSingle();
 
-    if (profileError || !profile) {
-      return new Response(
-        JSON.stringify({ error: "Profile not found" }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (!profile) {
+      const { data: newProfile, error: profileError } = await supabase
+        .from('profiles')
+        .insert({ pi_username })
+        .select()
+        .single();
+
+      if (profileError) {
+        console.error('Error creating profile:', profileError);
+        return new Response(
+          JSON.stringify({ error: "Failed to create profile" }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      profile = newProfile;
     }
 
-    // Check sufficient balance
-    const currentBalance = profile.wallet_balance || 0;
-    if (currentBalance < amount) {
+    // Check if user already claimed ad spin today
+    const today = new Date().toISOString().split('T')[0];
+    
+    const { data: existingClaim } = await supabase
+      .from('ad_spin_claims')
+      .select('id')
+      .eq('profile_id', profile.id)
+      .gte('claimed_at', `${today}T00:00:00.000Z`)
+      .maybeSingle();
+
+    if (existingClaim) {
       return new Response(
-        JSON.stringify({ error: "Insufficient balance", current_balance: currentBalance }),
+        JSON.stringify({ 
+          error: 'Ad spin already claimed today',
+          next_available: 'tomorrow'
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Create withdrawal record
-    const { data: withdrawal, error: withdrawalError } = await supabase
-      .from('withdrawals')
+    // Validate minimum ads watched
+    if (ads_watched < MIN_ADS_FOR_FREE_SPIN) {
+      return new Response(
+        JSON.stringify({ 
+          error: `Must watch at least ${MIN_ADS_FOR_FREE_SPIN} ads`,
+          ads_watched,
+          required: MIN_ADS_FOR_FREE_SPIN
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Record the claim
+    const { error: claimError } = await supabase
+      .from('ad_spin_claims')
       .insert({
         profile_id: profile.id,
-        amount,
-        status: 'pending'
-      })
-      .select()
-      .single();
+        ads_watched,
+        s4p_reward: ads_watched * S4P_REWARD_PER_AD
+      });
 
-    if (withdrawalError) {
-      console.error('Withdrawal creation error:', withdrawalError);
+    if (claimError) {
+      console.error('Error recording claim:', claimError);
       return new Response(
-        JSON.stringify({ error: "Failed to create withdrawal" }),
+        JSON.stringify({ error: 'Failed to record claim' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Deduct from wallet balance
+    // Update user's S4P token balance
+    const s4pReward = ads_watched * S4P_REWARD_PER_AD;
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({ wallet_balance: currentBalance - amount })
+      .update({ 
+        s4p_balance: (profile.s4p_balance || 0) + s4pReward
+      })
       .eq('id', profile.id);
 
     if (updateError) {
-      console.error('Balance update error:', updateError);
-      // Rollback withdrawal
-      await supabase.from('withdrawals').delete().eq('id', withdrawal.id);
-      return new Response(
-        JSON.stringify({ error: "Failed to update balance" }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error('Error updating S4P balance:', updateError);
     }
 
-    console.log(`Withdrawal initiated for ${pi_username}: ${amount} Pi`);
+    console.log(`Ad spin claimed for ${pi_username}: ${ads_watched} ads watched, ${s4pReward} S4P earned`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        withdrawal_id: withdrawal.id,
-        amount,
-        new_balance: currentBalance - amount
+        free_spin_earned: true,
+        ads_watched,
+        s4p_reward: s4pReward,
+        message: `Congratulations! You earned a free spin and ${s4pReward} S4P tokens!`
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Withdraw error:', error);
+    console.error('Claim ad spin error:', error);
     return new Response(
       JSON.stringify({ error: 'An error occurred processing your request' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

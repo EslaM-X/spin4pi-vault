@@ -1,16 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Home, User, Trophy, Crown, Wallet, LogOut, Zap, Gift } from 'lucide-react';
+import { Menu, X, Home, User, Trophy, Crown, Wallet, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-interface MobileMenuProps {
-  isLoggedIn: boolean;
-  isAdmin?: boolean;
-  onLogout?: () => void;
-}
-
-export function MobileMenu({ isLoggedIn, isAdmin = false, onLogout }: MobileMenuProps) {
+export function MobileMenu({ isLoggedIn, isAdmin = false, onLogout }: any) {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
 
@@ -22,8 +16,8 @@ export function MobileMenu({ isLoggedIn, isAdmin = false, onLogout }: MobileMenu
         variant="ghost"
         size="icon"
         onClick={() => setIsOpen(true)}
-        // تأكد أن زر المنيو نفسه له z-index عالي
-        className="relative z-[110] text-white"
+        // رفعنا التريجر ليكون فوق الهيدر نفسه
+        className="relative z-[120] text-white"
       >
         <Menu className="w-8 h-8" />
       </Button>
@@ -31,58 +25,55 @@ export function MobileMenu({ isLoggedIn, isAdmin = false, onLogout }: MobileMenu
       <AnimatePresence>
         {isOpen && (
           <>
-            {/* الخلفية المعتمة - أعلى z-index ممكن */}
+            {/* الخلفية المظلمة - فرضنا الـ Z-index بـ style مباشر */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsOpen(false)}
-              className="fixed inset-0 z-[998] bg-black/90 backdrop-blur-lg"
+              style={{ zIndex: 9999, position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(12px)' }}
             />
 
-            {/* لوحة القائمة - تظهر فوق الخلفية المعتمة */}
+            {/* لوحة القائمة - فرضنا Z-index أعلى من الخلفية */}
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed top-0 right-0 h-full w-[280px] z-[999] bg-[#1A1F2C] border-l border-white/10 shadow-2xl flex flex-col"
+              style={{ zIndex: 10000, position: 'fixed', top: 0, right: 0, height: '100%', width: '280px', backgroundColor: '#1A1F2C', borderLeft: '1px solid rgba(255,255,255,0.1)', boxShadow: '-10px 0 50px rgba(0,0,0,0.8)' }}
+              className="flex flex-col"
             >
-              {/* ترويسة القائمة */}
-              <div className="p-6 border-b border-white/5 flex justify-between items-center">
-                <span className="text-xl font-bold bg-gradient-to-r from-yellow-500 to-purple-500 bg-clip-text text-transparent">
-                  Spin4Pi
-                </span>
+              {/* محتوى القائمة */}
+              <div className="p-6 border-b border-white/5 flex justify-between items-center bg-purple-900/20">
+                <span className="text-xl font-bold text-white">Spin4Pi Menu</span>
                 <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="text-white hover:bg-white/10">
                   <X className="w-8 h-8" />
                 </Button>
               </div>
 
-              {/* روابط القائمة */}
-              <nav className="flex-1 p-4 space-y-2">
-                <MenuLink to="/" icon={<Home size={20}/>} label="Home" onClick={() => setIsOpen(false)} />
+              <nav className="flex-1 p-4 space-y-3 overflow-y-auto">
+                <Link to="/" onClick={() => setIsOpen(false)} className="flex items-center gap-4 p-4 rounded-xl bg-white/5 text-white hover:bg-purple-500/20 transition-all">
+                  <Home className="text-purple-400" /> <span>Home</span>
+                </Link>
                 {isLoggedIn && (
                   <>
-                    <MenuLink to="/profile" icon={<User size={20}/>} label="Profile" onClick={() => setIsOpen(false)} />
-                    <MenuLink to="/withdrawals" icon={<Wallet size={20}/>} label="Wallet" onClick={() => setIsOpen(false)} />
-                    <MenuLink to="/achievements" icon={<Trophy size={20}/>} label="Rank" onClick={() => setIsOpen(false)} />
+                    <Link to="/profile" onClick={() => setIsOpen(false)} className="flex items-center gap-4 p-4 rounded-xl bg-white/5 text-white hover:bg-purple-500/20 transition-all">
+                      <User className="text-purple-400" /> <span>Profile</span>
+                    </Link>
+                    <Link to="/withdrawals" onClick={() => setIsOpen(false)} className="flex items-center gap-4 p-4 rounded-xl bg-white/5 text-white hover:bg-purple-500/20 transition-all">
+                      <Wallet className="text-purple-400" /> <span>Wallet</span>
+                    </Link>
                   </>
                 )}
-                <MenuLink to="/vip" icon={<Crown size={20}/>} label="VIP" onClick={() => setIsOpen(false)} />
               </nav>
 
-              {/* تذييل القائمة */}
-              <div className="p-6 border-t border-white/5">
+              <div className="p-6 border-t border-white/5 bg-black/40">
                 {isLoggedIn && (
-                  <Button
-                    variant="ghost"
-                    onClick={() => { onLogout?.(); setIsOpen(false); }}
-                    className="w-full text-red-400 hover:bg-red-500/10 hover:text-red-500 border border-red-500/10 mb-4"
-                  >
+                  <Button onClick={() => { onLogout?.(); setIsOpen(false); }} className="w-full bg-red-500/20 text-red-500 hover:bg-red-500/40 border border-red-500/50">
                     <LogOut className="w-4 h-4 mr-2" /> Logout
                   </Button>
                 )}
-                <p className="text-center text-[10px] text-white/30 tracking-widest uppercase">Pi Network • v1.0.0</p>
+                <p className="text-center text-[10px] text-white/20 mt-4">v1.0.0 • Pi Network</p>
               </div>
             </motion.div>
           </>
@@ -91,14 +82,3 @@ export function MobileMenu({ isLoggedIn, isAdmin = false, onLogout }: MobileMenu
     </>
   );
 }
-
-const MenuLink = ({ to, icon, label, onClick }: any) => (
-  <Link
-    to={to}
-    onClick={onClick}
-    className="flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/5 text-gray-300 hover:text-white transition-all border border-transparent hover:border-white/5"
-  >
-    <span className="text-purple-400">{icon}</span>
-    <span className="font-medium">{label}</span>
-  </Link>
-);

@@ -1,7 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
 import { 
   X, Home, User, LogOut, ChevronRight, 
   Volume2, ShieldCheck, Trophy, Share2, Settings 
@@ -12,102 +10,130 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin }: any) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
 
+  // إغلاق المنيو عند تغيير الصفحة لضمان عدم التعليق
+  useEffect(() => {
+    setIsOpen(false);
+  }, [window.location.pathname]);
+
+  const toggle = (e: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsOpen(!isOpen);
+  };
+
   return (
     <>
-      {/* الزر الرئيسي (Trigger) */}
+      {/* الزر الرئيسي: تم تبسيطه برمجياً وتطويره بصرياً */}
       <div 
-        onClick={() => setIsOpen(true)}
-        className="relative flex flex-col gap-1 justify-center items-center active:scale-95 transition-all cursor-pointer"
-        style={{ width: '44px', height: '44px', background: 'rgba(168, 85, 247, 0.15)', border: '1px solid rgba(168, 85, 247, 0.4)', borderRadius: '12px' }}
+        onClick={toggle}
+        style={{ 
+          cursor: 'pointer', width: '44px', height: '44px', 
+          background: 'rgba(168, 85, 247, 0.15)', border: '1.5px solid #a855f7', 
+          borderRadius: '12px', display: 'flex', flexDirection: 'column',
+          justifyContent: 'center', alignItems: 'center', gap: '4px',
+          boxShadow: '0 0 10px rgba(168, 85, 247, 0.3)'
+        }}
       >
-        <span className="h-[2px] w-5 bg-purple-400 rounded-full" />
-        <span className="h-[2px] w-3 bg-pink-500 rounded-full self-end mr-3" />
-        <span className="h-[2px] w-5 bg-purple-400 rounded-full" />
+        <div style={{ width: '20px', height: '2.5px', background: 'linear-gradient(to right, #a855f7, #d946ef)', borderRadius: '2px' }} />
+        <div style={{ width: '14px', height: '2.5px', background: '#a855f7', borderRadius: '2px', alignSelf: 'flex-end', marginRight: '10px' }} />
+        <div style={{ width: '20px', height: '2.5px', background: 'linear-gradient(to right, #d946ef, #a855f7)', borderRadius: '2px' }} />
       </div>
 
-      <AnimatePresence>
-        {isOpen && createPortal(
-          <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 999999 }}>
+      {isOpen && createPortal(
+        <div style={{ 
+          position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.98)', 
+          zIndex: 999999, display: 'flex', justifyContent: 'center', alignItems: 'center',
+          backdropFilter: 'blur(15px)', WebkitBackdropFilter: 'blur(15px)'
+        }}>
+          {/* الحاوية الرئيسية: تصميم فخم بدون مكتبات ثقيلة */}
+          <div style={{ 
+            position: 'relative', width: '90%', maxWidth: '380px', background: '#0c0c0e',
+            border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: '40px',
+            padding: '30px', boxShadow: '0 0 50px rgba(168, 85, 247, 0.15)',
+            maxHeight: '90vh', overflowY: 'auto'
+          }}>
             
-            {/* طبقة التعتيم الزجاجية */}
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setIsOpen(false)}
-              className="absolute inset-0 bg-black/95 backdrop-blur-xl"
-            />
-
-            {/* الحاوية الرئيسية للقائمة (أسطورية) */}
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 40 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 40 }}
-              className="relative w-full max-w-[400px] bg-[#0c0c0e] border border-white/10 rounded-[40px] p-8 shadow-[0_0_100px_rgba(168,85,247,0.15)] overflow-hidden"
-            >
-              {/* تزيين علوي خلف الشعار */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-purple-500/10 blur-[50px] rounded-full" />
-
-              {/* الشعار المفقود (موجود الآن) */}
-              <div className="flex flex-col items-center mb-8 relative">
-                <button onClick={() => setIsOpen(false)} className="absolute -top-2 -right-2 text-white/20 hover:text-white"><X size={24} /></button>
-                <img src={logoIcon} className="w-20 h-20 mb-3 drop-shadow-[0_0_20px_rgba(168,85,247,0.5)]" alt="Logo" />
-                <div className="flex items-center gap-2">
-                  <ShieldCheck size={14} className="text-purple-500" />
-                  <span className="text-[10px] text-white/30 font-bold uppercase tracking-[0.4em]">Main Network</span>
-                </div>
-              </div>
-
-              {/* شبكة الصفحات (Grid System) */}
-              <div className="grid grid-cols-1 gap-3 mb-8">
-                <MenuLink to="/" icon={<Home size={20} className="text-purple-400" />} label="The Arena" onClick={() => setIsOpen(false)} />
-                <MenuLink to="/profile" icon={<User size={20} className="text-blue-400" />} label="Commander Profile" onClick={() => setIsOpen(false)} />
-                <MenuLink to="/leaderboard" icon={<Trophy size={20} className="text-yellow-500" />} label="Global Rankings" onClick={() => setIsOpen(false)} />
-                <MenuLink to="/referral" icon={<Share2 size={20} className="text-green-400" />} label="Affiliate Portal" onClick={() => setIsOpen(false)} />
-                {isAdmin && <MenuLink to="/admin" icon={<Settings size={20} className="text-red-500" />} label="Admin Terminal" onClick={() => setIsOpen(false)} />}
-              </div>
-
-              {/* زر التحكم بالصوت (موجود الآن بشكل فخم) */}
-              <div 
-                onClick={() => setIsMuted(!isMuted)}
-                className="w-full mb-8 p-4 bg-white/[0.03] border border-white/10 rounded-3xl flex items-center justify-between cursor-pointer hover:bg-white/[0.05] transition-all"
+            {/* زر الإغلاق والشعار */}
+            <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+              <button 
+                onClick={() => setIsOpen(false)} 
+                style={{ position: 'absolute', top: '25px', right: '25px', background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)' }}
               >
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-xl ${isMuted ? 'bg-red-500/20 text-red-500' : 'bg-pink-500/20 text-pink-500'}`}>
-                    <Volume2 size={20} />
-                  </div>
-                  <span className="text-sm font-bold text-white/80">Audio Feedback</span>
-                </div>
-                <div className={`w-12 h-6 rounded-full relative transition-all ${isMuted ? 'bg-white/10' : 'bg-purple-600'}`}>
-                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isMuted ? 'left-1' : 'left-7'}`} />
-                </div>
+                <X size={26} />
+              </button>
+              <img src={logoIcon} style={{ width: '70px', height: '70px', filter: 'drop-shadow(0 0 15px rgba(168,85,247,0.5))', marginBottom: '10px' }} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                <ShieldCheck size={12} color="#a855f7" />
+                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', fontWeight: 'bold', letterSpacing: '3px' }}>SYSTEM TERMINAL</span>
               </div>
+            </div>
 
-              {/* زر تسجيل الخروج الفخم */}
-              {isLoggedIn && (
-                <button 
-                  onClick={() => { onLogout?.(); setIsOpen(false); }}
-                  className="w-full py-5 bg-gradient-to-r from-red-500/10 to-red-600/20 border border-red-500/20 rounded-[28px] text-red-500 font-black text-xs uppercase tracking-[0.2em] hover:from-red-500 hover:to-red-600 hover:text-white transition-all shadow-lg shadow-red-500/5"
-                >
-                  Terminate session
-                </button>
-              )}
-            </motion.div>
-          </div>,
-          document.body
-        )}
-      </AnimatePresence>
+            {/* الروابط: تصميم البطاقات */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '25px' }}>
+              <MenuOption href="/" icon={<Home size={20} color="#a855f7" />} label="The Arena" />
+              <MenuOption href="/profile" icon={<User size={20} color="#3b82f6" />} label="Commander Profile" />
+              <MenuOption href="/leaderboard" icon={<Trophy size={20} color="#eab308" />} label="Global Rankings" />
+              <MenuOption href="/referral" icon={<Share2 size={20} color="#22c55e" />} label="Affiliate Portal" />
+              {isAdmin && <MenuOption href="/admin" icon={<Settings size={20} color="#ef4444" />} label="Admin Control" />}
+            </div>
+
+            {/* التحكم بالصوت */}
+            <div 
+              onClick={() => setIsMuted(!isMuted)}
+              style={{ 
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '15px 20px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px',
+                border: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', marginBottom: '25px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Volume2 size={20} color={isMuted ? "#ef4444" : "#d946ef"} />
+                <span style={{ color: 'white', fontSize: '14px', fontWeight: 'bold' }}>Sound Effects</span>
+              </div>
+              <div style={{ 
+                width: '40px', height: '20px', borderRadius: '20px', 
+                background: isMuted ? '#333' : '#a855f7', position: 'relative'
+              }}>
+                <div style={{ 
+                  position: 'absolute', top: '3px', left: isMuted ? '3px' : '23px',
+                  width: '14px', height: '14px', background: 'white', borderRadius: '50%', transition: '0.3s'
+                }} />
+              </div>
+            </div>
+
+            {isLoggedIn && (
+              <button 
+                onClick={() => { onLogout?.(); setIsOpen(false); }}
+                style={{ 
+                  width: '100%', padding: '18px', background: 'linear-gradient(to right, rgba(239,68,68,0.1), rgba(239,68,68,0.2))',
+                  border: '1px solid rgba(239,68,68,0.3)', borderRadius: '20px', color: '#ef4444',
+                  fontWeight: '900', fontSize: '12px', letterSpacing: '2px', cursor: 'pointer'
+                }}
+              >
+                LOGOUT SESSION
+              </button>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
     </>
   );
 }
 
-// مكون فرعي للروابط لتقليل تكرار الكود
-function MenuLink({ to, icon, label, onClick }: any) {
+// مكون الخيار الواحد لضمان الثبات
+function MenuOption({ href, icon, label }: any) {
   return (
-    <Link to={to} onClick={onClick} className="flex items-center justify-between p-4 bg-white/[0.03] border border-white/[0.05] rounded-[24px] hover:bg-purple-500/10 transition-all no-underline group">
-      <div className="flex items-center gap-4">
-        <div className="p-2.5 bg-white/[0.05] rounded-xl group-hover:scale-110 transition-transform">{icon}</div>
-        <span className="text-white font-bold text-sm tracking-wide">{label}</span>
+    <a href={href} style={{ 
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '18px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px',
+      border: '1px solid rgba(255,255,255,0.05)', textDecoration: 'none'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+        <div style={{ padding: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px' }}>{icon}</div>
+        <span style={{ color: 'white', fontSize: '14px', fontWeight: 'bold' }}>{label}</span>
       </div>
-      <ChevronRight size={18} className="text-white/20 group-hover:text-purple-400 group-hover:translate-x-1 transition-all" />
-    </Link>
+      <ChevronRight size={18} color="rgba(255,255,255,0.2)" />
+    </a>
   );
 }

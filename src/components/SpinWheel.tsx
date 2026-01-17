@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
-import { Crown, Coins, Ban, Gift, Zap, Sparkles, Gem } from "lucide-react";
+import { Crown } from "lucide-react";
 
 interface SpinWheelProps {
   onSpinComplete: (result: string) => void;
@@ -23,123 +23,104 @@ const SEGMENTS = [
 
 export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetResult }: SpinWheelProps) {
   const [rotation, setRotation] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
   const { playSpinSound, playTickSound, playWinSound } = useSoundEffects();
   const tickIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // التأكد من أن المسار هو الجذر المباشر لمجلد public
-  const LOGO_URL = "/pinetwork.jpg"; 
-
   useEffect(() => {
-    if (isSpinning && targetResult && !isAnimating) {
-      setIsAnimating(true);
+    if (isSpinning && targetResult) {
       playSpinSound();
       
-      const targetSegment = SEGMENTS.find(s => s.prize === targetResult);
-      const targetIndex = targetSegment?.index ?? 0;
+      const targetIndex = SEGMENTS.find(s => s.prize === targetResult)?.index ?? 0;
       const segmentAngle = 360 / SEGMENTS.length;
-      const targetAngle = targetIndex * segmentAngle;
+      // حساب الزاوية النهائية: دورات عشوائية + تعويض الزاوية للوقوف على القطاع الصحيح
+      const finalAngle = rotation + (10 * 360) + (360 - (targetIndex * segmentAngle));
       
-      const extraSpins = 10 + Math.random() * 2; 
-      const finalRotation = rotation + (extraSpins * 360) + (360 - targetAngle);
-      
-      setRotation(finalRotation);
-      
-      let tickCount = 0;
+      setRotation(finalAngle);
+
+      // تأثير صوت التكتكة أثناء الدوران
+      let ticks = 0;
       tickIntervalRef.current = setInterval(() => {
-        tickCount++;
         playTickSound();
-        if (tickCount >= 100) clearInterval(tickIntervalRef.current!);
-      }, 45);
-      
+        if (++ticks >= 60) clearInterval(tickIntervalRef.current!);
+      }, 70);
+
       setTimeout(() => {
-        setIsAnimating(false);
         if (!targetResult.includes('LOSE')) playWinSound();
         onSpinComplete(targetResult);
+        setIsSpinning(false);
         if (tickIntervalRef.current) clearInterval(tickIntervalRef.current);
       }, 4500);
     }
-  }, [isSpinning, targetResult, isAnimating, onSpinComplete, playSpinSound, playTickSound, playWinSound, rotation]);
+  }, [isSpinning, targetResult]);
 
   return (
     <div className="relative flex flex-col items-center py-10">
-      <style>{`
-        .royal-spin-shadow { box-shadow: 0 0 60px rgba(168, 85, 247, 0.4), inset 0 0 40px rgba(0,0,0,0.9); }
-      `}</style>
+      <style>{`.royal-shadow { box-shadow: 0 0 50px rgba(168, 85, 247, 0.3); }`}</style>
 
       <div className="relative">
-        {/* المؤشر (تاج) */}
-        <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-[70] scale-[1.5]">
-          <motion.div 
-             animate={isSpinning ? { y: [0, 8, 0] } : {}}
-             transition={{ duration: 0.15, repeat: Infinity }}
-             className="flex flex-col items-center"
-          >
-            <Crown className="text-[#fbbf24] w-10 h-10 drop-shadow-[0_0_15px_#fbbf24]" />
-            <div className="w-1.5 h-5 bg-[#fbbf24] shadow-[0_0_20px_#fbbf24] -mt-1 rounded-full" />
-          </motion.div>
+        {/* المؤشر العلوي */}
+        <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-50">
+          <Crown className="text-[#fbbf24] w-10 h-10 drop-shadow-[0_0_10px_#fbbf24]" />
         </div>
         
-        {/* المركز الثابت - يحتوي فقط على صورة الشعار أو الرمز البديل */}
-        <div className="absolute inset-0 flex items-center justify-center z-[60] pointer-events-none">
-           <div className="w-24 h-24 md:w-36 md:h-36 rounded-full bg-black border-4 border-[#fbbf24] shadow-[0_0_30px_rgba(251,191,36,0.8)] flex items-center justify-center overflow-hidden">
-              <img 
-                src={`${LOGO_URL}?v=${Date.now()}`} 
-                alt="Pi Logo" 
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  const parent = e.currentTarget.parentElement;
-                  if(parent) parent.innerHTML = '<span style="color:#fbbf24; font-size: 5rem; font-family: serif; filter: drop-shadow(0 0 10px #fbbf24)">π</span>';
-                }}
-              />
-           </div>
+        {/* الشعار المركزي الثابت (يقرأ من public مباشرة) */}
+        <div className="absolute inset-0 flex items-center justify-center z-40 pointer-events-none">
+          <div className="w-24 h-24 md:w-36 md:h-36 rounded-full bg-black border-4 border-[#fbbf24] shadow-[0_0_20px_rgba(251,191,36,0.5)] flex items-center justify-center overflow-hidden">
+            <img 
+              src="/pinetwork.jpg" 
+              alt="Pi" 
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                const p = e.currentTarget.parentElement;
+                if(p) p.innerHTML = '<span class="text-[#fbbf24] text-5xl font-serif">π</span>';
+              }}
+            />
+          </div>
         </div>
 
-        {/* جسم العجلة الدوار (SVG) */}
+        {/* العجلة الدوارة */}
         <motion.div
-          className="relative w-80 h-80 md:w-[500px] md:h-[500px] rounded-full border-[14px] border-double border-[#fbbf24] royal-spin-shadow bg-[#050507] overflow-hidden"
+          className="relative w-80 h-80 md:w-[500px] md:h-[500px] rounded-full border-[10px] border-[#fbbf24] royal-shadow overflow-hidden bg-[#050507]"
           animate={{ rotate: rotation }}
-          transition={{ duration: 4.5, ease: [0.2, 0, 0.1, 1] }}
+          transition={{ duration: 4.5, ease: [0.15, 0, 0.15, 1] }}
         >
           <svg viewBox="0 0 100 100" className="w-full h-full">
-            {SEGMENTS.map((segment, index) => {
+            {SEGMENTS.map((s, i) => {
               const angle = 360 / SEGMENTS.length;
-              const startAngle = index * angle - 90;
-              const endAngle = startAngle + angle;
-              const x1 = 50 + 50 * Math.cos((startAngle * Math.PI) / 180);
-              const y1 = 50 + 50 * Math.sin((startAngle * Math.PI) / 180);
-              const x2 = 50 + 50 * Math.cos((endAngle * Math.PI) / 180);
-              const y2 = 50 + 50 * Math.sin((endAngle * Math.PI) / 180);
-              
-              const midAngle = startAngle + angle / 2;
-              const rad = (midAngle * Math.PI) / 180;
-              const tx = 50 + 38 * Math.cos(rad);
-              const ty = 50 + 38 * Math.sin(rad);
+              const start = (i * angle - 90) * (Math.PI / 180);
+              const end = ((i + 1) * angle - 90) * (Math.PI / 180);
+              const x1 = 50 + 50 * Math.cos(start);
+              const y1 = 50 + 50 * Math.sin(start);
+              const x2 = 50 + 50 * Math.cos(end);
+              const y2 = 50 + 50 * Math.sin(end);
 
               return (
-                <g key={index}>
-                  <path d={`M 50 50 L ${x1} ${y1} A 50 50 0 0 1 ${x2} ${y2} Z`} fill={segment.color} />
-                  <g transform={`rotate(${midAngle + 90}, ${tx}, ${ty})`}>
-                    <text x={tx} y={ty} fill="white" fontSize="3.2" fontWeight="bold" textAnchor="middle">
-                      {segment.label}
-                    </text>
-                  </g>
+                <g key={i}>
+                  <path d={`M 50 50 L ${x1} ${y1} A 50 50 0 0 1 ${x2} ${y2} Z`} fill={s.color} stroke="#00000020" strokeWidth="0.2" />
+                  <text
+                    x="75" y="50"
+                    transform={`rotate(${i * angle + angle / 2 - 90} 50 50)`}
+                    fill="white" fontSize="3.5" fontWeight="bold" textAnchor="middle"
+                    className="select-none"
+                  >
+                    {s.label}
+                  </text>
                 </g>
               );
             })}
           </svg>
         </motion.div>
 
-        {/* الإضاءة الخارجية */}
-        <div className="absolute inset-0 -m-8 pointer-events-none">
-          {[...Array(24)].map((_, i) => (
+        {/* مصابيح الزينة المحيطة */}
+        <div className="absolute inset-0 -m-6 pointer-events-none">
+          {[...Array(12)].map((_, i) => (
             <div
               key={i}
-              className={`absolute w-3 h-3 rounded-full ${i % 3 === 0 ? 'bg-[#fbbf24] shadow-[0_0_15px_#fbbf24]' : 'bg-purple-500 shadow-[0_0_10px_#a855f7]'}`}
+              className="absolute w-2 h-2 rounded-full bg-[#fbbf24] shadow-[0_0_10px_#fbbf24]"
               style={{
-                top: `${50 + 49.5 * Math.sin((i * 15 * Math.PI) / 180)}%`,
-                left: `${50 + 49.5 * Math.cos((i * 15 * Math.PI) / 180)}%`,
+                top: `${50 + 48 * Math.sin((i * 30 * Math.PI) / 180)}%`,
+                left: `${50 + 48 * Math.cos((i * 30 * Math.PI) / 180)}%`,
                 transform: "translate(-50%, -50%)",
               }}
             />

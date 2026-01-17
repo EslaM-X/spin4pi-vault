@@ -3,9 +3,6 @@ import { motion } from "framer-motion";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { Trophy, Ban, Sparkles, Gift, Zap, Crown, Gem, Coins } from "lucide-react";
 
-// استيراد الصورة برمجياً لأنها موجودة في مجلد src/assets
-import piLogo from "../assets/pinetwork.jpg";
-
 interface SpinWheelProps {
   onSpinComplete: (result: string) => void;
   isSpinning: boolean;
@@ -29,6 +26,9 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
   const [isAnimating, setIsAnimating] = useState(false);
   const { playSpinSound, playTickSound, playWinSound } = useSoundEffects();
   const tickIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // تحديث المسار للاسم الجديد
+  const LOGO_URL = "/assets/pinetwork.jpg"; 
 
   useEffect(() => {
     if (isSpinning && targetResult && !isAnimating) {
@@ -69,11 +69,13 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
         }
       `}</style>
 
+      {/* الهالة الخلفية */}
       <div className={`absolute inset-0 -m-20 rounded-full bg-gradient-to-tr from-purple-600/20 via-yellow-500/10 to-purple-900/20 blur-[150px] transition-opacity duration-1000 ${
         isSpinning ? 'opacity-100' : 'opacity-40'
       }`} />
       
       <div className="relative">
+        {/* المؤشر العلوي */}
         <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-40 scale-[1.5]">
           <motion.div 
              animate={isSpinning ? { y: [0, 8, 0], scale: [1, 1.1, 1] } : {}}
@@ -85,18 +87,24 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
           </motion.div>
         </div>
         
+        {/* العجلة */}
         <motion.div
           className="relative w-80 h-80 md:w-[500px] md:h-[500px] rounded-full border-[14px] border-double border-[#fbbf24] royal-spin-shadow bg-[#050507] overflow-hidden"
           animate={{ rotate: rotation }}
           transition={{ duration: 4.5, ease: [0.2, 0, 0.1, 1] }}
         >
-          {/* الشعار المركزي الثابت - تم استخدام piLogo المستورد */}
+          {/* الطبقة المركزية الثابتة - باستخدام عنصر الصورة المباشر */}
           <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
-             <div className="w-24 h-24 md:w-36 md:h-36 rounded-full bg-black border-4 border-[#fbbf24] shadow-[0_0_30px_rgba(251,191,36,0.6)] flex items-center justify-center overflow-hidden">
+             <div className="w-32 h-32 md:w-44 md:h-44 rounded-full bg-black border-4 border-[#fbbf24] shadow-[0_0_30px_rgba(251,191,36,0.6)] flex items-center justify-center overflow-hidden">
                 <img 
-                  src={piLogo} 
-                  alt="Pi Logo" 
+                  src={`${LOGO_URL}?v=${Date.now()}`} 
+                  alt="Pi" 
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if(parent) parent.innerHTML = '<span style="color:#fbbf24; font-size: 5rem; font-family: serif; filter: drop-shadow(0 0 10px #fbbf24)">π</span>';
+                  }}
                 />
              </div>
           </div>
@@ -118,11 +126,11 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
                   {(() => {
                     const midAngle = startAngle + angle / 2;
                     const rad = (midAngle * Math.PI) / 180;
-                    const tx = 50 + 38 * Math.cos(rad);
-                    const ty = 50 + 38 * Math.sin(rad);
+                    const tx = 50 + 35 * Math.cos(rad);
+                    const ty = 50 + 35 * Math.sin(rad);
                     return (
                       <g transform={`rotate(${midAngle + 90}, ${tx}, ${ty})`}>
-                        <text x={tx} y={ty} fill="white" fontSize="3.2" fontWeight="bold" textAnchor="middle" style={{ filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.5))' }}>
+                        <text x={tx} y={ty} fill="white" fontSize="3.5" fontWeight="bold" textAnchor="middle" style={{ filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.5))' }}>
                           {segment.label}
                         </text>
                       </g>
@@ -134,6 +142,7 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
           </svg>
         </motion.div>
         
+        {/* نظام المصابيح المحيطية */}
         <div className="absolute inset-0 -m-8 pointer-events-none">
           {[...Array(24)].map((_, i) => (
             <motion.div

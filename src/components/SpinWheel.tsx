@@ -27,6 +27,9 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
   const { playSpinSound, playTickSound, playWinSound } = useSoundEffects();
   const tickIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // رابط الشعار الخاص بك (تأكد من وجود الصورة في مجلد public أو استخدم الرابط المباشر)
+  const LOGO_URL = "/assets/1000286955.jpg"; 
+
   useEffect(() => {
     if (isSpinning && targetResult && !isAnimating) {
       setIsAnimating(true);
@@ -64,6 +67,9 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
         .royal-spin-shadow {
           box-shadow: 0 0 50px rgba(168, 85, 247, 0.3), inset 0 0 30px rgba(0,0,0,0.8);
         }
+        .center-logo-clip {
+          clip-path: circle(50% at 50% 50%);
+        }
       `}</style>
 
       {/* الهالة الخلفية */}
@@ -92,12 +98,6 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
         >
           <svg viewBox="0 0 100 100" className="w-full h-full transform scale-[1.02]">
             <defs>
-              <linearGradient id="pi-gold-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#fff3d0" />
-                <stop offset="50%" stopColor="#fbbf24" />
-                <stop offset="100%" stopColor="#8c5b00" />
-              </linearGradient>
-
               <radialGradient id="vault-core" cx="50%" cy="50%" r="50%">
                 <stop offset="0%" stopColor="#1a0b2e" />
                 <stop offset="100%" stopColor="#000000" />
@@ -142,34 +142,30 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
               );
             })}
             
-            {/* الدائرة المركزية مع رسمة Pi الرسمية الاحترافية */}
+            {/* الدائرة المركزية مع شعار Pi المرفوع */}
             <g>
-              <circle cx="50" cy="50" r="14" fill="url(#vault-core)" stroke="#fbbf24" strokeWidth="0.8" />
+              {/* حلقة ذهبية خلفية */}
+              <circle cx="50" cy="50" r="15" fill="#fbbf24" opacity="0.8" />
+              {/* قلب الدائرة المظلم */}
+              <circle cx="50" cy="50" r="14" fill="url(#vault-core)" />
               
-              {/* رسم شعار Pi يدويًا لضمان أعلى دقة ووضوح */}
-              <g transform="translate(38, 39) scale(0.24)">
-                <path 
-                  d="M10 15 C 10 10, 90 10, 90 15 L 90 22 C 90 25, 10 25, 10 22 Z" 
-                  fill="url(#pi-gold-grad)" 
-                />
-                <path 
-                  d="M32 22 L 32 75 C 32 85, 15 85, 15 75" 
-                  stroke="url(#pi-gold-grad)" 
-                  strokeWidth="11" 
-                  fill="none" 
-                  strokeLinecap="round" 
-                />
-                <path 
-                  d="M68 22 L 68 85" 
-                  stroke="url(#pi-gold-grad)" 
-                  strokeWidth="11" 
-                  fill="none" 
-                  strokeLinecap="round" 
-                />
-              </g>
+              {/* إضافة الشعار كصورة دائرة متناسقة */}
+              <foreignObject x="36" y="36" width="28" height="28">
+                <div className="w-full h-full flex items-center justify-center">
+                  <img 
+                    src={LOGO_URL} 
+                    alt="Pi Logo" 
+                    className="w-full h-full object-cover center-logo-clip"
+                    style={{ 
+                      filter: 'drop-shadow(0 0 5px #fbbf24)',
+                      border: '1px solid #fbbf2433'
+                    }}
+                  />
+                </div>
+              </foreignObject>
 
-              {/* تأثير إضاءة علوي */}
-              <circle cx="47" cy="46" r="5" fill="white" opacity="0.05" />
+              {/* تأثير لمعان زجاجي فوق الشعار */}
+              <circle cx="47" cy="46" r="6" fill="white" opacity="0.1" />
             </g>
           </svg>
         </motion.div>
@@ -193,8 +189,9 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
       </div>
 
       <div className="mt-12 flex flex-col items-center">
-        <p className="text-[10px] text-white/20 uppercase tracking-[0.4em] font-bold">
-          Imperial Security Connection Active
+        <p className="text-[10px] text-white/20 uppercase tracking-[0.4em] font-bold text-center">
+          Imperial Security Connection Active<br/>
+          <span className="text-[8px] opacity-50">© Community App - Not affiliated with Pi Core Team</span>
         </p>
       </div>
     </div>

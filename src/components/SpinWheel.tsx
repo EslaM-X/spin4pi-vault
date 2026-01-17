@@ -24,12 +24,8 @@ const SEGMENTS = [
 export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetResult }: SpinWheelProps) {
   const [rotation, setRotation] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [imageError, setImageError] = useState(false);
   const { playSpinSound, playTickSound, playWinSound } = useSoundEffects();
   const tickIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // تأكد من وضع الصورة في المسار: public/assets/1000286955.jpg
-  const LOGO_URL = "/assets/1000286955.jpg"; 
 
   useEffect(() => {
     if (isSpinning && targetResult && !isAnimating) {
@@ -41,7 +37,7 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
       const segmentAngle = 360 / SEGMENTS.length;
       const targetAngle = targetIndex * segmentAngle;
       
-      const spins = 8 + Math.random() * 2; 
+      const spins = 10 + Math.random() * 2; 
       const finalRotation = rotation + (spins * 360) + (360 - targetAngle);
       
       setRotation(finalRotation);
@@ -50,8 +46,8 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
       tickIntervalRef.current = setInterval(() => {
         tickCount++;
         playTickSound();
-        if (tickCount >= 80) clearInterval(tickIntervalRef.current!);
-      }, 50);
+        if (tickCount >= 100) clearInterval(tickIntervalRef.current!);
+      }, 45);
       
       setTimeout(() => {
         setIsAnimating(false);
@@ -66,44 +62,44 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
     <div className="relative flex flex-col items-center py-10">
       <style>{`
         .royal-spin-shadow {
-          box-shadow: 0 0 50px rgba(168, 85, 247, 0.3), inset 0 0 30px rgba(0,0,0,0.8);
-        }
-        .center-logo-clip {
-          clip-path: circle(50% at 50% 50%);
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
+          box-shadow: 0 0 60px rgba(168, 85, 247, 0.4), inset 0 0 40px rgba(0,0,0,0.9);
         }
       `}</style>
 
       {/* الهالة الخلفية */}
-      <div className={`absolute inset-0 -m-20 rounded-full bg-gradient-to-tr from-purple-600/10 via-yellow-500/5 to-purple-900/10 blur-[150px] transition-opacity duration-1000 ${
+      <div className={`absolute inset-0 -m-20 rounded-full bg-gradient-to-tr from-purple-600/20 via-yellow-500/10 to-purple-900/20 blur-[150px] transition-opacity duration-1000 ${
         isSpinning ? 'opacity-100' : 'opacity-40'
       }`} />
       
       <div className="relative">
         {/* المؤشر العلوي */}
-        <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-40 scale-125">
+        <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-40 scale-[1.5]">
           <motion.div 
-             animate={isSpinning ? { scale: [1, 1.2, 1], y: [0, 5, 0] } : {}}
-             transition={{ duration: 0.1, repeat: Infinity }}
+             animate={isSpinning ? { y: [0, 8, 0], scale: [1, 1.1, 1] } : {}}
+             transition={{ duration: 0.15, repeat: Infinity }}
              className="flex flex-col items-center"
           >
-            <Crown className="text-[#fbbf24] w-8 h-8 drop-shadow-[0_0_10px_#fbbf24]" />
-            <div className="w-1 h-4 bg-[#fbbf24] shadow-[0_0_15px_#fbbf24] -mt-1" />
+            <Crown className="text-[#fbbf24] w-10 h-10 drop-shadow-[0_0_15px_#fbbf24]" />
+            <div className="w-1.5 h-5 bg-[#fbbf24] shadow-[0_0_20px_#fbbf24] -mt-1 rounded-full" />
           </motion.div>
         </div>
         
         {/* العجلة */}
         <motion.div
-          className="relative w-80 h-80 md:w-[480px] md:h-[480px] rounded-full border-[12px] border-double border-[#fbbf24]/50 royal-spin-shadow bg-[#050507] overflow-hidden"
+          className="relative w-80 h-80 md:w-[500px] md:h-[500px] rounded-full border-[14px] border-double border-[#fbbf24] royal-spin-shadow bg-[#050507] overflow-hidden"
           animate={{ rotate: rotation }}
-          transition={{ duration: 4.5, ease: [0.15, 0, 0.15, 1] }}
+          transition={{ duration: 4.5, ease: [0.2, 0, 0.1, 1] }}
         >
-          <svg viewBox="0 0 100 100" className="w-full h-full transform scale-[1.02]">
+          <svg viewBox="0 0 100 100" className="w-full h-full transform scale-[1.01]">
             <defs>
-              <radialGradient id="vault-core" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#1a0b2e" />
+              <linearGradient id="pi-gold-main" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#FFF2AD" />
+                <stop offset="50%" stopColor="#fbbf24" />
+                <stop offset="100%" stopColor="#B47E00" />
+              </linearGradient>
+
+              <radialGradient id="center-glow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#2D1B4D" />
                 <stop offset="100%" stopColor="#000000" />
               </radialGradient>
             </defs>
@@ -116,85 +112,87 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
               const y1 = 50 + 50 * Math.sin((startAngle * Math.PI) / 180);
               const x2 = 50 + 50 * Math.cos((endAngle * Math.PI) / 180);
               const y2 = 50 + 50 * Math.sin((endAngle * Math.PI) / 180);
-              const pathD = `M 50 50 L ${x1} ${y1} A 50 50 0 0 1 ${x2} ${y2} Z`;
               
-              const midAngle = startAngle + angle / 2;
-              const textRad = (midAngle * Math.PI) / 180;
-              const iconX = 50 + 36 * Math.cos(textRad);
-              const iconY = 50 + 36 * Math.sin(textRad);
-              const labelX = 50 + 24 * Math.cos(textRad);
-              const labelY = 50 + 24 * Math.sin(textRad);
-
               return (
                 <g key={index}>
-                  <path d={pathD} fill={segment.color} stroke="#ffffff05" strokeWidth="0.2" />
-                  <g transform={`translate(${iconX - 4}, ${iconY - 4}) rotate(${midAngle + 90}, 4, 4)`}>
-                    <foreignObject width="8" height="8">
-                       <div className="text-white flex items-center justify-center opacity-90" style={{ width: '100%', height: '100%', fontSize: '4.5px' }}>
-                          {segment.icon}
-                       </div>
-                    </foreignObject>
-                  </g>
-                  <text
-                    x={labelX} y={labelY} fill="white" fontSize="3.5" fontWeight="900" textAnchor="middle" dominantBaseline="middle"
-                    transform={`rotate(${midAngle + 90}, ${labelX}, ${labelY})`}
-                    style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }}
-                  >
-                    {segment.label}
-                  </text>
+                  <path d={`M 50 50 L ${x1} ${y1} A 50 50 0 0 1 ${x2} ${y2} Z`} fill={segment.color} stroke="#ffffff10" strokeWidth="0.3" />
+                  
+                  {/* النصوص والأيقونات */}
+                  {(() => {
+                    const midAngle = startAngle + angle / 2;
+                    const rad = (midAngle * Math.PI) / 180;
+                    const tx = 50 + 32 * Math.cos(rad);
+                    const ty = 50 + 32 * Math.sin(rad);
+                    return (
+                      <g transform={`rotate(${midAngle + 90}, ${tx}, ${ty})`}>
+                        <text x={tx} y={ty} fill="white" fontSize="3.8" fontWeight="bold" textAnchor="middle" style={{ filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.5))' }}>
+                          {segment.label}
+                        </text>
+                      </g>
+                    );
+                  })()}
                 </g>
               );
             })}
             
-            {/* الدائرة المركزية */}
+            {/* الدائرة المركزية مع شعار Pi الاحترافي */}
             <g>
-              <circle cx="50" cy="50" r="15" fill="#fbbf24" opacity="0.8" />
-              <circle cx="50" cy="50" r="14" fill="url(#vault-core)" />
+              <circle cx="50" cy="50" r="16" fill="url(#center-glow)" stroke="#fbbf24" strokeWidth="1.2" />
+              <circle cx="50" cy="50" r="14" fill="none" stroke="#fbbf2450" strokeWidth="0.5" strokeDasharray="2,2" />
               
-              <foreignObject x="36" y="36" width="28" height="28">
-                <div className="w-full h-full flex items-center justify-center pointer-events-none">
-                  {!imageError ? (
-                    <img 
-                      src={LOGO_URL} 
-                      alt="Pi Logo" 
-                      className="center-logo-clip"
-                      style={{ filter: 'drop-shadow(0 0 5px #fbbf24)' }}
-                      onError={() => setImageError(true)}
-                    />
-                  ) : (
-                    /* شعار احتياطي في حال لم تعمل الصورة */
-                    <div className="text-[#fbbf24] text-xl font-serif font-black select-none">π</div>
-                  )}
-                </div>
-              </foreignObject>
+              {/* شعار Pi الرسمي - مرسوم يدوياً بمسارات دقيقة جداً لضمان عدم التشوه */}
+              <g transform="translate(37, 37.5) scale(0.26)">
+                 {/* الخط العلوي للشعار */}
+                 <path 
+                    d="M5 15 Q 50 2, 95 15 L 95 25 Q 50 12, 5 25 Z" 
+                    fill="url(#pi-gold-main)" 
+                 />
+                 {/* الساق اليسرى (منحنية) */}
+                 <path 
+                    d="M30 25 L 30 70 Q 30 85, 10 85" 
+                    fill="none" 
+                    stroke="url(#pi-gold-main)" 
+                    strokeWidth="12" 
+                    strokeLinecap="round" 
+                 />
+                 {/* الساق اليمنى (مستقيمة) */}
+                 <path 
+                    d="M70 25 L 70 85" 
+                    fill="none" 
+                    stroke="url(#pi-gold-main)" 
+                    strokeWidth="12" 
+                    strokeLinecap="round" 
+                 />
+              </g>
 
-              <circle cx="47" cy="46" r="6" fill="white" opacity="0.1" />
+              {/* تأثير إضاءة علوي على المركز */}
+              <ellipse cx="46" cy="44" rx="5" ry="3" fill="white" opacity="0.15" />
             </g>
           </svg>
         </motion.div>
         
         {/* نظام المصابيح المحيطية */}
-        <div className="absolute inset-0 -m-6 pointer-events-none">
+        <div className="absolute inset-0 -m-8 pointer-events-none">
           {[...Array(24)].map((_, i) => (
             <motion.div
               key={i}
-              className={`absolute w-2.5 h-2.5 rounded-full ${i % 3 === 0 ? 'bg-[#fbbf24] shadow-[0_0_10px_#fbbf24]' : 'bg-purple-500/80 shadow-[0_0_8px_#a855f7]'}`}
+              className={`absolute w-3 h-3 rounded-full ${i % 3 === 0 ? 'bg-[#fbbf24] shadow-[0_0_15px_#fbbf24]' : 'bg-purple-500 shadow-[0_0_10px_#a855f7]'}`}
               style={{
                 top: `${50 + 49.5 * Math.sin((i * 15 * Math.PI) / 180)}%`,
                 left: `${50 + 49.5 * Math.cos((i * 15 * Math.PI) / 180)}%`,
                 transform: "translate(-50%, -50%)",
               }}
-              animate={isSpinning ? { opacity: [0.4, 1, 0.4], scale: [0.9, 1.1, 0.9] } : {}}
-              transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.05 }}
+              animate={isSpinning ? { opacity: [0.3, 1, 0.3], scale: [0.8, 1.2, 0.8] } : {}}
+              transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.05 }}
             />
           ))}
         </div>
       </div>
 
-      <div className="mt-12 flex flex-col items-center">
-        <p className="text-[10px] text-white/20 uppercase tracking-[0.4em] font-bold text-center">
-          Imperial Security Connection Active<br/>
-          <span className="text-[8px] opacity-50">© Community App - Not affiliated with Pi Core Team</span>
+      <div className="mt-16 flex flex-col items-center">
+        <p className="text-[11px] text-[#fbbf24]/40 uppercase tracking-[0.5em] font-black text-center">
+          Imperial Vault Security System<br/>
+          <span className="text-[8px] tracking-[0.2em] opacity-30 mt-2 block italic">Authenticated Pi Community Node</span>
         </p>
       </div>
     </div>

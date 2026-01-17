@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
-import { Trophy, Ban, Sparkles, Gift, Zap, Crown, Gem, Coins } from "lucide-react";
+import { Crown, Coins, Ban, Gift, Zap, Sparkles, Gem } from "lucide-react";
 
 interface SpinWheelProps {
   onSpinComplete: (result: string) => void;
@@ -11,14 +11,14 @@ interface SpinWheelProps {
 }
 
 const SEGMENTS = [
-  { label: "0.01 π", color: "#9B5DE5", prize: "0.01_PI", icon: <Coins size={24} />, index: 0 },
-  { label: "LOSE", color: "#1A1528", prize: "LOSE", icon: <Ban size={24} />, index: 1 },
-  { label: "FREE", color: "#F5C542", prize: "FREE_SPIN", icon: <Gift size={24} />, index: 2 },
-  { label: "LOSE", color: "#1A1528", prize: "LOSE", icon: <Zap size={24} />, index: 3 },
-  { label: "0.05 π", color: "#7D3CF0", prize: "0.05_PI", icon: <Sparkles size={24} />, index: 4 },
-  { label: "LOSE", color: "#1A1528", prize: "LOSE", icon: <Ban size={24} />, index: 5 },
-  { label: "NFT", color: "#3B82F6", prize: "NFT_ENTRY", icon: <Gem size={24} />, index: 6 },
-  { label: "JACKPOT", color: "#FBBC05", prize: "JACKPOT_ENTRY", icon: <Crown size={24} />, index: 7 },
+  { label: "0.01 π", color: "#9B5DE5", prize: "0.01_PI", index: 0 },
+  { label: "LOSE", color: "#1A1528", prize: "LOSE", index: 1 },
+  { label: "FREE", color: "#F5C542", prize: "FREE_SPIN", index: 2 },
+  { label: "LOSE", color: "#1A1528", prize: "LOSE", index: 3 },
+  { label: "0.05 π", color: "#7D3CF0", prize: "0.05_PI", index: 4 },
+  { label: "LOSE", color: "#1A1528", prize: "LOSE", index: 5 },
+  { label: "NFT", color: "#3B82F6", prize: "NFT_ENTRY", index: 6 },
+  { label: "JACKPOT", color: "#FBBC05", prize: "JACKPOT_ENTRY", index: 7 },
 ];
 
 export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetResult }: SpinWheelProps) {
@@ -27,6 +27,7 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
   const { playSpinSound, playTickSound, playWinSound } = useSoundEffects();
   const tickIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // التأكد من أن المسار هو الجذر المباشر لمجلد public
   const LOGO_URL = "/pinetwork.jpg"; 
 
   useEffect(() => {
@@ -39,8 +40,8 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
       const segmentAngle = 360 / SEGMENTS.length;
       const targetAngle = targetIndex * segmentAngle;
       
-      const spins = 10 + Math.random() * 2; 
-      const finalRotation = rotation + (spins * 360) + (360 - targetAngle);
+      const extraSpins = 10 + Math.random() * 2; 
+      const finalRotation = rotation + (extraSpins * 360) + (360 - targetAngle);
       
       setRotation(finalRotation);
       
@@ -53,7 +54,7 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
       
       setTimeout(() => {
         setIsAnimating(false);
-        if (targetResult && !targetResult.includes('LOSE')) playWinSound();
+        if (!targetResult.includes('LOSE')) playWinSound();
         onSpinComplete(targetResult);
         if (tickIntervalRef.current) clearInterval(tickIntervalRef.current);
       }, 4500);
@@ -63,14 +64,12 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
   return (
     <div className="relative flex flex-col items-center py-10">
       <style>{`
-        .royal-spin-shadow {
-          box-shadow: 0 0 60px rgba(168, 85, 247, 0.4), inset 0 0 40px rgba(0,0,0,0.9);
-        }
+        .royal-spin-shadow { box-shadow: 0 0 60px rgba(168, 85, 247, 0.4), inset 0 0 40px rgba(0,0,0,0.9); }
       `}</style>
 
       <div className="relative">
-        {/* المؤشر العلوي الثابت */}
-        <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-[60] scale-[1.5]">
+        {/* المؤشر (تاج) */}
+        <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-[70] scale-[1.5]">
           <motion.div 
              animate={isSpinning ? { y: [0, 8, 0] } : {}}
              transition={{ duration: 0.15, repeat: Infinity }}
@@ -81,23 +80,23 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
           </motion.div>
         </div>
         
-        {/* الدائرة المركزية الثابتة مع الشعار */}
-        <div className="absolute inset-0 flex items-center justify-center z-[55] pointer-events-none">
+        {/* المركز الثابت - يحتوي فقط على صورة الشعار أو الرمز البديل */}
+        <div className="absolute inset-0 flex items-center justify-center z-[60] pointer-events-none">
            <div className="w-24 h-24 md:w-36 md:h-36 rounded-full bg-black border-4 border-[#fbbf24] shadow-[0_0_30px_rgba(251,191,36,0.8)] flex items-center justify-center overflow-hidden">
               <img 
                 src={`${LOGO_URL}?v=${Date.now()}`} 
-                alt="Pi Network" 
+                alt="Pi Logo" 
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                   const parent = e.currentTarget.parentElement;
-                  if(parent) parent.innerHTML = '<span style="color:#fbbf24; font-size: 5rem; font-family: serif;">π</span>';
+                  if(parent) parent.innerHTML = '<span style="color:#fbbf24; font-size: 5rem; font-family: serif; filter: drop-shadow(0 0 10px #fbbf24)">π</span>';
                 }}
               />
            </div>
         </div>
 
-        {/* جسم العجلة الدوار */}
+        {/* جسم العجلة الدوار (SVG) */}
         <motion.div
           className="relative w-80 h-80 md:w-[500px] md:h-[500px] rounded-full border-[14px] border-double border-[#fbbf24] royal-spin-shadow bg-[#050507] overflow-hidden"
           animate={{ rotate: rotation }}
@@ -113,29 +112,26 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
               const x2 = 50 + 50 * Math.cos((endAngle * Math.PI) / 180);
               const y2 = 50 + 50 * Math.sin((endAngle * Math.PI) / 180);
               
+              const midAngle = startAngle + angle / 2;
+              const rad = (midAngle * Math.PI) / 180;
+              const tx = 50 + 38 * Math.cos(rad);
+              const ty = 50 + 38 * Math.sin(rad);
+
               return (
                 <g key={index}>
-                  <path d={`M 50 50 L ${x1} ${y1} A 50 50 0 0 1 ${x2} ${y2} Z`} fill={segment.color} stroke="#ffffff10" strokeWidth="0.3" />
-                  {(() => {
-                    const midAngle = startAngle + angle / 2;
-                    const rad = (midAngle * Math.PI) / 180;
-                    const tx = 50 + 38 * Math.cos(rad);
-                    const ty = 50 + 38 * Math.sin(rad);
-                    return (
-                      <g transform={`rotate(${midAngle + 90}, ${tx}, ${ty})`}>
-                        <text x={tx} y={ty} fill="white" fontSize="3.2" fontWeight="bold" textAnchor="middle">
-                          {segment.label}
-                        </text>
-                      </g>
-                    );
-                  })()}
+                  <path d={`M 50 50 L ${x1} ${y1} A 50 50 0 0 1 ${x2} ${y2} Z`} fill={segment.color} />
+                  <g transform={`rotate(${midAngle + 90}, ${tx}, ${ty})`}>
+                    <text x={tx} y={ty} fill="white" fontSize="3.2" fontWeight="bold" textAnchor="middle">
+                      {segment.label}
+                    </text>
+                  </g>
                 </g>
               );
             })}
           </svg>
         </motion.div>
 
-        {/* المصابيح الخارجية */}
+        {/* الإضاءة الخارجية */}
         <div className="absolute inset-0 -m-8 pointer-events-none">
           {[...Array(24)].map((_, i) => (
             <div

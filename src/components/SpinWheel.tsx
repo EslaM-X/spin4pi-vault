@@ -61,53 +61,57 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
   return (
     <div className="relative flex flex-col items-center py-10">
       <style>{`
-        @keyframes border-flow {
-          0% { border-color: #a855f7; box-shadow: 0 0 20px rgba(168, 85, 247, 0.5); }
-          50% { border-color: #fbbf24; box-shadow: 0 0 40px rgba(251, 191, 36, 0.7); }
-          100% { border-color: #a855f7; box-shadow: 0 0 20px rgba(168, 85, 247, 0.5); }
+        @keyframes crown-glow {
+          0%, 100% { filter: drop-shadow(0 0 10px #fbbf24); }
+          50% { filter: drop-shadow(0 0 25px #fbbf24); }
         }
-        .wheel-container {
-          animation: border-flow 4s infinite ease-in-out;
-          border-style: double;
+        .royal-spin-shadow {
+          box-shadow: 0 0 50px rgba(168, 85, 247, 0.3), inset 0 0 30px rgba(0,0,0,0.8);
         }
       `}</style>
 
-      {/* الهالة الخلفية النابضة */}
-      <div className={`absolute inset-0 -m-12 rounded-full bg-purple-600/10 blur-[120px] transition-opacity duration-1000 ${
+      {/* الهالة الملكية الكبرى */}
+      <div className={`absolute inset-0 -m-20 rounded-full bg-gradient-to-tr from-purple-600/10 via-yellow-500/5 to-purple-900/10 blur-[150px] transition-opacity duration-1000 ${
         isSpinning ? 'opacity-100' : 'opacity-40'
       }`} />
       
       <div className="relative">
-        {/* المؤشر الذهبي الفخم */}
-        <div className="absolute -top-7 left-1/2 -translate-x-1/2 z-40">
+        {/* مؤشر "تاج الخزنة" */}
+        <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-40 scale-125">
           <motion.div 
-             animate={isSpinning ? { y: [0, 6, 0], scale: [1, 1.1, 1] } : {}}
+             animate={isSpinning ? { scale: [1, 1.2, 1], y: [0, 5, 0] } : {}}
              transition={{ duration: 0.1, repeat: Infinity }}
+             className="flex flex-col items-center"
           >
-            <div className="w-10 h-12 bg-gradient-to-b from-yellow-300 to-gold rounded-b-full shadow-[0_5px_15px_rgba(251,191,36,0.6)] flex items-center justify-center border-x-2 border-yellow-600">
-                <div className="w-3 h-3 bg-black rounded-full shadow-inner animate-pulse" />
-            </div>
+            <Crown className="text-gold w-8 h-8 drop-shadow-[0_0_10px_#fbbf24]" />
+            <div className="w-1 h-4 bg-gold shadow-[0_0_15px_#fbbf24] -mt-1" />
           </motion.div>
         </div>
         
         {/* العجلة الرئيسية */}
         <motion.div
-          className="wheel-container relative w-80 h-80 md:w-[450px] md:h-[450px] rounded-full border-[12px] bg-[#050507] overflow-hidden"
+          className="relative w-80 h-80 md:w-[480px] md:h-[480px] rounded-full border-[12px] border-double border-gold/50 royal-spin-shadow bg-[#050507] overflow-hidden"
           animate={{ rotate: rotation }}
           transition={{ duration: 4.5, ease: [0.15, 0, 0.15, 1] }}
         >
-          <svg viewBox="0 0 100 100" className="w-full h-full transform scale-[1.01]">
+          <svg viewBox="0 0 100 100" className="w-full h-full transform scale-[1.02]">
             <defs>
-              {/* تدرجات ألوان فخمة للـ Core */}
-              <radialGradient id="vault-core-grad" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#FBBC05" />
-                <stop offset="40%" stopColor="#D97706" />
+              {/* تدرج ملكي محفور لرمز Pi */}
+              <linearGradient id="pi-metal-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#ffffff" />
+                <stop offset="50%" stopColor="#fbbf24" />
+                <stop offset="100%" stopColor="#d97706" />
+              </linearGradient>
+
+              {/* تدرج لعمق قلب الخزنة */}
+              <radialGradient id="royal-core-bg" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#2e1065" />
+                <stop offset="70%" stopColor="#000000" />
                 <stop offset="100%" stopColor="#1e1b4b" />
               </radialGradient>
-              
-              {/* فلتر التوهج للرمز */}
-              <filter id="pi-glow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="1.2" result="blur" />
+
+              <filter id="inner-glow">
+                <feGaussianBlur stdDeviation="1" result="blur" />
                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
               </filter>
             </defs>
@@ -124,28 +128,29 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
               
               const midAngle = startAngle + angle / 2;
               const textRad = (midAngle * Math.PI) / 180;
-              const iconX = 50 + 35 * Math.cos(textRad);
-              const iconY = 50 + 35 * Math.sin(textRad);
-              const labelX = 50 + 23 * Math.cos(textRad);
-              const labelY = 50 + 23 * Math.sin(textRad);
+              const iconX = 50 + 36 * Math.cos(textRad);
+              const iconY = 50 + 36 * Math.sin(textRad);
+              const labelX = 50 + 24 * Math.cos(textRad);
+              const labelY = 50 + 24 * Math.sin(textRad);
 
               return (
-                <g key={index}>
+                <g key={index} className="transition-all duration-500 hover:brightness-125">
                   <path
                     d={pathD}
                     fill={segment.color}
-                    className="opacity-95 stroke-black/20"
-                    strokeWidth="0.4"
+                    className="opacity-95"
+                    stroke="#ffffff10"
+                    strokeWidth="0.3"
                   />
-                  {/* الأيقونات */}
+                  {/* أيقونات الخيارات */}
                   <g transform={`translate(${iconX - 4}, ${iconY - 4}) rotate(${midAngle + 90}, 4, 4)`}>
                     <foreignObject width="8" height="8">
-                       <div className="text-white/90 flex items-center justify-center drop-shadow-md" style={{ width: '100%', height: '100%', fontSize: '4.5px' }}>
+                       <div className="text-white flex items-center justify-center filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" style={{ width: '100%', height: '100%', fontSize: '4.5px' }}>
                           {segment.icon}
                        </div>
                     </foreignObject>
                   </g>
-                  {/* النصوص */}
+                  {/* نصوص الجوائز */}
                   <text
                     x={labelX}
                     y={labelY}
@@ -155,8 +160,8 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
                     textAnchor="middle"
                     dominantBaseline="middle"
                     transform={`rotate(${midAngle + 90}, ${labelX}, ${labelY})`}
-                    style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
-                    className="uppercase tracking-tighter"
+                    className="uppercase tracking-[0.1em] pointer-events-none"
+                    style={{ filter: 'drop-shadow(0 1px 2px black)' }}
                   >
                     {segment.label}
                   </text>
@@ -164,78 +169,80 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
               );
             })}
             
-            {/* الدائرة المركزية الأسطورية (Vault Core) */}
-            <g>
-              <circle cx="50" cy="50" r="13" fill="#0f172a" stroke="#FBBC05" strokeWidth="0.5" />
-              <circle cx="50" cy="50" r="10.5" fill="url(#vault-core-grad)" className={isSpinning ? "animate-pulse" : ""} />
+            {/* الدائرة المركزية (The Imperial Vault Core) */}
+            <g className="filter drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]">
+              <circle cx="50" cy="50" r="14" fill="url(#royal-core-bg)" stroke="#fbbf24" strokeWidth="1" />
+              <circle cx="50" cy="50" r="12" fill="transparent" stroke="#fbbf24" strokeWidth="0.2" strokeDasharray="2,2" className="animate-[spin_10s_linear_infinite]" />
               
-              {/* رسم رمز π بدقة متناهية وفخامة */}
-              <g transform="translate(42, 43.5) scale(0.16)" filter="url(#pi-glow)">
+              {/* رمز Pi الملكي (Icon Style) */}
+              <g transform="translate(42, 42) scale(0.16)" filter="url(#inner-glow)">
                 <path 
-                  d="M10 20 C10 15, 15 10, 50 10 C85 10, 90 15, 90 20 L90 25 C90 30, 85 32, 50 32 C15 32, 10 30, 10 25 Z" 
-                  fill="white" 
-                /> {/* Head */}
+                  d="M10 20 Q 50 10 90 20 L 90 30 Q 50 20 10 30 Z" 
+                  fill="url(#pi-metal-grad)" 
+                />
                 <path 
-                  d="M25 32 L25 75 C25 85, 20 90, 5 90" 
-                  stroke="white" 
-                  strokeWidth="14" 
+                  d="M30 30 L 30 80 Q 30 90 10 90" 
+                  stroke="url(#pi-metal-grad)" 
+                  strokeWidth="12" 
                   fill="none" 
                   strokeLinecap="round" 
-                /> {/* Left Leg */}
+                />
                 <path 
-                  d="M70 32 L70 90" 
-                  stroke="white" 
-                  strokeWidth="14" 
+                  d="M70 30 L 70 90" 
+                  stroke="url(#pi-metal-grad)" 
+                  strokeWidth="12" 
                   fill="none" 
                   strokeLinecap="round" 
-                /> {/* Right Leg */}
+                />
               </g>
 
-              {/* تأثير الانعكاس الزجاجي العلوي */}
-              <ellipse cx="47" cy="46" rx="5" ry="3" fill="white" opacity="0.2" />
+              {/* تأثير الزجاج العاكس */}
+              <circle cx="46" cy="46" r="6" fill="white" opacity="0.1" />
             </g>
           </svg>
         </motion.div>
         
-        {/* لمبات الـ LED المحيطة بنمط نيون */}
+        {/* نظام الإضاءة الياقوتي والذهبي */}
         <div className="absolute inset-0 -m-6 pointer-events-none">
           {[...Array(24)].map((_, i) => (
             <motion.div
               key={i}
-              className={`absolute w-2.5 h-2.5 rounded-full ${i % 2 === 0 ? 'bg-gold shadow-[0_0_10px_#fbbf24]' : 'bg-purple-500 shadow-[0_0_10px_#a855f7]'}`}
+              className={`absolute w-3 h-3 rounded-full ${i % 3 === 0 ? 'bg-gold shadow-[0_0_15px_#fbbf24]' : 'bg-purple-500 shadow-[0_0_10px_#a855f7]'}`}
               style={{
                 top: `${50 + 49.5 * Math.sin((i * 15 * Math.PI) / 180)}%`,
                 left: `${50 + 49.5 * Math.cos((i * 15 * Math.PI) / 180)}%`,
                 transform: "translate(-50%, -50%)",
               }}
               animate={isSpinning ? { 
-                opacity: [0.4, 1, 0.4], 
-                scale: [0.8, 1.3, 0.8],
+                scale: [0.8, 1.2, 0.8],
+                opacity: [0.5, 1, 0.5],
                 boxShadow: ['0 0 5px currentColor', '0 0 20px currentColor', '0 0 5px currentColor']
               } : {}}
-              transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.05 }}
+              transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.05 }}
             />
           ))}
         </div>
       </div>
 
-      {/* شريط حالة النظام */}
-      <motion.div className="mt-10">
+      {/* الحالة السفلية */}
+      <motion.div className="mt-12 flex flex-col items-center">
+        <div className="w-40 h-[1px] bg-gradient-to-r from-transparent via-gold/50 to-transparent mb-4" />
         {isSpinning ? (
-          <div className="flex flex-col items-center gap-2">
-            <div className="px-8 py-2.5 bg-gradient-to-r from-purple-900/40 via-purple-600/40 to-purple-900/40 border border-purple-500/30 rounded-xl backdrop-blur-xl shadow-2xl">
-              <span className="text-white font-black tracking-[0.2em] text-xs animate-pulse uppercase">
-                Synchronizing Vault...
-              </span>
-            </div>
-          </div>
+          <motion.div 
+            className="flex items-center gap-3"
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ repeat: Infinity, duration: 1 }}
+          >
+            <Sparkles className="text-gold w-4 h-4" />
+            <span className="text-gold font-black tracking-[0.3em] uppercase text-xs">
+               Opening Vault...
+            </span>
+            <Sparkles className="text-gold w-4 h-4" />
+          </motion.div>
         ) : (
-          <div className="flex items-center gap-2 opacity-60">
-            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping" />
-            <p className="text-[10px] text-white/70 uppercase tracking-[0.4em] font-black">
-              Security Protocol: Online
-            </p>
-          </div>
+          <p className="text-[10px] text-white/30 uppercase tracking-[0.5em] font-bold">
+            Imperial Security Connection Active
+          </p>
         )}
       </motion.div>
     </div>

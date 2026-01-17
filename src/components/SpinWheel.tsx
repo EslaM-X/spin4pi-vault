@@ -24,10 +24,11 @@ const SEGMENTS = [
 export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetResult }: SpinWheelProps) {
   const [rotation, setRotation] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const { playSpinSound, playTickSound, playWinSound } = useSoundEffects();
   const tickIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // رابط الشعار الخاص بك (تأكد من وجود الصورة في مجلد public أو استخدم الرابط المباشر)
+  // تأكد من وضع الصورة في المسار: public/assets/1000286955.jpg
   const LOGO_URL = "/assets/1000286955.jpg"; 
 
   useEffect(() => {
@@ -69,6 +70,9 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
         }
         .center-logo-clip {
           clip-path: circle(50% at 50% 50%);
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
         }
       `}</style>
 
@@ -142,29 +146,28 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
               );
             })}
             
-            {/* الدائرة المركزية مع شعار Pi المرفوع */}
+            {/* الدائرة المركزية */}
             <g>
-              {/* حلقة ذهبية خلفية */}
               <circle cx="50" cy="50" r="15" fill="#fbbf24" opacity="0.8" />
-              {/* قلب الدائرة المظلم */}
               <circle cx="50" cy="50" r="14" fill="url(#vault-core)" />
               
-              {/* إضافة الشعار كصورة دائرة متناسقة */}
               <foreignObject x="36" y="36" width="28" height="28">
-                <div className="w-full h-full flex items-center justify-center">
-                  <img 
-                    src={LOGO_URL} 
-                    alt="Pi Logo" 
-                    className="w-full h-full object-cover center-logo-clip"
-                    style={{ 
-                      filter: 'drop-shadow(0 0 5px #fbbf24)',
-                      border: '1px solid #fbbf2433'
-                    }}
-                  />
+                <div className="w-full h-full flex items-center justify-center pointer-events-none">
+                  {!imageError ? (
+                    <img 
+                      src={LOGO_URL} 
+                      alt="Pi Logo" 
+                      className="center-logo-clip"
+                      style={{ filter: 'drop-shadow(0 0 5px #fbbf24)' }}
+                      onError={() => setImageError(true)}
+                    />
+                  ) : (
+                    /* شعار احتياطي في حال لم تعمل الصورة */
+                    <div className="text-[#fbbf24] text-xl font-serif font-black select-none">π</div>
+                  )}
                 </div>
               </foreignObject>
 
-              {/* تأثير لمعان زجاجي فوق الشعار */}
               <circle cx="47" cy="46" r="6" fill="white" opacity="0.1" />
             </g>
           </svg>

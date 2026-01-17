@@ -27,8 +27,8 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
   const { playSpinSound, playTickSound, playWinSound } = useSoundEffects();
   const tickIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // تحديث المسار للاسم الجديد
-  const LOGO_URL = "/assets/pinetwork.jpg"; 
+  // بما أن الصورة في public مباشرة، نستخدم المسار الرئيسي
+  const LOGO_URL = "/pinetwork.jpg"; 
 
   useEffect(() => {
     if (isSpinning && targetResult && !isAnimating) {
@@ -69,13 +69,11 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
         }
       `}</style>
 
-      {/* الهالة الخلفية */}
       <div className={`absolute inset-0 -m-20 rounded-full bg-gradient-to-tr from-purple-600/20 via-yellow-500/10 to-purple-900/20 blur-[150px] transition-opacity duration-1000 ${
         isSpinning ? 'opacity-100' : 'opacity-40'
       }`} />
       
       <div className="relative">
-        {/* المؤشر العلوي */}
         <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-40 scale-[1.5]">
           <motion.div 
              animate={isSpinning ? { y: [0, 8, 0], scale: [1, 1.1, 1] } : {}}
@@ -87,17 +85,16 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
           </motion.div>
         </div>
         
-        {/* العجلة */}
         <motion.div
           className="relative w-80 h-80 md:w-[500px] md:h-[500px] rounded-full border-[14px] border-double border-[#fbbf24] royal-spin-shadow bg-[#050507] overflow-hidden"
           animate={{ rotate: rotation }}
           transition={{ duration: 4.5, ease: [0.2, 0, 0.1, 1] }}
         >
-          {/* الطبقة المركزية الثابتة - باستخدام عنصر الصورة المباشر */}
+          {/* الطبقة المركزية الثابتة */}
           <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
-             <div className="w-32 h-32 md:w-44 md:h-44 rounded-full bg-black border-4 border-[#fbbf24] shadow-[0_0_30px_rgba(251,191,36,0.6)] flex items-center justify-center overflow-hidden">
+             <div className="w-24 h-24 md:w-36 md:h-36 rounded-full bg-black border-4 border-[#fbbf24] shadow-[0_0_30px_rgba(251,191,36,0.6)] flex items-center justify-center overflow-hidden">
                 <img 
-                  src={`${LOGO_URL}?v=${Date.now()}`} 
+                  src={`${LOGO_URL}?v=2`} 
                   alt="Pi" 
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -142,7 +139,6 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
           </svg>
         </motion.div>
         
-        {/* نظام المصابيح المحيطية */}
         <div className="absolute inset-0 -m-8 pointer-events-none">
           {[...Array(24)].map((_, i) => (
             <motion.div
@@ -159,11 +155,10 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
           ))}
         </div>
       </div>
-
-      <div className="mt-16 flex flex-col items-center">
+      
+      <div className="mt-16">
         <p className="text-[11px] text-[#fbbf24]/40 uppercase tracking-[0.5em] font-black text-center">
-          Imperial Vault Security System<br/>
-          <span className="text-[8px] tracking-[0.2em] opacity-30 mt-2 block italic">Authenticated Pi Community Node</span>
+          Imperial Vault Security System
         </p>
       </div>
     </div>

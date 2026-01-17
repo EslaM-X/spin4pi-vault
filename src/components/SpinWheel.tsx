@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
-import { Trophy, Ban, Sparkles, Gift, Zap, Crown, Gem, Coins } from "lucide-react";
+import { Trophy, Ban, Sparkles, Gift, Zap, Crown, Gem, Coins, CircleDot } from "lucide-react";
 
 interface SpinWheelProps {
   onSpinComplete: (result: string) => void;
@@ -90,20 +90,24 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
           animate={{ rotate: rotation }}
           transition={{ duration: 4.5, ease: [0.2, 0, 0.1, 1] }}
         >
+          {/* طبقة الشعار المركزية الثابتة والاحترافية */}
+          <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
+             <div className="w-32 h-32 md:w-44 md:h-44 rounded-full bg-black/80 border-4 border-[#fbbf24] shadow-[0_0_30px_rgba(251,191,36,0.4)] flex items-center justify-center overflow-hidden">
+                <img 
+                  src="/assets/1000286955.jpg" 
+                  alt="Pi" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // إذا فشلت الصورة يظهر رمز Pi نصي فخم كخطة بديلة
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if(parent) parent.innerHTML = '<span class="text-[#fbbf24] text-6xl font-serif">π</span>';
+                  }}
+                />
+             </div>
+          </div>
+
           <svg viewBox="0 0 100 100" className="w-full h-full transform scale-[1.01]">
-            <defs>
-              <linearGradient id="pi-gold-main" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#FFF2AD" />
-                <stop offset="50%" stopColor="#fbbf24" />
-                <stop offset="100%" stopColor="#B47E00" />
-              </linearGradient>
-
-              <radialGradient id="center-glow" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#2D1B4D" />
-                <stop offset="100%" stopColor="#000000" />
-              </radialGradient>
-            </defs>
-
             {SEGMENTS.map((segment, index) => {
               const angle = 360 / SEGMENTS.length;
               const startAngle = index * angle - 90;
@@ -117,15 +121,14 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
                 <g key={index}>
                   <path d={`M 50 50 L ${x1} ${y1} A 50 50 0 0 1 ${x2} ${y2} Z`} fill={segment.color} stroke="#ffffff10" strokeWidth="0.3" />
                   
-                  {/* النصوص والأيقونات */}
                   {(() => {
                     const midAngle = startAngle + angle / 2;
                     const rad = (midAngle * Math.PI) / 180;
-                    const tx = 50 + 32 * Math.cos(rad);
-                    const ty = 50 + 32 * Math.sin(rad);
+                    const tx = 50 + 35 * Math.cos(rad);
+                    const ty = 50 + 35 * Math.sin(rad);
                     return (
                       <g transform={`rotate(${midAngle + 90}, ${tx}, ${ty})`}>
-                        <text x={tx} y={ty} fill="white" fontSize="3.8" fontWeight="bold" textAnchor="middle" style={{ filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.5))' }}>
+                        <text x={tx} y={ty} fill="white" fontSize="3.5" fontWeight="bold" textAnchor="middle" style={{ filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.5))' }}>
                           {segment.label}
                         </text>
                       </g>
@@ -134,40 +137,6 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
                 </g>
               );
             })}
-            
-            {/* الدائرة المركزية مع شعار Pi الاحترافي */}
-            <g>
-              <circle cx="50" cy="50" r="16" fill="url(#center-glow)" stroke="#fbbf24" strokeWidth="1.2" />
-              <circle cx="50" cy="50" r="14" fill="none" stroke="#fbbf2450" strokeWidth="0.5" strokeDasharray="2,2" />
-              
-              {/* شعار Pi الرسمي - مرسوم يدوياً بمسارات دقيقة جداً لضمان عدم التشوه */}
-              <g transform="translate(37, 37.5) scale(0.26)">
-                 {/* الخط العلوي للشعار */}
-                 <path 
-                    d="M5 15 Q 50 2, 95 15 L 95 25 Q 50 12, 5 25 Z" 
-                    fill="url(#pi-gold-main)" 
-                 />
-                 {/* الساق اليسرى (منحنية) */}
-                 <path 
-                    d="M30 25 L 30 70 Q 30 85, 10 85" 
-                    fill="none" 
-                    stroke="url(#pi-gold-main)" 
-                    strokeWidth="12" 
-                    strokeLinecap="round" 
-                 />
-                 {/* الساق اليمنى (مستقيمة) */}
-                 <path 
-                    d="M70 25 L 70 85" 
-                    fill="none" 
-                    stroke="url(#pi-gold-main)" 
-                    strokeWidth="12" 
-                    strokeLinecap="round" 
-                 />
-              </g>
-
-              {/* تأثير إضاءة علوي على المركز */}
-              <ellipse cx="46" cy="44" rx="5" ry="3" fill="white" opacity="0.15" />
-            </g>
           </svg>
         </motion.div>
         

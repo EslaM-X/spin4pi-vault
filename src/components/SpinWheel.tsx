@@ -61,21 +61,18 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
   return (
     <div className="relative flex flex-col items-center py-10">
       <style>{`
-        @keyframes crown-glow {
-          0%, 100% { filter: drop-shadow(0 0 10px #fbbf24); }
-          50% { filter: drop-shadow(0 0 25px #fbbf24); }
-        }
         .royal-spin-shadow {
-          box-shadow: 0 0 50px rgba(168, 85, 247, 0.3), inset 0 0 30px rgba(0,0,0,0.8);
+          box-shadow: 0 0 60px rgba(168, 85, 247, 0.25), inset 0 0 40px rgba(0,0,0,0.9);
         }
       `}</style>
 
+      {/* الهالة الخلفية */}
       <div className={`absolute inset-0 -m-20 rounded-full bg-gradient-to-tr from-purple-600/10 via-yellow-500/5 to-purple-900/10 blur-[150px] transition-opacity duration-1000 ${
         isSpinning ? 'opacity-100' : 'opacity-40'
       }`} />
       
       <div className="relative">
-        {/* المؤشر العلوي الملكي */}
+        {/* المؤشر العلوي */}
         <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-40 scale-125">
           <motion.div 
              animate={isSpinning ? { scale: [1, 1.2, 1], y: [0, 5, 0] } : {}}
@@ -83,32 +80,31 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
              className="flex flex-col items-center"
           >
             <Crown className="text-gold w-8 h-8 drop-shadow-[0_0_10px_#fbbf24]" />
-            <div className="w-1 h-4 bg-gold shadow-[0_0_15px_#fbbf24] -mt-1" />
+            <div className="w-1.5 h-4 bg-gold shadow-[0_0_15px_#fbbf24] -mt-1 rounded-full" />
           </motion.div>
         </div>
         
         {/* العجلة */}
         <motion.div
-          className="relative w-80 h-80 md:w-[480px] md:h-[480px] rounded-full border-[12px] border-double border-gold/50 royal-spin-shadow bg-[#050507] overflow-hidden"
+          className="relative w-80 h-80 md:w-[480px] md:h-[480px] rounded-full border-[12px] border-double border-gold/40 royal-spin-shadow bg-[#050507] overflow-hidden"
           animate={{ rotate: rotation }}
           transition={{ duration: 4.5, ease: [0.15, 0, 0.15, 1] }}
         >
           <svg viewBox="0 0 100 100" className="w-full h-full transform scale-[1.02]">
             <defs>
               <linearGradient id="pi-metal-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#ffffff" />
-                <stop offset="50%" stopColor="#fbbf24" />
-                <stop offset="100%" stopColor="#d97706" />
+                <stop offset="0%" stopColor="#FFFFFF" />
+                <stop offset="50%" stopColor="#FBBC05" />
+                <stop offset="100%" stopColor="#D97706" />
               </linearGradient>
 
               <radialGradient id="royal-core-bg" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#2e1065" />
-                <stop offset="70%" stopColor="#000000" />
-                <stop offset="100%" stopColor="#1e1b4b" />
+                <stop offset="0%" stopColor="#1e1b4b" />
+                <stop offset="100%" stopColor="#000000" />
               </radialGradient>
 
               <filter id="inner-glow">
-                <feGaussianBlur stdDeviation="1" result="blur" />
+                <feGaussianBlur stdDeviation="0.8" result="blur" />
                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
               </filter>
             </defs>
@@ -151,26 +147,37 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
               );
             })}
             
-            {/* المركز - رمز Pi الأسطوري المحدث للوضوح */}
+            {/* المركز - رمز Pi الملكي النصي المضمون 100% */}
             <g className="filter drop-shadow-[0_0_15px_rgba(251,191,36,0.6)]">
               <circle cx="50" cy="50" r="14" fill="url(#royal-core-bg)" stroke="#fbbf24" strokeWidth="1" />
               
-              {/* رسم الرمز π بشكل هندسي صريح وفخم */}
-              <g transform="translate(37, 38) scale(0.26)" filter="url(#inner-glow)">
-                {/* الجزء العلوي (التاج) لرمز Pi */}
-                <path d="M5 15 L95 15 L95 28 L5 28 Z" fill="url(#pi-metal-grad)" />
-                {/* الأرجل - تم جعلها أكثر سماكة ووضوحاً */}
-                <path d="M28 28 L28 75 Q 28 90 2 90" stroke="url(#pi-metal-grad)" strokeWidth="15" fill="none" strokeLinecap="butt" />
-                <path d="M72 28 L72 90" stroke="url(#pi-metal-grad)" strokeWidth="15" fill="none" strokeLinecap="butt" />
-              </g>
+              {/* حلقة دوران داخلية فخمة */}
+              <circle cx="50" cy="50" r="11.5" fill="none" stroke="#fbbf24" strokeWidth="0.3" strokeDasharray="2,2" className="animate-[spin_15s_linear_infinite]" opacity="0.5" />
 
-              {/* لمعة زجاجية علوية */}
-              <circle cx="46" cy="46" r="7" fill="white" opacity="0.08" />
+              <text
+                x="50"
+                y="52"
+                fill="url(#pi-metal-grad)"
+                fontSize="14"
+                fontWeight="900"
+                textAnchor="middle"
+                dominantBaseline="middle"
+                style={{ 
+                  fontFamily: 'serif', 
+                  filter: 'drop-shadow(0 0 8px rgba(251,191,36,0.4))',
+                  userSelect: 'none'
+                }}
+              >
+                π
+              </text>
+
+              {/* لمعة الكريستال */}
+              <circle cx="47" cy="46" r="6" fill="white" opacity="0.08" />
             </g>
           </svg>
         </motion.div>
         
-        {/* إضاءة LED المحيطة */}
+        {/* نظام النيون الخارجي */}
         <div className="absolute inset-0 -m-6 pointer-events-none">
           {[...Array(24)].map((_, i) => (
             <motion.div
@@ -181,7 +188,7 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
                 left: `${50 + 49.5 * Math.cos((i * 15 * Math.PI) / 180)}%`,
                 transform: "translate(-50%, -50%)",
               }}
-              animate={isSpinning ? { scale: [0.8, 1.2, 0.8], opacity: [0.5, 1, 0.5] } : {}}
+              animate={isSpinning ? { scale: [0.8, 1.3, 0.8], opacity: [0.4, 1, 0.4] } : {}}
               transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.05 }}
             />
           ))}
@@ -189,14 +196,14 @@ export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetRes
       </div>
 
       <motion.div className="mt-12 flex flex-col items-center">
-        <div className="w-40 h-[1px] bg-gradient-to-r from-transparent via-gold/50 to-transparent mb-4" />
+        <div className="w-40 h-[1px] bg-gradient-to-r from-transparent via-gold/40 to-transparent mb-4" />
         {isSpinning ? (
           <div className="flex items-center gap-3">
-            <Sparkles className="text-gold w-4 h-4 animate-spin" />
-            <span className="text-gold font-black tracking-[0.3em] uppercase text-xs">Processing Vault...</span>
+            <Sparkles className="text-gold w-4 h-4 animate-pulse" />
+            <span className="text-gold font-black tracking-[0.3em] uppercase text-xs">Accessing Vault...</span>
           </div>
         ) : (
-          <p className="text-[10px] text-white/30 uppercase tracking-[0.5em] font-bold italic">Imperial Security Active</p>
+          <p className="text-[10px] text-white/40 uppercase tracking-[0.6em] font-bold">Imperial System Stable</p>
         )}
       </motion.div>
     </div>

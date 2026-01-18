@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { SoundSettingsProvider } from '@/contexts/SoundSettingsContext';
 import GlobalLoading from '@/components/GlobalLoading';
 
+// استيراد المكونات والصفحات
 import Index from '@/pages/Index';
 import Profile from '@/pages/Profile';
 import Marketplace from '@/pages/Marketplace';
@@ -16,6 +17,9 @@ import VIPBenefits from '@/pages/VIPBenefits';
 import Legal from '@/pages/Legal';
 import Admin from '@/pages/Admin';
 import NotFound from '@/pages/NotFound';
+
+// استيراد نافذة الموافقة القانونية الإمبراطورية
+import { LegalConsentModal } from '@/components/LegalConsentModal';
 
 const queryClient = new QueryClient();
 
@@ -35,7 +39,13 @@ const AppRoutes = () => {
 
   return (
     <>
+      {/* 1. نافذة الموافقة تظهر فوق كل شيء عند الحاجة */}
+      <LegalConsentModal />
+
+      {/* 2. تأثير التحميل العام */}
       <GlobalLoading isVisible={loading} />
+
+      {/* 3. نظام الروابط */}
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Index />} />
         <Route path="/profile" element={<Profile />} />

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Play, Gift, Loader2, X, AlertCircle } from 'lucide-react';
+import { Play, Gift, Loader2, X, AlertCircle, Zap, Coins, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface PiAdsRewardProps {
   isOpen: boolean;
@@ -34,9 +35,9 @@ const PiAdsReward = ({ isOpen, onClose, onAdComplete, rewardType }: PiAdsRewardP
   const { toast } = useToast();
 
   const rewardInfo = {
-    free_spin: { title: 'Watch Ad for Free Spin', reward: '1 Free Spin', icon: '🎰' },
-    bonus_pi: { title: 'Watch Ad for Bonus Pi', reward: '0.001 Pi', icon: '💰' },
-    boost: { title: 'Watch Ad for 2x Boost', reward: '2x Win Multiplier (1 spin)', icon: '⚡' },
+    free_spin: { title: 'Imperial Free Spin', reward: '1 Free Spin', icon: <Star className="text-gold" />, color: "from-gold/20" },
+    bonus_pi: { title: 'Royal Pi Bounty', reward: '0.001 Pi', icon: <Coins className="text-emerald-400" />, color: "from-emerald-500/10" },
+    boost: { title: 'Divine Multiplier', reward: '2x Win Boost', icon: <Zap className="text-blue-400" />, color: "from-blue-500/10" },
   };
 
   useEffect(() => {
@@ -45,13 +46,11 @@ const PiAdsReward = ({ isOpen, onClose, onAdComplete, rewardType }: PiAdsRewardP
       setProgress(0);
       setErrorMessage('');
       
-      // Simulate ad loading (Pi Ads SDK integration point)
       const loadTimer = setTimeout(() => {
-        // Check if Pi Ads SDK is available
         if (window.PiAds?.isReady?.()) {
           setAdState('ready');
         } else {
-          // Fallback: simulate ad availability for demo
+          // Fallback للبيئة التطويرية
           setAdState('ready');
         }
       }, 1500);
@@ -63,23 +62,22 @@ const PiAdsReward = ({ isOpen, onClose, onAdComplete, rewardType }: PiAdsRewardP
   const handleWatchAd = () => {
     setAdState('watching');
     
-    // Try to use Pi Ads SDK if available
     if (window.PiAds?.showRewardedAd) {
       window.PiAds.showRewardedAd({
-        onAdLoaded: () => setProgress(10),
+        onAdLoaded: () => setProgress(5),
         onAdRewarded: () => {
           setAdState('complete');
           setTimeout(() => {
             onAdComplete();
             onClose();
-          }, 1500);
+          }, 2000);
         },
         onAdClosed: () => {
           if (adState !== 'complete') {
             setAdState('ready');
             toast({
-              title: "Ad Closed",
-              description: "Watch the full ad to receive your reward",
+              title: "Mission Aborted",
+              description: "Watch the full scroll to claim your bounty.",
               variant: "destructive",
             });
           }
@@ -90,7 +88,7 @@ const PiAdsReward = ({ isOpen, onClose, onAdComplete, rewardType }: PiAdsRewardP
         },
       });
     } else {
-      // Simulate ad watching for demo/development
+      // محاكاة الإعلان للتطوير
       const interval = setInterval(() => {
         setProgress(prev => {
           if (prev >= 100) {
@@ -99,109 +97,119 @@ const PiAdsReward = ({ isOpen, onClose, onAdComplete, rewardType }: PiAdsRewardP
             setTimeout(() => {
               onAdComplete();
               onClose();
-            }, 1500);
+            }, 2000);
             return 100;
           }
-          return prev + 4;
+          return prev + 2;
         });
-      }, 200);
+      }, 100);
     }
-  };
-
-  const handleRetry = () => {
-    setAdState('loading');
-    setErrorMessage('');
-    setTimeout(() => setAdState('ready'), 1000);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-card border-border">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <span className="text-2xl">{rewardInfo[rewardType].icon}</span>
+      <DialogContent className="sm:max-w-md bg-[#0d0d12] border-2 border-gold/20 rounded-[2.5rem] shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden">
+        {/* Background Aura */}
+        <div className={`absolute inset-0 bg-gradient-to-b ${rewardInfo[rewardType].color} to-transparent opacity-30 pointer-events-none`} />
+
+        <DialogHeader className="relative z-10">
+          <DialogTitle className="flex items-center justify-center gap-3 text-white italic tracking-widest uppercase py-2" style={{ fontFamily: 'Cinzel, serif' }}>
+            {rewardInfo[rewardType].icon}
             {rewardInfo[rewardType].title}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* Reward Preview */}
-          <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg p-4 text-center">
-            <p className="text-sm text-muted-foreground mb-1">Your Reward</p>
-            <p className="text-2xl font-bold text-primary">{rewardInfo[rewardType].reward}</p>
-          </div>
+        <div className="relative z-10 space-y-8 py-4">
+          {/* Reward Preview Card */}
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center backdrop-blur-sm"
+          >
+            <p className="text-[10px] text-white/40 uppercase tracking-[0.3em] mb-2 font-black">Imperial Offering</p>
+            <p className="text-3xl font-black text-gold italic tracking-tighter">
+              {rewardInfo[rewardType].reward}
+            </p>
+          </motion.div>
 
-          {/* Ad State Display */}
-          <div className="min-h-[120px] flex items-center justify-center">
-            {adState === 'loading' && (
-              <div className="text-center space-y-3">
-                <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
-                <p className="text-sm text-muted-foreground">Loading ad...</p>
-              </div>
-            )}
+          {/* Ad Interaction Zone */}
+          <div className="min-h-[160px] flex items-center justify-center">
+            <AnimatePresence mode="wait">
+              {adState === 'loading' && (
+                <motion.div key="loading" exit={{ opacity: 0 }} className="text-center space-y-4">
+                  <Loader2 className="h-12 w-12 animate-spin text-gold mx-auto opacity-50" />
+                  <p className="text-[10px] text-gold/40 uppercase tracking-[0.2em] font-black">Consulting the Oracle...</p>
+                </motion.div>
+              )}
 
-            {adState === 'ready' && (
-              <div className="text-center space-y-4 w-full">
-                <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto">
-                  <Play className="h-8 w-8 text-primary" />
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Watch a short ad to claim your reward
-                </p>
-                <Button 
-                  onClick={handleWatchAd}
-                  className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90"
+              {adState === 'ready' && (
+                <motion.div 
+                  key="ready" 
+                  initial={{ y: 20, opacity: 0 }} 
+                  animate={{ y: 0, opacity: 1 }}
+                  className="text-center space-y-6 w-full px-4"
                 >
-                  <Play className="h-4 w-4 mr-2" />
-                  Watch Ad (15-30s)
-                </Button>
-              </div>
-            )}
-
-            {adState === 'watching' && (
-              <div className="text-center space-y-4 w-full">
-                <div className="relative">
-                  <div className="w-20 h-20 rounded-full border-4 border-primary/20 flex items-center justify-center mx-auto">
-                    <span className="text-2xl font-bold text-primary">
-                      {Math.ceil((100 - progress) / 4)}s
-                    </span>
+                  <div className="w-20 h-20 rounded-3xl bg-gold/10 border border-gold/20 flex items-center justify-center mx-auto rotate-12 hover:rotate-0 transition-transform duration-500">
+                    <Play className="h-10 w-10 text-gold fill-gold/20" />
                   </div>
-                </div>
-                <Progress value={progress} className="h-2" />
-                <p className="text-sm text-muted-foreground">
-                  Watching ad... Please don't close this window
-                </p>
-              </div>
-            )}
+                  <Button 
+                    onClick={handleWatchAd}
+                    className="w-full h-14 bg-gold hover:bg-gold/80 text-black font-black uppercase tracking-[0.2em] rounded-2xl shadow-[0_10px_20px_rgba(251,191,36,0.2)]"
+                  >
+                    Watch Proclamation
+                  </Button>
+                </motion.div>
+              )}
 
-            {adState === 'complete' && (
-              <div className="text-center space-y-3">
-                <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mx-auto animate-scale-in">
-                  <Gift className="h-8 w-8 text-green-500" />
-                </div>
-                <p className="text-lg font-semibold text-green-500">Reward Claimed!</p>
-                <p className="text-sm text-muted-foreground">
-                  {rewardInfo[rewardType].reward} has been added
-                </p>
-              </div>
-            )}
+              {adState === 'watching' && (
+                <motion.div key="watching" className="text-center space-y-6 w-full">
+                  <div className="relative inline-block">
+                    <svg className="w-24 h-24 transform -rotate-90">
+                      <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-white/5" />
+                      <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="4" fill="transparent" 
+                        strokeDasharray={251.2}
+                        strokeDashoffset={251.2 - (251.2 * progress) / 100}
+                        className="text-gold transition-all duration-300" 
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center font-black text-gold">
+                      {Math.ceil((100 - progress) / 5)}s
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-white/40 uppercase tracking-[0.2em] font-black animate-pulse">
+                    Absorbing Ancient Wisdom...
+                  </p>
+                </motion.div>
+              )}
 
-            {adState === 'error' && (
-              <div className="text-center space-y-4 w-full">
-                <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center mx-auto">
-                  <AlertCircle className="h-8 w-8 text-destructive" />
-                </div>
-                <p className="text-sm text-destructive">{errorMessage || 'Failed to load ad'}</p>
-                <Button onClick={handleRetry} variant="outline" className="w-full">
-                  Try Again
-                </Button>
-              </div>
-            )}
+              {adState === 'complete' && (
+                <motion.div 
+                  key="complete"
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="text-center space-y-4"
+                >
+                  <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                    <Gift className="h-10 w-10 text-emerald-400" />
+                  </div>
+                  <h3 className="text-xl font-black text-emerald-400 uppercase italic">Bounty Secured!</h3>
+                </motion.div>
+              )}
+
+              {adState === 'error' && (
+                <motion.div key="error" className="text-center space-y-4 w-full">
+                  <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
+                  <p className="text-xs text-red-400 font-bold">{errorMessage || 'Transmission Interrupted'}</p>
+                  <Button onClick={() => setAdState('ready')} variant="ghost" className="text-white/40 hover:text-white uppercase text-[10px] tracking-widest">
+                    Try Again
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          {/* Pi Ads Disclaimer */}
-          <p className="text-xs text-center text-muted-foreground">
-            Powered by Pi Ads • Ads support free rewards
+          <p className="text-[9px] text-center text-white/20 uppercase tracking-[0.2em] font-medium border-t border-white/5 pt-4">
+            Authorized by Pi Ads Infrastructure
           </p>
         </div>
       </DialogContent>

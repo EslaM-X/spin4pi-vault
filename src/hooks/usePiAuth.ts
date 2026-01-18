@@ -8,14 +8,21 @@ interface PiUser {
 }
 
 export const usePiAuth = () => {
-  const [user, setUser] = useState<PiUser | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // 1. استرجاع البيانات المخزنة مسبقاً لمنع تسجيل الخروج عند التنقل
+  const [user, setUser] = useState<PiUser | null>(() => {
+    const savedUser = localStorage.getItem('pi_user_cache');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+  
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('pi_auth_state') === 'true';
+  });
+
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
 
   const syncUserWithDatabase = async (piUser: PiUser) => {
     try {
-      // محاولة تحديث أو إنشاء البروفايل لضمان وجود المستخدم في قاعدة البيانات
       const { data, error } = await supabase
         .from("profiles")
         .upsert({
@@ -26,11 +33,7 @@ export const usePiAuth = () => {
         .select()
         .single();
 
-      if (error) {
-        console.error("Database sync error:", error.message);
-        return;
-      }
-      console.log("Database successfully synced for user:", piUser.username);
+      if (error) console.error("Database sync error:", error.message);
     } catch (err) {
       console.error("Critical Auth Sync Error:", err);
     }
@@ -49,19 +52,22 @@ export const usePiAuth = () => {
         console.log("Incomplete payment found:", onIncompletePaymentFound);
       });
 
-      console.log("Pi Network Auth Success:", auth.user.username);
+      // 2. حفظ البيانات في التخزين المحلي لضمان الاستمرارية
+      localStorage.setItem('pi_user_cache', JSON.stringify(auth.user));
+      localStorage.setItem('pi_auth_state', 'true');
       
       setUser(auth.user);
       setIsAuthenticated(true);
       
-      // مزامنة فورية مع السيرفر لفتح الميزات
       await syncUserWithDatabase(auth.user);
       
       toast.success(`Welcome, ${auth.user.username}!`);
       return auth.user;
     } catch (err) {
       console.error("Auth failed:", err);
-      toast.error("Failed to login with Pi. Try again.");
+      // في حال الفشل الحقيقي فقط نمسح الكاش
+      logout();
+      toast.error("Failed to login with Pi.");
       return null;
     } finally {
       setIsLoading(false);
@@ -69,25 +75,23 @@ export const usePiAuth = () => {
   }, []);
 
   const logout = useCallback(() => {
+    localStorage.removeItem('pi_user_cache');
+    localStorage.removeItem('pi_auth_state');
     setUser(null);
     setIsAuthenticated(false);
   }, []);
 
-  // تحسين وظيفة التحقق من اللفات المجانية
-  const canFreeSpin = useCallback(() => {
-    return isAuthenticated; 
-  }, [isAuthenticated]);
+  const canFreeSpin = useCallback(() => isAuthenticated, [isAuthenticated]);
 
   const getNextFreeSpinTime = useCallback(() => {
     return isAuthenticated ? "Available" : "Login Required";
   }, [isAuthenticated]);
 
   const refreshProfile = useCallback(async () => {
-    if (user) {
-      await syncUserWithDatabase(user);
-    }
+    if (user) await syncUserWithDatabase(user);
   }, [user]);
 
+  // 3. التحقق من جاهزية الـ SDK دون تصفير الحالة
   useEffect(() => {
     const checkPi = () => {
       if (window.Pi) {
@@ -100,9 +104,7 @@ export const usePiAuth = () => {
 
     if (!checkPi()) {
       const timer = setInterval(() => {
-        if (checkPi()) {
-          clearInterval(timer);
-        }
+        if (checkPi()) clearInterval(timer);
       }, 500);
       return () => clearInterval(timer);
     }

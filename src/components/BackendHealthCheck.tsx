@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, CheckCircle2, XCircle, RefreshCw, ChevronDown, ChevronUp, Server } from "lucide-react";
+import { Activity, CheckCircle2, XCircle, RefreshCw, ChevronDown, ChevronUp, Server, Radio, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -27,36 +27,17 @@ export function BackendHealthCheck() {
     const startTime = Date.now();
     
     try {
-      // Extract host from supabase URL
-      const supabaseUrl = (supabase as any).supabaseUrl || 
-        import.meta.env.VITE_SUPABASE_URL || 
-        "unknown";
-      
+      const supabaseUrl = (supabase as any).supabaseUrl || import.meta.env.VITE_SUPABASE_URL || "unknown";
       let host = "unknown";
-      try {
-        host = new URL(supabaseUrl).hostname;
-      } catch {
-        host = supabaseUrl;
-      }
+      try { host = new URL(supabaseUrl).hostname; } catch { host = supabaseUrl; }
 
-      const { data, error } = await supabase.functions.invoke("get-leaderboard");
+      const { error } = await supabase.functions.invoke("get-leaderboard");
       const latency = Date.now() - startTime;
 
       if (error) {
-        setHealth({
-          status: "error",
-          host,
-          latency,
-          lastChecked: new Date(),
-          error: error.message || "Connection failed",
-        });
+        setHealth({ status: "error", host, latency, lastChecked: new Date(), error: error.message });
       } else {
-        setHealth({
-          status: "healthy",
-          host,
-          latency,
-          lastChecked: new Date(),
-        });
+        setHealth({ status: "healthy", host, latency, lastChecked: new Date() });
       }
     } catch (err) {
       setHealth({
@@ -64,7 +45,7 @@ export function BackendHealthCheck() {
         host: "unknown",
         latency: Date.now() - startTime,
         lastChecked: new Date(),
-        error: err instanceof Error ? err.message : "Unknown error",
+        error: err instanceof Error ? err.message : "Connection Terminated",
       });
     } finally {
       setIsChecking(false);
@@ -73,128 +54,113 @@ export function BackendHealthCheck() {
 
   useEffect(() => {
     checkHealth();
-    // Check every 60 seconds
     const interval = setInterval(checkHealth, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  const statusColor = {
-    checking: "text-muted-foreground",
-    healthy: "text-emerald-500",
-    error: "text-destructive",
+  const statusThemes = {
+    checking: { text: "text-gold", bg: "bg-gold/5", border: "border-gold/20", icon: RefreshCw },
+    healthy: { text: "text-emerald-400", bg: "bg-emerald-500/5", border: "border-emerald-500/20", icon: ShieldCheck },
+    error: { text: "text-rose-500", bg: "bg-rose-500/5", border: "border-rose-500/20", icon: XCircle },
   };
 
-  const statusBg = {
-    checking: "bg-muted/50",
-    healthy: "bg-emerald-500/10",
-    error: "bg-destructive/10",
-  };
-
-  const StatusIcon = {
-    checking: RefreshCw,
-    healthy: CheckCircle2,
-    error: XCircle,
-  }[health.status];
+  const currentTheme = statusThemes[health.status];
 
   return (
     <motion.div
-      className={`fixed bottom-4 right-4 z-50 rounded-xl border ${statusBg[health.status]} backdrop-blur-sm shadow-lg`}
-      initial={{ opacity: 0, y: 20, scale: 0.9 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.3 }}
+      className={`fixed bottom-6 right-6 z-[100] rounded-2xl border-2 ${currentTheme.bg} ${currentTheme.border} backdrop-blur-xl shadow-2xl overflow-hidden min-w-[160px]`}
+      initial={{ opacity: 0, x: 50 }}
+      animate={{ opacity: 1, x: 0 }}
     >
-      {/* Collapsed View */}
+      {/* Glow Effect based on status */}
+      <div className={`absolute -inset-1 blur-lg opacity-20 ${currentTheme.bg}`} />
+
+      {/* Main Header / Collapsed View */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center gap-2 px-3 py-2 w-full"
+        className="relative flex items-center justify-between gap-3 px-4 py-3 w-full group"
       >
-        <StatusIcon 
-          className={`w-4 h-4 ${statusColor[health.status]} ${
-            health.status === "checking" || isChecking ? "animate-spin" : ""
-          }`} 
-        />
-        <span className={`text-xs font-medium ${statusColor[health.status]}`}>
-          {health.status === "checking" ? "Checking..." : 
-           health.status === "healthy" ? "Backend OK" : "Backend Error"}
-        </span>
-        {isExpanded ? (
-          <ChevronDown className="w-3 h-3 text-muted-foreground ml-auto" />
-        ) : (
-          <ChevronUp className="w-3 h-3 text-muted-foreground ml-auto" />
-        )}
+        <div className="flex items-center gap-2">
+          <div className="relative">
+             <currentTheme.icon 
+              className={`w-4 h-4 ${currentTheme.text} ${
+                health.status === "checking" || isChecking ? "animate-spin" : ""
+              }`} 
+            />
+            {health.status === "healthy" && (
+              <motion.div 
+                className="absolute inset-0 bg-emerald-400 rounded-full blur-sm"
+                animate={{ opacity: [0, 0.4, 0] }}
+                transition={{ repeat: Infinity, duration: 2 }}
+              />
+            )}
+          </div>
+          <span className={`text-[10px] font-black uppercase tracking-[0.15em] ${currentTheme.text}`}>
+            {health.status === "checking" ? "Scanning..." : 
+             health.status === "healthy" ? "Vault Link OK" : "Link Severed"}
+          </span>
+        </div>
+        {isExpanded ? <ChevronDown className="w-3 h-3 text-white/20" /> : <ChevronUp className="w-3 h-3 text-white/20" />}
       </button>
 
-      {/* Expanded View */}
+      {/* Details View */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden border-t border-border/50"
+            className="px-4 pb-4 space-y-3 border-t border-white/5 pt-3"
           >
-            <div className="px-3 py-3 space-y-3">
-              {/* Host Info */}
-              <div className="flex items-center gap-2 text-xs">
-                <Server className="w-3 h-3 text-muted-foreground" />
-                <span className="text-muted-foreground">Host:</span>
-                <code className="bg-muted px-1.5 py-0.5 rounded text-[10px] font-mono truncate max-w-[150px]">
-                  {health.host}
-                </code>
+            {/* Host Section */}
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <Server className="w-3 h-3 text-white/20" />
+                <span className="text-[9px] font-bold text-white/40 uppercase tracking-tighter">Core Node</span>
               </div>
-
-              {/* Latency */}
-              {health.latency !== null && (
-                <div className="flex items-center gap-2 text-xs">
-                  <Activity className="w-3 h-3 text-muted-foreground" />
-                  <span className="text-muted-foreground">Latency:</span>
-                  <span className={`font-mono ${
-                    health.latency < 500 ? "text-emerald-500" :
-                    health.latency < 1000 ? "text-amber-500" : "text-destructive"
-                  }`}>
-                    {health.latency}ms
-                  </span>
-                </div>
-              )}
-
-              {/* Error */}
-              {health.error && (
-                <div className="text-xs text-destructive bg-destructive/10 px-2 py-1 rounded">
-                  {health.error}
-                </div>
-              )}
-
-              {/* Last Checked */}
-              {health.lastChecked && (
-                <div className="text-[10px] text-muted-foreground">
-                  Last checked: {health.lastChecked.toLocaleTimeString()}
-                </div>
-              )}
-
-              {/* Refresh Button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={checkHealth}
-                disabled={isChecking}
-                className="w-full text-xs h-7"
-              >
-                {isChecking ? (
-                  <RefreshCw className="w-3 h-3 animate-spin mr-1" />
-                ) : (
-                  <RefreshCw className="w-3 h-3 mr-1" />
-                )}
-                Refresh
-              </Button>
-
-              {/* Vercel Env Notice */}
-              {health.status === "error" && (
-                <p className="text-[10px] text-muted-foreground text-center">
-                  If on Vercel, check VITE_SUPABASE_URL env var
-                </p>
-              )}
+              <code className="bg-white/5 px-2 py-1 rounded text-[9px] font-mono text-white/60 truncate italic">
+                {health.host}
+              </code>
             </div>
+
+            {/* Latency Section */}
+            <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl">
+              <div className="flex items-center gap-2">
+                <Radio className="w-3 h-3 text-white/20" />
+                <span className="text-[9px] font-bold text-white/40 uppercase">Latency</span>
+              </div>
+              <span className={`text-[10px] font-black font-mono ${
+                health.latency && health.latency < 300 ? "text-emerald-400" : "text-gold"
+              }`}>
+                {health.latency ? `${health.latency}ms` : '--'}
+              </span>
+            </div>
+
+            {/* Error Message */}
+            {health.error && (
+              <div className="text-[9px] text-rose-400 bg-rose-500/10 p-2 rounded-lg border border-rose-500/20 font-medium">
+                ⚠️ {health.error}
+              </div>
+            )}
+
+            {/* Last Check Time */}
+            {health.lastChecked && (
+              <div className="flex items-center justify-between text-[8px] text-white/20 font-bold uppercase">
+                <span>Last Scan</span>
+                <span>{health.lastChecked.toLocaleTimeString()}</span>
+              </div>
+            )}
+
+            {/* Action Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={checkHealth}
+              disabled={isChecking}
+              className="w-full h-8 text-[9px] font-black uppercase tracking-widest bg-white/5 hover:bg-gold hover:text-black border border-white/5 transition-all"
+            >
+              {isChecking ? <RefreshCw className="w-3 h-3 animate-spin" /> : "Re-Scan System"}
+            </Button>
           </motion.div>
         )}
       </AnimatePresence>

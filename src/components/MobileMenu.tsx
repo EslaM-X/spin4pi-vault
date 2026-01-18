@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   X, LayoutGrid, UserCircle, Trophy, 
   Settings, Volume2, ChevronRight, Sparkles,
-  ShoppingCart, Info, History, Medal, Wallet
+  ShoppingCart, Info, Medal, Wallet, Crown, Shield
 } from 'lucide-react';
 import logoIcon from "@/assets/spin4pi-logo.png";
 import bgMusic from "@/assets/sounds/bg-music.mp3";
@@ -59,137 +59,128 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin, balance = "0.00" }: 
   return (
     <>
       <style>{`
-        @keyframes cyber-pulse {
-          0% { box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); transform: scale(1); }
-          50% { box-shadow: 0 0 22px rgba(168, 85, 247, 0.6); transform: scale(1.03); }
-          100% { box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); transform: scale(1); }
+        @keyframes imperial-pulse {
+          0% { box-shadow: 0 0 10px rgba(251, 191, 36, 0.2); border-color: rgba(251, 191, 36, 0.3); }
+          50% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.4); border-color: rgba(251, 191, 36, 0.6); }
+          100% { box-shadow: 0 0 10px rgba(251, 191, 36, 0.2); border-color: rgba(251, 191, 36, 0.3); }
         }
-        @keyframes icon-bounce {
-          0% { transform: scale(0.3) translateY(30px); opacity: 0; }
-          70% { transform: scale(1.1) translateY(-5px); opacity: 1; }
-          100% { transform: scale(1) translateY(0); opacity: 1; }
+        @keyframes slide-up {
+          from { transform: translateY(100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
         }
-        @keyframes menu-fade {
-          from { opacity: 0; backdrop-filter: blur(0px); }
-          to { opacity: 1; backdrop-filter: blur(15px); }
-        }
-        @keyframes balance-glow {
-          0% { border-color: rgba(251, 191, 36, 0.3); box-shadow: 0 0 5px rgba(251, 191, 36, 0.1); }
-          50% { border-color: rgba(251, 191, 36, 0.6); box-shadow: 0 0 15px rgba(251, 191, 36, 0.3); }
-          100% { border-color: rgba(251, 191, 36, 0.3); box-shadow: 0 0 5px rgba(251, 191, 36, 0.1); }
-        }
-        .bounce-item {
-          animation: icon-bounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
-        .cyber-btn:active { transform: scale(0.92); }
+        .imperial-btn:active { transform: scale(0.9); }
       `}</style>
 
+      {/* Trigger Button */}
       <button 
-        className="cyber-btn"
+        className="imperial-btn"
         onClick={() => setIsOpen(!isOpen)}
         style={{ 
-          cursor: 'pointer', width: '52px', height: '52px', 
-          background: isOpen ? '#1a1a1b' : '#121214', 
-          border: `2px solid ${isOpen ? '#f472b6' : '#a855f7'}`, 
-          borderRadius: '16px', display: 'flex', flexDirection: 'column',
-          justifyContent: 'center', alignItems: 'center', gap: isOpen ? '0' : '5px',
-          zIndex: 99999, transition: '0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          padding: 0, outline: 'none', position: 'relative',
-          animation: isOpen ? 'none' : 'cyber-pulse 2s infinite ease-in-out'
+          cursor: 'pointer', width: '48px', height: '48px', 
+          background: isOpen ? '#1a1a1b' : '#13131a', 
+          border: '1px solid #fbbf2433', 
+          borderRadius: '14px', display: 'flex', flexDirection: 'column',
+          justifyContent: 'center', alignItems: 'center', gap: '4px',
+          zIndex: 99999, transition: '0.3s',
+          animation: isOpen ? 'none' : 'imperial-pulse 3s infinite'
         }}
       >
         {isOpen ? (
-          <X size={28} color="#fff" />
+          <X size={24} color="#fbbf24" />
         ) : (
           <>
-            <div style={{ width: '22px', height: '3px', background: 'linear-gradient(90deg, #a855f7, #f472b6)', borderRadius: '10px' }} />
-            <div style={{ width: '16px', height: '3px', background: '#d946ef', borderRadius: '10px' }} />
-            <div style={{ width: '22px', height: '3px', background: 'linear-gradient(90deg, #f472b6, #a855f7)', borderRadius: '10px' }} />
+            <div style={{ width: '20px', height: '2px', background: '#fbbf24', borderRadius: '10px' }} />
+            <div style={{ width: '20px', height: '2px', background: '#fbbf24', borderRadius: '10px', opacity: 0.6 }} />
+            <div style={{ width: '20px', height: '2px', background: '#fbbf24', borderRadius: '10px' }} />
           </>
         )}
       </button>
 
       {isOpen && createPortal(
         <div style={{ 
-          position: 'fixed', inset: 0, backgroundColor: 'rgba(5, 5, 7, 0.96)', 
-          zIndex: 1000000, display: 'flex', justifyContent: 'center', alignItems: 'center',
-          animation: 'menu-fade 0.3s ease-out'
-        }}>
-          <div style={{ 
-            position: 'relative', width: '92%', maxWidth: '400px', background: '#0a0a0b',
-            border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: '40px',
-            padding: '30px 24px', boxShadow: '0 20px 60px rgba(0,0,0,0.8)',
-            maxHeight: '90vh', overflowY: 'auto'
-          }}>
-            
-            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-              <img src={logoIcon} style={{ width: '70px', height: '70px', filter: 'drop-shadow(0 0 15px rgba(168,85,247,0.4))', marginBottom: '10px' }} />
-              <h2 style={{ color: '#fff', fontSize: '18px', fontWeight: '900', letterSpacing: '3px', margin: 0 }}>
-                SPIN<span style={{ color: '#a855f7' }}>4</span>PI
+          position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.85)', 
+          zIndex: 1000000, backdropFilter: 'blur(10px)',
+          display: 'flex', justifyContent: 'center', alignItems: 'flex-end'
+        }} onClick={() => setIsOpen(false)}>
+          
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{ 
+              width: '100%', maxWidth: '500px', background: '#0a0a0c',
+              borderTop: '2px solid #fbbf2433', borderLeft: '1px solid #ffffff05', borderRight: '1px solid #ffffff05',
+              borderRadius: '30px 30px 0 0', padding: '30px 20px 40px',
+              boxShadow: '0 -20px 50px rgba(0,0,0,0.9)',
+              animation: 'slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
+          >
+            {/* Header Area */}
+            <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+              <div style={{ width: '50px', height: '4px', background: '#ffffff10', borderRadius: '10px', margin: '0 auto 20px' }} />
+              <img src={logoIcon} style={{ width: '60px', height: '60px', marginBottom: '10px' }} />
+              <h2 style={{ color: '#fff', fontSize: '14px', fontWeight: '900', letterSpacing: '4px', textTransform: 'uppercase' }}>
+                Empire <span style={{ color: '#fbbf24' }}>Vault</span>
               </h2>
             </div>
 
-            {/* قسم الرصيد الأسطوري */}
+            {/* Current Balance Display */}
             {isLoggedIn && (
               <div style={{
-                background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(168, 85, 247, 0.05) 100%)',
-                border: '1px solid rgba(251, 191, 36, 0.3)',
-                borderRadius: '25px',
-                padding: '15px 20px',
-                marginBottom: '25px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                animation: 'balance-glow 3s infinite ease-in-out'
+                background: '#13131a', border: '1px solid #fbbf2433',
+                borderRadius: '20px', padding: '15px 20px', marginBottom: '25px',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ background: '#fbbf24', padding: '8px', borderRadius: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 0 15px rgba(251, 191, 36, 0.4)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <div style={{ background: '#fbbf24', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                     <Wallet size={20} color="#000" />
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Current Balance</span>
-                    <span style={{ color: '#fff', fontSize: '20px', fontWeight: '900', fontFamily: 'monospace' }}>π {balance}</span>
+                  <div>
+                    <span style={{ color: '#fbbf24', fontSize: '9px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>Available Pi</span>
+                    <div style={{ color: '#fff', fontSize: '22px', fontWeight: '900', lineHeight: 1 }}>{balance} <span style={{fontSize: '12px', color: '#fbbf24'}}>π</span></div>
                   </div>
                 </div>
-                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '5px 12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                   <span style={{ color: '#fbbf24', fontSize: '10px', fontWeight: '900' }}>LIVE</span>
+                <div style={{ textAlign: 'right' }}>
+                   <div style={{ width: '8px', height: '8px', background: '#10b981', borderRadius: '50%', display: 'inline-block', marginRight: '5px' }} />
+                   <span style={{ color: '#ffffff40', fontSize: '9px', fontWeight: '900' }}>SECURE</span>
                 </div>
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '25px' }}>
-              <QuickAction className="bounce-item" delay="0.1s" onClick={() => handleNavigation('/')} icon={<LayoutGrid size={22} />} label="Arena" color="#a855f7" />
-              <QuickAction className="bounce-item" delay="0.2s" onClick={() => handleNavigation('/profile')} icon={<UserCircle size={22} />} label="Profile" color="#3b82f6" />
-              <QuickAction className="bounce-item" delay="0.3s" onClick={() => handleNavigation('/leaderboard')} icon={<Trophy size={22} />} label="Rank" color="#fbbf24" />
-              <QuickAction className="bounce-item" delay="0.4s" onClick={() => handleNavigation('/marketplace')} icon={<ShoppingCart size={22} />} label="Shop" color="#22c55e" />
+            {/* Navigation Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '30px' }}>
+              <QuickAction icon={<LayoutGrid size={20} />} label="Arena" onClick={() => handleNavigation('/')} />
+              <QuickAction icon={<Trophy size={20} />} label="Rank" onClick={() => handleNavigation('/leaderboard')} />
+              <QuickAction icon={<Crown size={20} />} label="VIP" onClick={() => handleNavigation('/vip-benefits')} />
+              <QuickAction icon={<UserCircle size={20} />} label="Account" onClick={() => handleNavigation('/profile')} />
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '25px' }}>
-              <MenuOption onClick={() => handleNavigation('/achievements')} icon={<Medal size={20} color="#f472b6" />} label="Achievements" />
-              <MenuOption onClick={() => handleNavigation('/vip-benefits')} icon={<Sparkles size={20} color="#8b5cf6" />} label="VIP Benefits" />
-              <MenuOption onClick={() => handleNavigation('/legal')} icon={<Info size={20} color="#64748b" />} label="Legal Center" />
+            {/* List Options */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '30px' }}>
+              <MenuOption icon={<Medal size={18} color="#fbbf24" />} label="Imperial Achievements" onClick={() => handleNavigation('/achievements')} />
+              <MenuOption icon={<ShoppingCart size={18} color="#fbbf24" />} label="Marketplace" onClick={() => handleNavigation('/marketplace')} />
+              <MenuOption icon={<Shield size={18} color="#fbbf24" />} label="Security & Legal" onClick={() => handleNavigation('/legal')} />
             </div>
 
+            {/* Audio Toggle */}
             <div 
               onClick={toggleMute}
               style={{ 
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '14px 20px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px',
-                border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', marginBottom: '20px'
+                padding: '16px 20px', background: '#ffffff05', borderRadius: '18px',
+                border: '1px solid #ffffff08', cursor: 'pointer', marginBottom: '20px'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <Volume2 size={18} color={isMuted ? "#666" : "#a855f7"} />
-                <span style={{ color: '#fff', fontSize: '13px', fontWeight: '700' }}>Atmosphere</span>
+                <Volume2 size={18} color={isMuted ? "#ffffff40" : "#fbbf24"} />
+                <span style={{ color: '#ffffff80', fontSize: '13px', fontWeight: '700' }}>Atmosphere Music</span>
               </div>
               <div style={{ 
-                width: '40px', height: '20px', borderRadius: '20px', 
-                background: isMuted ? '#222' : 'linear-gradient(to right, #a855f7, #f472b6)', 
+                width: '36px', height: '18px', borderRadius: '20px', 
+                background: isMuted ? '#222' : '#fbbf24', 
                 position: 'relative', transition: '0.3s' 
               }}>
                 <div style={{ 
-                  position: 'absolute', top: '3px', left: isMuted ? '4px' : '20px', 
-                  width: '14px', height: '14px', background: '#fff', 
+                  position: 'absolute', top: '3px', left: isMuted ? '4px' : '18px', 
+                  width: '12px', height: '12px', background: isMuted ? '#444' : '#000', 
                   borderRadius: '50%', transition: '0.3s' 
                 }} />
               </div>
@@ -199,12 +190,12 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin, balance = "0.00" }: 
               <button 
                 onClick={() => { onLogout?.(); setIsOpen(false); }}
                 style={{ 
-                  width: '100%', padding: '16px', background: 'rgba(239,68,68,0.05)',
-                  border: '1px solid rgba(239,68,68,0.3)', borderRadius: '18px', color: '#ef4444',
-                  fontWeight: '800', fontSize: '11px', letterSpacing: '2px', cursor: 'pointer'
+                  width: '100%', padding: '16px', background: 'transparent',
+                  border: '1px solid #ef444433', borderRadius: '18px', color: '#ef4444',
+                  fontWeight: '900', fontSize: '10px', letterSpacing: '2px', cursor: 'pointer'
                 }}
               >
-                LOGOUT SYSTEM
+                TERMINATE SESSION
               </button>
             )}
           </div>
@@ -215,19 +206,18 @@ export function MobileMenu({ isLoggedIn, onLogout, isAdmin, balance = "0.00" }: 
   );
 }
 
-function QuickAction({ onClick, icon, label, color, className, delay }: any) {
+function QuickAction({ onClick, icon, label }: any) {
   return (
     <div 
-      className={className}
       onClick={onClick} 
       style={{ 
-        background: 'rgba(255,255,255,0.02)', padding: '18px 10px', borderRadius: '22px',
-        border: `1px solid rgba(255,255,255,0.05)`, cursor: 'pointer', textAlign: 'center',
-        animationDelay: delay, opacity: 0
+        background: '#ffffff03', padding: '15px 5px', borderRadius: '18px',
+        border: '1px solid #ffffff05', cursor: 'pointer', textAlign: 'center',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px'
       }}
     >
-      <div style={{ color: color, marginBottom: '8px', display: 'flex', justifyContent: 'center' }}>{icon}</div>
-      <div style={{ color: '#fff', fontSize: '12px', fontWeight: '800' }}>{label}</div>
+      <div style={{ color: '#fbbf24' }}>{icon}</div>
+      <div style={{ color: '#ffffff40', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase' }}>{label}</div>
     </div>
   );
 }
@@ -236,14 +226,14 @@ function MenuOption({ onClick, icon, label }: any) {
   return (
     <div onClick={onClick} style={{ 
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      padding: '12px 18px', background: 'rgba(255,255,255,0.01)', borderRadius: '15px',
-      cursor: 'pointer'
+      padding: '14px 18px', background: '#ffffff02', borderRadius: '14px',
+      cursor: 'pointer', border: '1px solid #ffffff05'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         {icon}
-        <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px', fontWeight: '600' }}>{label}</span>
+        <span style={{ color: '#ffffffcc', fontSize: '13px', fontWeight: '600' }}>{label}</span>
       </div>
-      <ChevronRight size={14} color="rgba(255,255,255,0.2)" />
+      <ChevronRight size={14} color="#ffffff20" />
     </div>
   );
 }

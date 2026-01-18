@@ -542,9 +542,11 @@ MIT License - See [LICENSE](./LICENSE) for details.
 
   <p align="center">
     <a href="https://github.com/EslaM-X/spin4pi-vault">
-      <img src="src/assets/1768573805945-01.jpeg" width="120" style="border-radius: 50%; border: 4px solid #fbbf24; box-shadow: 0 0 50px rgba(251, 191, 36, 0.4); background: linear-gradient(145deg, #1a1528, #050507);" />
+      <img src="src/assets/1768573805945-01.jpeg" width="100%" style="border-radius: 20px; border: 3px solid #fbbf24; box-shadow: 0 10px 50px rgba(251, 191, 36, 0.3);" />
     </a>
   </p>
+
+  <br>
 
   <h1 align="center">👑 SPIN4PI 👑</h1>
   
@@ -553,7 +555,7 @@ MIT License - See [LICENSE](./LICENSE) for details.
     <img src="https://img.shields.io/badge/Network-Pi_Network-purple?style=for-the-badge&logo=target&logoColor=white" />
   </p>
 
-  <p align="center">
+  <p align="center" style="font-size: 1.2rem;">
     <b>"Where Every Spin Echoes in the Halls of the Empire"</b><br>
     <i>Redefining the Golden Standard of Pi Network Entertainment</i>
   </p>

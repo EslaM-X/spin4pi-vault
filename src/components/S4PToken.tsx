@@ -1,123 +1,134 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Coins, Sparkles, TrendingUp, ShieldCheck, Zap, Gem, ArrowLeftRight, Wallet } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { Coins, Flame, TrendingUp, ShieldCheck, Zap, ArrowUpRight } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface S4PTokenDisplayProps {
   balance: number;
-  showAnimation?: boolean;
+  isBurning?: boolean; // خاصية تفعيل أنميشن الحرق عند الشراء
 }
 
-export function S4PTokenDisplay({ balance, showAnimation = false }: S4PTokenDisplayProps) {
+export function S4PTokenDisplay({ balance, isBurning = false }: S4PTokenDisplayProps) {
   return (
-    <motion.div
-      className="group relative flex items-center gap-3 bg-black/40 border border-gold/20 rounded-2xl px-4 py-2 hover:border-gold/50 transition-all duration-500 overflow-hidden backdrop-blur-md"
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-    >
-      <div className="absolute inset-0 bg-gradient-to-r from-gold/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-
-      {/* S4P Token Branding */}
-      <div className="relative">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold via-amber-400 to-amber-700 flex items-center justify-center shadow-lg border border-white/10 transform transition-transform group-hover:scale-110">
-          <span className="text-[10px] font-black text-black italic">S4P</span>
-        </div>
-        {showAnimation && (
-          <motion.div
-            className="absolute inset-0 rounded-xl bg-gold/40"
-            initial={{ scale: 1, opacity: 0.6 }}
-            animate={{ scale: 1.6, opacity: 0 }}
-            transition={{ duration: 1, repeat: Infinity }}
-          />
-        )}
-      </div>
-      
-      <div className="flex flex-col">
-        <span className="text-[8px] font-black text-gold/40 uppercase tracking-[0.25em] leading-none mb-1">In-App Token Balance</span>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={balance}
-            className="flex items-baseline gap-1"
-            initial={{ y: -5, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
+    <div className="flex items-center gap-3 bg-black/60 border border-gold/20 rounded-full pl-1 pr-4 py-1.5 backdrop-blur-md relative overflow-hidden group">
+      {/* تأثير الحرق (Burn Animation) */}
+      <AnimatePresence>
+        {isBurning && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: -20 }}
+            exit={{ opacity: 0 }}
+            className="absolute right-4 top-0 pointer-events-none"
           >
-            <span className="font-black text-white text-xl tracking-tight italic" style={{ fontFamily: 'Cinzel, serif' }}>
-              {balance.toLocaleString()}
-            </span>
-            <span className="text-[10px] font-bold text-gold/60 uppercase">S4P</span>
+            <Flame className="w-4 h-4 text-orange-500 fill-orange-500 animate-bounce" />
+            <span className="text-[8px] font-black text-orange-500">-10% BURN</span>
           </motion.div>
-        </AnimatePresence>
+        )}
+      </AnimatePresence>
+
+      {/* العملة المعدنية الدائرية */}
+      <div className="relative group">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-b from-[#FFE38E] via-[#EAB308] to-[#854D0E] p-[1.5px] shadow-[0_0_15px_rgba(234,179,8,0.2)] group-hover:shadow-gold/40 transition-all duration-500">
+          <div className="w-full h-full rounded-full bg-[#0d0d12] flex items-center justify-center overflow-hidden relative border border-black/20">
+            {/* الشعار - سيتم استبداله بشعار تطبيقك دائرياً */}
+            <div className="w-7 h-7 bg-gold/10 rounded-full flex items-center justify-center border border-gold/20 z-10">
+               <span className="text-[8px] font-black text-gold tracking-tighter">S4P</span>
+            </div>
+            {/* لمعة العملة المعدنية */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent rotate-12 group-hover:translate-x-full transition-transform duration-1000" />
+          </div>
+        </div>
       </div>
-    </motion.div>
+
+      <div className="flex flex-col justify-center">
+        <div className="flex items-center gap-1.5">
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={balance}
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="font-black text-white text-base leading-none tracking-tight italic"
+              style={{ fontFamily: 'Cinzel, serif' }}
+            >
+              {balance.toLocaleString()}
+            </motion.span>
+          </AnimatePresence>
+          <span className="text-[10px] font-black text-gold/80 uppercase tracking-tighter">S4P</span>
+        </div>
+        <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+          <TrendingUp className="w-2 h-2 text-emerald-500" />
+          <span className="text-[7px] font-black text-white uppercase tracking-[0.2em]">Imperial Value</span>
+        </div>
+      </div>
+    </div>
   );
 }
 
 export function S4PTokenInfo({ className }: { className?: string }) {
-  const handleBridge = () => {
-    toast.info("Connecting to Pi Wallet via SDK...", {
-      description: "Preparing P2S Token Transaction",
-      icon: <Wallet className="w-4 h-4 text-gold" />
-    });
-  };
-
-  const features = [
-    { icon: ArrowLeftRight, text: "Swap S4P to Pi via App DEX", color: "text-amber-400" },
-    { icon: Gem, text: "Exclusive NFT Minting Access", color: "text-emerald-400" },
-    { icon: ShieldCheck, text: "Stake for Pi Network Governance", color: "text-blue-400" },
+  const mechanisms = [
+    { 
+      icon: Zap, 
+      title: "Utility", 
+      desc: "Buy extra spins & premium perks", 
+      color: "text-amber-400" 
+    },
+    { 
+      icon: Flame, 
+      title: "Deflationary", 
+      desc: "10% of tokens used are permanently burned", 
+      color: "text-orange-500" 
+    },
+    { 
+      icon: ShieldCheck, 
+      title: "Governance", 
+      desc: "Vote on future jackpot pools", 
+      color: "text-blue-400" 
+    }
   ];
 
   return (
-    <div className={`relative bg-[#0d0d12]/95 border-2 border-gold/15 rounded-[2.5rem] p-7 overflow-hidden backdrop-blur-2xl shadow-2xl ${className}`}>
-      {/* Decorative Glow */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gold/5 blur-[60px] rounded-full" />
-      
+    <div className={`relative bg-[#0d0d12]/95 border-2 border-gold/10 rounded-[2.5rem] p-7 overflow-hidden backdrop-blur-2xl shadow-2xl ${className}`}>
+      {/* Header */}
       <div className="flex items-center justify-between mb-8 relative z-10">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-gold/20 to-gold/5 flex items-center justify-center border border-gold/30">
-             <Coins className="w-7 h-7 text-gold animate-pulse" />
-          </div>
-          <div>
-            <h3 className="font-black text-lg text-white italic tracking-widest uppercase" style={{ fontFamily: 'Cinzel, serif' }}>
-              S4P <span className="text-gold">Protocol</span>
-            </h3>
-            <div className="flex items-center gap-2 mt-1">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <p className="text-[9px] text-emerald-500/80 font-black uppercase tracking-widest">Mainnet Bridge Active</p>
-            </div>
-          </div>
+        <div>
+          <h3 className="font-black text-xl text-white italic tracking-widest uppercase" style={{ fontFamily: 'Cinzel, serif' }}>
+            Token <span className="text-gold">Economy</span>
+          </h3>
+          <p className="text-[9px] text-gold/40 font-bold uppercase tracking-[0.3em] mt-1">Sustainable Web3 Model</p>
+        </div>
+        <div className="w-12 h-12 rounded-2xl bg-gold/5 border border-gold/20 flex items-center justify-center">
+           <Coins className="w-6 h-6 text-gold animate-pulse" />
         </div>
       </div>
       
+      {/* Mechanisms List */}
       <div className="space-y-4 relative z-10">
-        {features.map((feature, index) => (
-          <div key={index} className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-gold/20 transition-all group">
-            <div className={`p-2 rounded-lg bg-white/5 ${feature.color}`}>
-              <feature.icon className="w-4 h-4" />
+        {mechanisms.map((m, i) => (
+          <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-gold/20 transition-all group">
+            <div className={`p-2.5 rounded-xl bg-black border border-white/5 ${m.color} group-hover:scale-110 transition-transform`}>
+              <m.icon className="w-4 h-4" />
             </div>
-            <span className="text-[11px] font-bold text-white/50 group-hover:text-white transition-colors">{feature.text}</span>
+            <div className="flex flex-col">
+              <span className="text-[11px] font-black text-white uppercase tracking-wider">{m.title}</span>
+              <span className="text-[10px] text-white/40 font-medium">{m.desc}</span>
+            </div>
           </div>
         ))}
       </div>
+
       
-      {/* Pi SDK Action Button */}
-      <div className="mt-8 space-y-3 relative z-10">
-        <Button 
-          onClick={handleBridge}
-          className="w-full h-12 bg-gold hover:bg-gold/80 text-black font-black uppercase tracking-[0.15em] rounded-xl shadow-lg shadow-gold/10 gap-2"
-        >
-          <ArrowLeftRight className="w-4 h-4" />
-          Wallet Bridge (P2S)
-        </Button>
-        
-        <div className="pt-4 border-t border-white/5 flex flex-col gap-2">
-          <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-widest opacity-30">
-            <span>Blockchain Standard</span>
-            <span>Pi App-Token (PAT-1)</span>
+
+      {/* Burn Stats Footnote */}
+      <div className="mt-8 pt-6 border-t border-white/5 relative z-10">
+        <div className="bg-orange-500/5 border border-orange-500/10 rounded-xl p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-orange-500 animate-ping" />
+            <span className="text-[9px] font-black text-orange-500 uppercase tracking-widest">Deflation Protocol Active</span>
           </div>
-          <p className="text-[8px] text-center text-white/20 italic">
-            Compliant with Pi Platform Document Section: App Tokens SDK v2
-          </p>
+          <ArrowUpRight className="w-3 h-3 text-orange-500" />
         </div>
+        <p className="text-[8px] text-center text-white/20 italic mt-4">
+          Token burn mechanism verified for Pi Network App-Token Compliance.
+        </p>
       </div>
     </div>
   );

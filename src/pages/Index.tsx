@@ -18,7 +18,6 @@ import { ActiveBoostsIndicator } from "@/components/ActiveBoostsIndicator";
 import { TournamentPanel } from "@/components/TournamentPanel";
 import { VIPStatus } from "@/components/VIPStatus";
 import StakingPanel from "@/components/StakingPanel";
-import PiAdsReward from "@/components/PiAdsReward";
 import GlobalLoading from "@/components/GlobalLoading";
 import { BackendHealthCheck } from "@/components/BackendHealthCheck";
 
@@ -146,7 +145,7 @@ const Index = () => {
     <div className="min-h-screen bg-[#050507] overflow-hidden selection:bg-gold/30">
       {/* Background Effects */}
       <div className="fixed inset-0 bg-[url('/stars-pattern.svg')] opacity-20 pointer-events-none" />
-      <div className="fixed inset-0 bg-gradient-to-b from-gold/5 via-transparent to-transparent pointer-events-none" />
+      <div className="fixed inset-0 bg-gradient-to-b from-gold/10 via-transparent to-transparent pointer-events-none" />
 
       <Header
         isLoggedIn={isAuthenticated}
@@ -159,47 +158,59 @@ const Index = () => {
 
       <main className="container mx-auto px-4 pt-28 pb-20 relative">
         
-        {/* ======= RE-DESIGNED HERO SECTION (IMPERIAL STYLE) ======= */}
+        {/* ======= AUTHORIZED IMPERIAL HERO SECTION ======= */}
         <section className="relative text-center mb-16 px-4">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 1 }}
           >
-            {/* Glow effect behind text */}
-            <div className="absolute inset-0 bg-gold/10 blur-[120px] rounded-full -z-10 h-32 w-full max-w-2xl mx-auto" />
+            {/* الخلفية الضوئية لزيادة الفخامة */}
+            <div className="absolute inset-0 bg-gold/10 blur-[130px] rounded-full -z-10 h-40 w-full max-w-3xl mx-auto" />
 
-            <h1 className="relative inline-block mb-6">
-              <span className="text-7xl md:text-9xl font-black tracking-tighter italic uppercase 
-                bg-gradient-to-b from-[#FFFFFF] via-[#FFD700] to-[#B8860B] bg-clip-text text-transparent
-                drop-shadow-[0_15px_30px_rgba(184,134,11,0.4)] leading-none">
-                Spin4<span className="text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.4)]">Pi</span>
+            <h1 className="relative inline-block mb-8">
+              <span className="text-7xl md:text-[115px] font-[1000] tracking-tighter uppercase italic 
+                bg-gradient-to-b from-[#FFFFFF] via-[#FFD700] via-[#D4AF37] to-[#8A6623] bg-clip-text text-transparent
+                drop-shadow-[0_20px_50px_rgba(138,102,35,0.6)] leading-none block">
+                SPIN4<span className="text-white drop-shadow-[0_0_35px_rgba(255,255,255,0.6)]">PI</span>
               </span>
               
-              {/* Decorative line under main title */}
+              {/* سطر التوهج المعدني السفلي */}
               <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: "80%" }}
-                transition={{ delay: 0.5, duration: 1 }}
-                className="absolute -bottom-2 left-1/2 -translate-x-1/2 h-[3px] 
-                bg-gradient-to-r from-transparent via-gold to-transparent opacity-60" 
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ delay: 0.8, duration: 1.5 }}
+                className="h-[1.5px] w-full bg-gradient-to-r from-transparent via-gold to-transparent mt-2 opacity-50" 
               />
             </h1>
 
-            <div className="mt-4 flex flex-col items-center gap-2">
-              <p className="text-lg md:text-xl font-bold tracking-[0.25em] text-white/90 uppercase italic">
-                <span className="text-gold">✦</span> Spin & win <span className="text-gold">Pi rewards</span> instantly <span className="text-gold">✦</span>
+            <div className="mt-6 flex flex-col items-center gap-6">
+              {/* شعار الجذب الرئيسي */}
+              <p className="text-lg md:text-2xl font-black tracking-[0.3em] text-white/95 uppercase italic">
+                <span className="text-gold">✦</span> DOMINATE THE <span className="text-gold">PI ECONOMY</span> <span className="text-gold">✦</span>
               </p>
-              <div className="h-[1px] w-24 bg-gold/20" />
-              <p className="text-[10px] font-medium text-white/40 tracking-[0.5em] uppercase">
-                Imperial Entertainment System
-              </p>
+              
+              {/* المسمى القانوني الإمبراطوري المعتمد */}
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-[1px] bg-gold/30" />
+                  <p className="text-[10px] md:text-[11px] font-black text-gold/70 uppercase tracking-[0.6em] whitespace-nowrap">
+                    THE AUTHORIZED PI NETWORK UTILITY & REWARD PROTOCOL
+                  </p>
+                  <div className="w-10 h-[1px] bg-gold/30" />
+                </div>
+                
+                {/* شارة التحقق القانونية التقنية */}
+                <div className="flex items-center gap-2 px-4 py-1.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-sm">
+                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_#10b981]" />
+                  <span className="text-[9px] font-bold text-white/70 uppercase tracking-[0.2em]">Compliance Verified Utility Interface</span>
+                </div>
+              </div>
             </div>
           </motion.div>
 
-          {/* Daily Tribute Button with matching style */}
           {user && (
-            <div className="mt-10">
+            <div className="mt-12">
               <DailyRewardButton
                 piUsername={user.username}
                 onRewardClaimed={() => fetchWalletData(user.username)}
@@ -208,7 +219,7 @@ const Index = () => {
           )}
         </section>
 
-        {/* Jackpot Counter with more impact */}
+        {/* Jackpot Counter */}
         <div className="mb-16">
           <JackpotCounter amount={jackpot} />
         </div>

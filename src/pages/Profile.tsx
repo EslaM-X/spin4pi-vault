@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Wallet as WalletIcon, Trophy, Loader2, 
-  CheckCircle2, XCircle, ShieldAlert,
+  CheckCircle2, XCircle, 
   History, User, Zap, Share2, Star
 } from "lucide-react";
 import { toast } from "sonner";
@@ -118,32 +118,30 @@ const Profile = () => {
 
   if (loading || walletLoading) return <GlobalLoading isVisible={true} />;
 
-  const canDoFreeSpin = canFreeSpin() && freeSpinCountdown === "Available!";
-  const canDoPaidSpin = wallet.balance >= 0.1;
-
   return (
     <div className="min-h-screen bg-[#050507] text-white selection:bg-gold/30 pb-20">
       {/* Background Decor */}
       <div className="fixed inset-0 bg-[url('/stars-pattern.svg')] opacity-5 pointer-events-none" />
       
-      {/* Main Container - added pt-24 to avoid header overlap */}
-      <div className="container mx-auto px-4 pt-24 relative z-10">
+      {/* تم زيادة pt-28 ليعطي مساحة للهيدر الثابت المشترك */}
+      <div className="container mx-auto px-4 pt-28 relative z-10">
         
-        {/* Profile Header */}
+        {/* Profile Header - تم تعديل عرض الاسم هنا */}
         <div className="flex items-center gap-4 mb-8">
           <Button 
             variant="ghost" 
             size="icon" 
             asChild 
-            className="w-10 h-10 rounded-xl bg-white/5 border border-white/10"
+            className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 shrink-0"
           >
             <Link to="/"><ArrowLeft className="w-5 h-5" /></Link>
           </Button>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <p className="text-[10px] font-black text-gold uppercase tracking-[3px]">Imperial Identity</p>
             <div className="flex items-center gap-3">
-              <User className="text-gold w-6 h-6" />
-              <h1 className="text-2xl font-black italic tracking-tighter uppercase truncate">
+              <User className="text-gold w-6 h-6 shrink-0" />
+              {/* تم إزالة truncate وإضافة break-words لضمان ظهور الاسم كاملاً */}
+              <h1 className="text-xl md:text-2xl font-black italic tracking-tighter uppercase break-words leading-tight">
                 {user?.username}
               </h1>
             </div>
@@ -170,9 +168,8 @@ const Profile = () => {
           )}
         </AnimatePresence>
 
-        {/* Stats Grid - Fixed Layout */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-1 gap-4 mb-8">
-          {/* Balance Card */}
           <Card className="bg-[#0d0d12] border-white/5 rounded-[24px] p-5 shadow-xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-24 h-24 bg-gold/5 blur-2xl rounded-full" />
             <div className="flex items-center gap-4 relative z-10">
@@ -188,7 +185,6 @@ const Profile = () => {
             </div>
           </Card>
 
-          {/* Secondary Stats Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Card className="bg-[#0d0d12] border-white/5 rounded-[24px] p-5 flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10">
@@ -206,7 +202,7 @@ const Profile = () => {
               </div>
               <div className="min-w-0">
                 <p className="text-[9px] font-black text-white/40 uppercase">Imperial Code</p>
-                <p className="text-sm font-black font-mono text-gold uppercase truncate">{wallet.referralCode || "—"}</p>
+                <p className="text-sm font-black font-mono text-gold uppercase break-all">{wallet.referralCode || "—"}</p>
               </div>
             </Card>
 
@@ -222,24 +218,24 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Immediate Action Section */}
+        {/* Action Section */}
         <div className="space-y-6">
           <Card className="bg-[#0d0d12] border-gold/10 rounded-[32px] p-6 shadow-2xl relative overflow-hidden">
-            <h2 className="text-lg font-black italic uppercase tracking-tighter mb-5 flex items-center gap-2">
+            <h2 className="text-lg font-black italic uppercase tracking-tighter mb-5 flex items-center gap-2 text-white">
               <Zap className="text-gold w-5 h-5" /> Immediate Action
             </h2>
             <div className="flex flex-col gap-3">
               <Button 
                 onClick={handleFreeSpin} 
-                disabled={!canDoFreeSpin || isSpinning}
+                disabled={!canFreeSpin() || freeSpinCountdown !== "Available!" || isSpinning}
                 className="w-full h-14 rounded-xl bg-white/5 border border-white/10 hover:bg-gold hover:text-black transition-all font-black uppercase tracking-widest text-[10px]"
               >
-                {isSpinning ? <Loader2 className="animate-spin" /> : canDoFreeSpin ? "🎡 Imperial Free Spin" : `⏰ ${freeSpinCountdown}`}
+                {isSpinning ? <Loader2 className="animate-spin" /> : (freeSpinCountdown === "Available!" ? "🎡 Imperial Free Spin" : `⏰ ${freeSpinCountdown}`)}
               </Button>
               
               <Button 
                 onClick={handlePaidSpin} 
-                disabled={!canDoPaidSpin || isSpinning}
+                disabled={wallet.balance < 0.1 || isSpinning}
                 className="w-full h-14 rounded-xl bg-gradient-to-r from-gold to-[#B8860B] text-black font-black uppercase tracking-widest text-[10px] shadow-lg active:scale-95 transition-all"
               >
                 {isSpinning ? <Loader2 className="animate-spin" /> : `💰 Invest 0.1 π`}
@@ -247,14 +243,13 @@ const Profile = () => {
             </div>
           </Card>
 
-          {/* History & Leaderboard Sections */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
-              <h2 className="text-lg font-black italic uppercase mb-4 flex items-center gap-2 px-2">
+              <h2 className="text-lg font-black italic uppercase mb-4 flex items-center gap-2 px-2 text-white">
                 <History className="text-gold w-5 h-5" /> History
               </h2>
               <div className="space-y-3">
-                {!wallet.recentSpins || wallet.recentSpins.length === 0 ? (
+                {!wallet.recentSpins?.length ? (
                   <div className="p-10 text-center bg-[#0d0d12] rounded-[24px] border border-white/5 text-white/20 font-black uppercase text-[10px]">
                     Vault is empty
                   </div>
@@ -262,13 +257,13 @@ const Profile = () => {
                   wallet.recentSpins.map((spinItem: SpinHistory) => (
                     <div key={spinItem.id} className="bg-[#0d0d12] border border-white/5 p-4 rounded-2xl flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <span className="text-xl">{spinItem.spin_type === "free" ? "🎁" : "💰"}</span>
-                        <div>
-                          <p className="text-[10px] font-black uppercase">{spinItem.result}</p>
+                        <span className="text-xl shrink-0">{spinItem.spin_type === "free" ? "🎁" : "💰"}</span>
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-black uppercase truncate">{spinItem.result}</p>
                           <p className="text-[8px] text-white/30 uppercase">{new Date(spinItem.created_at).toLocaleDateString()}</p>
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right shrink-0">
                         <p className={`font-black text-sm italic ${(spinItem.reward_amount || 0) > 0 ? "text-emerald-500" : "text-red-500"}`}>
                           {(spinItem.reward_amount || 0) > 0 ? "+" : ""}{(spinItem.reward_amount || 0).toFixed(4)} π
                         </p>
@@ -279,18 +274,18 @@ const Profile = () => {
               </div>
             </div>
 
-            <div>
-              <h2 className="text-lg font-black italic uppercase mb-4 flex items-center gap-2 px-2">
+            <div className="hidden lg:block">
+              <h2 className="text-lg font-black italic uppercase mb-4 flex items-center gap-2 px-2 text-white">
                 <Trophy className="text-gold w-5 h-5" /> Leaders
               </h2>
               <div className="bg-[#0d0d12] border border-gold/10 rounded-[24px] overflow-hidden">
                 {leaderboard.map((entry, i) => (
                   <div key={i} className={`p-4 flex items-center justify-between border-b border-white/5 last:border-0 ${i === 0 ? "bg-gold/5" : ""}`}>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       <span className="text-[10px] font-black text-gold/50">{i + 1}</span>
-                      <span className="text-xs font-black uppercase truncate max-w-[100px]">{entry.username}</span>
+                      <span className="text-xs font-black uppercase truncate">{entry.username}</span>
                     </div>
-                    <span className="text-[10px] font-black italic">{entry.totalWinnings.toFixed(2)} π</span>
+                    <span className="text-[10px] font-black italic shrink-0">{entry.totalWinnings.toFixed(2)} π</span>
                   </div>
                 ))}
               </div>

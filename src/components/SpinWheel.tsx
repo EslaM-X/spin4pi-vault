@@ -1,240 +1,175 @@
 import { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { Crown, Sparkles } from "lucide-react";
 
 interface SpinWheelProps {
   onSpinComplete: (result: string) => void;
   isSpinning: boolean;
   setIsSpinning: (spinning: boolean) => void;
-  targetResult?: string | null; // Result from backend to animate to
+  targetResult?: string | null;
 }
 
 const SEGMENTS = [
-  { label: "0.01 π", color: "from-pi-purple to-pi-purple-dark", prize: "0.01_PI", index: 0 },
-  { label: "LOSE", color: "from-muted to-card", prize: "LOSE", index: 1 },
-  { label: "FREE", color: "from-gold to-gold-dark", prize: "FREE_SPIN", index: 2 },
-  { label: "LOSE", color: "from-muted to-card", prize: "LOSE", index: 3 },
-  { label: "0.05 π", color: "from-pi-purple-glow to-pi-purple", prize: "0.05_PI", index: 4 },
-  { label: "LOSE", color: "from-muted to-card", prize: "LOSE", index: 5 },
-  { label: "NFT", color: "from-gold-glow to-gold", prize: "NFT_ENTRY", index: 6 },
-  { label: "JACKPOT", color: "from-secondary to-gold-dark", prize: "JACKPOT_ENTRY", index: 7 },
+  { label: "0.01 π", color: "#9B5DE5", prize: "0.01_PI", index: 0 },
+  { label: "LOSE", color: "#1A1528", prize: "LOSE", index: 1 },
+  { label: "FREE", color: "#F5C542", prize: "FREE_SPIN", index: 2 },
+  { label: "LOSE", color: "#1A1528", prize: "LOSE", index: 3 },
+  { label: "0.05 π", color: "#7D3CF0", prize: "0.05_PI", index: 4 },
+  { label: "LOSE", color: "#1A1528", prize: "LOSE", index: 5 },
+  { label: "NFT", color: "#3B82F6", prize: "NFT_ENTRY", index: 6 },
+  { label: "JACKPOT", color: "#FBBC05", prize: "JACKPOT_ENTRY", index: 7 },
 ];
 
 export function SpinWheel({ onSpinComplete, isSpinning, setIsSpinning, targetResult }: SpinWheelProps) {
   const [rotation, setRotation] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
   const { playSpinSound, playTickSound, playWinSound } = useSoundEffects();
-  const lastSegmentRef = useRef(0);
   const tickIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Handle the spin animation when we receive a target result from backend
   useEffect(() => {
-    if (isSpinning && targetResult && !isAnimating) {
-      setIsAnimating(true);
+    if (isSpinning && targetResult) {
       playSpinSound();
       
-      // Find the target segment index
-      const targetSegment = SEGMENTS.find(s => s.prize === targetResult);
-      const targetIndex = targetSegment?.index ?? 0;
-      
-      // Calculate rotation to land on target segment
-      // Each segment is 45 degrees (360/8)
+      const targetIndex = SEGMENTS.find(s => s.prize === targetResult)?.index ?? 0;
       const segmentAngle = 360 / SEGMENTS.length;
-      // We want the pointer (at top) to point to the middle of the target segment
-      // Segments are drawn starting from -90 degrees (top), going clockwise
-      const targetAngle = targetIndex * segmentAngle;
       
-      // Add multiple full rotations plus the angle to reach target
-      // We spin in the opposite direction of segment index (counter-clockwise visually)
-      const spins = 6 + Math.random() * 2; // 6-8 full spins
-      const finalRotation = rotation + (spins * 360) + (360 - targetAngle);
-      
+      // زيادة عدد اللفات لتبدو أكثر إثارة (10 لفات كاملة)
+      const finalRotation = rotation + (10 * 360) + (360 - (targetIndex * segmentAngle));
       setRotation(finalRotation);
-      
-      // Start tick sounds
-      let tickCount = 0;
-      const maxTicks = 60;
+
+      // تأثير صوت التكتكة مع التباطؤ التدريجي
+      let ticks = 0;
       tickIntervalRef.current = setInterval(() => {
-        tickCount++;
-        // Slow down tick sounds as we approach the end
-        if (tickCount < maxTicks * 0.7) {
-          playTickSound();
-        } else if (tickCount % 3 === 0) {
-          playTickSound();
-        }
-        
-        if (tickCount >= maxTicks) {
-          if (tickIntervalRef.current) {
-            clearInterval(tickIntervalRef.current);
-          }
-        }
-      }, 60);
-      
-      // Complete the spin after animation
+        playTickSound();
+        ticks++;
+        if (ticks > 50) clearInterval(tickIntervalRef.current!);
+      }, 80);
+
       setTimeout(() => {
-        setIsAnimating(false);
-        
-        // Play win sound if it's a winning result
-        if (targetResult && !targetResult.includes('LOSE')) {
-          playWinSound();
-        }
-        
+        if (!targetResult.includes('LOSE')) playWinSound();
         onSpinComplete(targetResult);
+        setIsSpinning(false);
+        if (tickIntervalRef.current) clearInterval(tickIntervalRef.current);
       }, 4500);
     }
-  }, [isSpinning, targetResult, isAnimating, onSpinComplete, playSpinSound, playTickSound, playWinSound, rotation]);
-
-  // Cleanup tick interval
-  useEffect(() => {
-    return () => {
-      if (tickIntervalRef.current) {
-        clearInterval(tickIntervalRef.current);
-      }
-    };
-  }, []);
+  }, [isSpinning, targetResult]);
 
   return (
-    <div className="relative flex flex-col items-center">
-      {/* Outer glow ring */}
-      <div className={`absolute inset-0 -m-8 rounded-full bg-gradient-to-r from-pi-purple via-gold to-pi-purple blur-xl transition-opacity duration-300 ${
-        isSpinning ? 'opacity-60 animate-pulse' : 'opacity-30'
-      }`} />
-      
-      {/* Wheel container */}
+    <div className="relative flex flex-col items-center py-12">
+      {/* تأثير الهالة الخلفية (Ambient Glow) */}
+      <div className={`absolute w-[400px] h-[400px] rounded-full bg-purple-600/20 blur-[100px] transition-all duration-1000 ${isSpinning ? 'scale-150 opacity-100' : 'scale-100 opacity-50'}`} />
+
       <div className="relative">
-        {/* Pointer */}
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20">
+        {/* المؤشر الأسطوري (التاج) */}
+        <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-[100]">
           <motion.div 
-            className="w-0 h-0 border-l-[20px] border-r-[20px] border-t-[30px] border-l-transparent border-r-transparent border-t-gold drop-shadow-lg"
-            animate={isSpinning ? { scale: [1, 1.1, 1] } : {}}
-            transition={{ duration: 0.2, repeat: isSpinning ? Infinity : 0 }}
-          />
+            animate={isSpinning ? { y: [0, 5, 0], scale: [1, 1.1, 1] } : {}}
+            transition={{ repeat: Infinity, duration: 0.2 }}
+            className="flex flex-col items-center"
+          >
+            <Crown className="w-12 h-12 text-[#fbbf24] filter drop-shadow-[0_0_15px_#fbbf24]" />
+            <div className="w-1 h-6 bg-gradient-to-b from-[#fbbf24] to-transparent shadow-[0_0_10px_#fbbf24]" />
+          </motion.div>
         </div>
-        
-        {/* Wheel */}
+
+        {/* المركز الثابت (شعار الإمبراطورية) */}
+        <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
+          <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-[#0a0a0c] border-[6px] border-[#fbbf24] shadow-[0_0_40px_rgba(251,191,36,0.6)] flex items-center justify-center">
+             <div className="relative">
+                <span className="text-5xl md:text-6xl font-serif text-[#fbbf24] drop-shadow-[0_0_10px_rgba(251,191,36,1)]">π</span>
+                {isSpinning && (
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    className="absolute -inset-4 border-2 border-dashed border-purple-500/50 rounded-full"
+                  />
+                )}
+             </div>
+          </div>
+        </div>
+
+        {/* جسم العجلة */}
         <motion.div
-          className="relative w-72 h-72 md:w-80 md:h-80 lg:w-96 lg:h-96 rounded-full border-8 border-gold shadow-2xl overflow-hidden"
+          className="relative w-80 h-80 md:w-[500px] md:h-[500px] rounded-full border-[12px] border-[#1a1a1a] shadow-[0_0_60px_rgba(0,0,0,1)] overflow-hidden"
           animate={{ rotate: rotation }}
-          transition={{ 
-            duration: 4.5, 
-            ease: [0.2, 0.8, 0.2, 1] // Custom easing for realistic spin
-          }}
-          style={{ transformOrigin: "center center" }}
+          transition={{ duration: 4.5, ease: [0.15, 0, 0.15, 1] }}
         >
-          {/* Segments */}
+          {/* طبقة الإطار الذهبي الداخلي */}
+          <div className="absolute inset-0 border-[4px] border-[#fbbf24]/30 rounded-full z-10 pointer-events-none" />
+          
           <svg viewBox="0 0 100 100" className="w-full h-full">
             {SEGMENTS.map((segment, index) => {
               const angle = 360 / SEGMENTS.length;
               const startAngle = index * angle - 90;
               const endAngle = startAngle + angle;
-              
-              const startRad = (startAngle * Math.PI) / 180;
-              const endRad = (endAngle * Math.PI) / 180;
-              
-              const x1 = 50 + 50 * Math.cos(startRad);
-              const y1 = 50 + 50 * Math.sin(startRad);
-              const x2 = 50 + 50 * Math.cos(endRad);
-              const y2 = 50 + 50 * Math.sin(endRad);
-              
-              const largeArc = angle > 180 ? 1 : 0;
-              
-              const pathD = `M 50 50 L ${x1} ${y1} A 50 50 0 ${largeArc} 1 ${x2} ${y2} Z`;
-              
+              const x1 = 50 + 50 * Math.cos((startAngle * Math.PI) / 180);
+              const y1 = 50 + 50 * Math.sin((startAngle * Math.PI) / 180);
+              const x2 = 50 + 50 * Math.cos((endAngle * Math.PI) / 180);
+              const y2 = 50 + 50 * Math.sin((endAngle * Math.PI) / 180);
+
               const midAngle = startAngle + angle / 2;
-              const midRad = (midAngle * Math.PI) / 180;
-              const textX = 50 + 32 * Math.cos(midRad);
-              const textY = 50 + 32 * Math.sin(midRad);
-              
-              const isGold = segment.prize === "JACKPOT_ENTRY" || segment.prize === "FREE_SPIN" || segment.prize === "NFT_ENTRY";
-              const isPurple = segment.prize.includes("PI");
-              
+              const tx = 50 + 36 * Math.cos((midAngle * Math.PI) / 180);
+              const ty = 50 + 36 * Math.sin((midAngle * Math.PI) / 180);
+
               return (
-                <g key={index}>
-                  <defs>
-                    <linearGradient id={`grad-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor={isGold ? "#F5C542" : isPurple ? "#9B5DE5" : "#2D2640"} />
-                      <stop offset="100%" stopColor={isGold ? "#C9A227" : isPurple ? "#7D3CF0" : "#1A1528"} />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d={pathD}
-                    fill={`url(#grad-${index})`}
-                    stroke="hsl(var(--gold))"
-                    strokeWidth="0.5"
+                <g key={index} className="transition-opacity duration-500">
+                  <path 
+                    d={`M 50 50 L ${x1} ${y1} A 50 50 0 0 1 ${x2} ${y2} Z`} 
+                    fill={segment.color}
+                    stroke="#ffffff10"
+                    strokeWidth="0.2"
                   />
-                  <text
-                    x={textX}
-                    y={textY}
-                    fill={isGold || isPurple ? "#0E0B16" : "#F5F5F5"}
-                    fontSize="5"
-                    fontWeight="bold"
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    transform={`rotate(${midAngle + 90}, ${textX}, ${textY})`}
-                    className="font-display"
-                  >
-                    {segment.label}
-                  </text>
+                  <g transform={`rotate(${midAngle + 90}, ${tx}, ${ty})`}>
+                    <text
+                      x={tx} y={ty}
+                      fill="white"
+                      fontSize="3.8"
+                      fontWeight="900"
+                      textAnchor="middle"
+                      className="drop-shadow-md select-none"
+                      style={{ fontFamily: 'Cinzel, serif' }}
+                    >
+                      {segment.label}
+                    </text>
+                  </g>
                 </g>
               );
             })}
-            {/* Center circle */}
-            <circle cx="50" cy="50" r="12" fill="url(#center-grad)" stroke="#F5C542" strokeWidth="2" />
-            <defs>
-              <radialGradient id="center-grad">
-                <stop offset="0%" stopColor="#7D3CF0" />
-                <stop offset="100%" stopColor="#4A1F8C" />
-              </radialGradient>
-            </defs>
-            <text x="50" y="52" fill="#F5C542" fontSize="8" fontWeight="bold" textAnchor="middle" dominantBaseline="middle">π</text>
           </svg>
         </motion.div>
-        
-        {/* Decorative dots around wheel */}
-        <div className="absolute inset-0 -m-4">
-          {[...Array(16)].map((_, i) => (
+
+        {/* مصابيح النيون المحيطة (Outer Bulbs) */}
+        <div className="absolute inset-0 -m-6 pointer-events-none">
+          {[...Array(24)].map((_, i) => (
             <motion.div
               key={i}
-              className={`absolute w-3 h-3 rounded-full ${isSpinning ? 'bg-gold' : 'bg-gold/70'}`}
+              className={`absolute w-3 h-3 rounded-full ${i % 2 === 0 ? 'bg-[#fbbf24]' : 'bg-purple-500'} shadow-[0_0_15px_currentColor]`}
               style={{
-                top: `${50 + 48 * Math.sin((i * 22.5 * Math.PI) / 180)}%`,
-                left: `${50 + 48 * Math.cos((i * 22.5 * Math.PI) / 180)}%`,
+                top: `${50 + 49 * Math.sin((i * 15 * Math.PI) / 180)}%`,
+                left: `${50 + 49 * Math.cos((i * 15 * Math.PI) / 180)}%`,
                 transform: "translate(-50%, -50%)",
               }}
-              animate={isSpinning ? { 
-                scale: [1, 1.3, 1],
-                opacity: [0.7, 1, 0.7]
-              } : {}}
-              transition={{
-                duration: 0.5,
-                repeat: isSpinning ? Infinity : 0,
-                delay: i * 0.05,
-              }}
+              animate={isSpinning ? { opacity: [0.3, 1, 0.3] } : { opacity: 1 }}
+              transition={{ repeat: Infinity, duration: 0.5, delay: i * 0.05 }}
             />
           ))}
         </div>
       </div>
 
-      {/* Status indicator */}
-      <motion.div
-        className="mt-6 text-center"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
-        {isSpinning ? (
-          <motion.p 
-            className="text-lg font-display font-bold text-gold"
-            animate={{ opacity: [1, 0.5, 1] }}
-            transition={{ duration: 0.5, repeat: Infinity }}
+      {/* لوحة الحالة */}
+      <AnimatePresence>
+        {isSpinning && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="mt-12 flex items-center gap-2 px-6 py-2 bg-[#fbbf24]/10 border border-[#fbbf24]/20 rounded-full"
           >
-            Spinning...
-          </motion.p>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Select a spin type below to play
-          </p>
+            <Sparkles className="w-5 h-5 text-[#fbbf24] animate-spin" />
+            <span className="text-xl font-bold text-[#fbbf24] tracking-widest uppercase">Invoking the Luck...</span>
+          </motion.div>
         )}
-      </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

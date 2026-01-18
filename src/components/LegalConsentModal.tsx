@@ -10,104 +10,99 @@ interface LegalModalProps {
 
 export function LegalConsentModal({ isOpenExternal, onClose, onSuccess }: LegalModalProps) {
   const [isOpen, setIsOpen] = useState(false);
-  // مرجع لصوت الفتح (إمبراطوري فخم)
   const openSound = useRef<HTMLAudioElement | null>(null);
   const successSound = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // تحميل الأصوات
-    openSound.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'); // صوت Whoosh فخم
-    successSound.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'); // صوت تأكيد
-    
-    if (openSound.current) openSound.current.volume = 0.4;
-    if (successSound.current) successSound.current.volume = 0.5;
+    // 1. فحص هل المستخدم وافق مسبقاً؟ إذا نعم، لا تفعل شيئاً أبداً
+    const hasConsented = localStorage.getItem('imperial_legal_consent');
+    if (hasConsented && !isOpenExternal) return;
+
+    // تحميل الأصوات فقط إذا كنا سنعرض المودال
+    openSound.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
+    successSound.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3');
+    if (openSound.current) openSound.current.volume = 0.3;
 
     if (isOpenExternal) {
       setIsOpen(true);
-      openSound.current?.play().catch(() => {}); // تشغيل الصوت عند الفتح
+      openSound.current?.play().catch(() => {});
     } else {
-      const hasConsented = localStorage.getItem('imperial_legal_consent');
-      if (!hasConsented) {
-        const timer = setTimeout(() => {
-          setIsOpen(true);
-          openSound.current?.play().catch(() => {});
-        }, 2000);
-        return () => clearTimeout(timer);
-      }
+      // ظهور ناعم بعد تأخير بسيط لتقليل الانزعاج
+      const timer = setTimeout(() => {
+        setIsOpen(true);
+        openSound.current?.play().catch(() => {});
+      }, 1500); 
+      return () => clearTimeout(timer);
     }
   }, [isOpenExternal]);
 
   const handleAccept = () => {
-    successSound.current?.play().catch(() => {}); // صوت تأكيد عند الضغط
+    successSound.current?.play().catch(() => {});
     localStorage.setItem('imperial_legal_consent', 'true');
     
-    // تأخير بسيط لإعطاء مساحة للصوت قبل الإغلاق
+    // إغلاق ناعم وسريع
+    setIsOpen(false);
     setTimeout(() => {
-      setIsOpen(false);
       if (onSuccess) onSuccess();
       if (onClose) onClose();
-    }, 300);
+    }, 200);
   };
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[1000001] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+          {/* Overlay - تعتيم ناعم وليس كلي */}
           <motion.div 
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/90 backdrop-blur-md"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => {/* منع الإغلاق عند الضغط في الخارج لضمان الموافقة */}}
           />
           
           <motion.div
-            initial={{ opacity: 0, scale: 0.8, y: 40, rotateX: 15 }}
-            animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 40 }}
-            transition={{ type: "spring", damping: 20, stiffness: 100 }}
-            className="relative w-full max-w-md bg-[#0d0d12] border border-gold/30 rounded-[32px] overflow-hidden shadow-[0_0_80px_rgba(212,175,55,0.25)]"
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            className="relative w-full max-w-sm bg-[#0d0d12] border border-gold/20 rounded-[24px] overflow-hidden shadow-2xl"
           >
-            {/* Imperial Glow Effect */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1 bg-gradient-to-r from-transparent via-gold to-transparent shadow-[0_0_15px_#D4AF37]" />
-
-            <div className="bg-gradient-to-b from-gold/10 to-transparent p-8 text-center border-b border-white/5">
-              <motion.div 
-                initial={{ scale: 0.5 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: "spring" }}
-                className="w-16 h-16 bg-gold rounded-2xl flex items-center justify-center text-black mx-auto mb-4 shadow-[0_0_30px_rgba(212,175,55,0.4)]"
-              >
-                <ShieldCheck size={32} strokeWidth={2.5} />
-              </motion.div>
-              <h2 className="text-xl font-black text-white uppercase italic tracking-tight">Imperial <span className="text-gold">Protocols</span></h2>
-              <p className="text-[10px] text-gold/60 font-bold tracking-[2px] uppercase mt-1">Compliance & Safety Review</p>
+            {/* الترويسة - فخمة ومختصرة */}
+            <div className="bg-gradient-to-b from-gold/10 to-transparent p-6 text-center">
+              <div className="w-12 h-12 bg-gold/10 border border-gold/20 rounded-xl flex items-center justify-center text-gold mx-auto mb-3">
+                <ShieldCheck size={24} />
+              </div>
+              <h2 className="text-lg font-black text-white uppercase tracking-tighter italic">Imperial <span className="text-gold">Protocols</span></h2>
             </div>
 
-            <div className="p-6 space-y-4">
-              <div className="flex gap-4 items-start bg-white/5 p-4 rounded-2xl border border-white/5 group hover:border-gold/30 transition-colors">
-                <Scale className="text-gold shrink-0" size={20} />
-                <p className="text-[11px] text-white/70 leading-relaxed text-left">
-                  By proceeding, you acknowledge that you have read and agree to the <span className="text-white font-bold">Terms of Service</span> and <span className="text-white font-bold">Privacy Policy</span>.
+            {/* المحتوى - مباشر وأيقوني لسهولة القراءة */}
+            <div className="px-6 pb-6 space-y-3">
+              <div className="flex gap-3 items-start bg-white/[0.03] p-3 rounded-xl border border-white/5">
+                <Scale className="text-gold shrink-0 mt-0.5" size={16} />
+                <p className="text-[10px] text-white/60 leading-tight">
+                  I agree to the <span className="text-gold/80">Terms of Service</span> & <span className="text-gold/80">Privacy Policy</span>.
                 </p>
               </div>
-              <div className="flex gap-4 items-start bg-red-500/5 p-4 rounded-2xl border border-red-500/10">
-                <AlertCircle className="text-red-500 shrink-0" size={20} />
-                <p className="text-[11px] text-red-400/80 leading-relaxed italic uppercase font-bold tracking-tighter text-left">
-                  Entertainment only. No guarantee of profit. All outcomes are randomized and final.
-                </p>
-              </div>
-            </div>
 
-            <div className="p-6 pt-0">
+              <div className="flex gap-3 items-start bg-red-500/5 p-3 rounded-xl border border-red-500/10">
+                <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={16} />
+                <p className="text-[9px] text-red-200/50 leading-tight uppercase font-bold tracking-tighter italic">
+                  Entertainment only. No guarantee of profit. Outcomes are final.
+                </p>
+              </div>
+
+              {/* زر الموافقة - كبير وواضح */}
               <button 
                 onClick={handleAccept} 
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-gold to-[#B8860B] text-black font-black uppercase tracking-[2px] text-xs shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 group relative overflow-hidden"
+                className="w-full mt-2 py-3.5 rounded-xl bg-gradient-to-r from-gold to-[#B8860B] text-black font-black uppercase tracking-[1px] text-[11px] shadow-lg hover:shadow-gold/20 active:scale-95 transition-all flex items-center justify-center gap-2"
               >
-                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                <span className="relative z-10">Accept Imperial Terms</span>
-                <Check size={18} strokeWidth={3} className="relative z-10" />
+                Accept Protocols
+                <Check size={16} strokeWidth={3} />
               </button>
-              <p className="text-[8px] text-center text-white/20 mt-4 uppercase tracking-[3px] font-bold italic">Authorized Pi Utility Interface</p>
+
+              <p className="text-[7px] text-center text-white/20 uppercase tracking-[2px] font-bold">
+                Authorized Pi Utility Interface
+              </p>
             </div>
           </motion.div>
         </div>

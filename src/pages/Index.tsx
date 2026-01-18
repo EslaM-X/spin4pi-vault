@@ -20,7 +20,6 @@ import { VIPStatus } from "@/components/VIPStatus";
 import StakingPanel from "@/components/StakingPanel";
 import PiAdsReward from "@/components/PiAdsReward";
 import GlobalLoading from "@/components/GlobalLoading";
-import JackpotPopup from "@/components/JackpotPopup";
 import { BackendHealthCheck } from "@/components/BackendHealthCheck";
 
 // ======= Hooks =======
@@ -46,7 +45,6 @@ const Index = () => {
     getNextFreeSpinTime,
   } = usePiAuth();
 
-  const { createPayment } = usePiPayment();
   const { jackpot, leaderboard, isLoading: isGameLoading, error: gameError, refreshData } = useGameData();
 
   // ======= Wallet =======
@@ -99,26 +97,19 @@ const Index = () => {
 
   if (isLoading) return <GlobalLoading isVisible={true} />;
 
-  // ======= Mofified Auth Handler =======
   const handleLogin = async () => {
     try {
-      console.log("Initiating Pi Authentication...");
       const result = await authenticate();
-      
       if (result && result.username) {
         localStorage.setItem("pi_username", result.username);
-        
-        // Parallel data fetching for better UX
         await Promise.all([
           applyReferral(result.username, searchParams.get("ref")),
           fetchWalletData(result.username),
           refreshData()
         ]);
-        
         toast.success(`Welcome, ${result.username}!`);
       }
     } catch (error) {
-      console.error("Login sequence failed:", error);
       toast.error("Login failed. Make sure you are in Pi Browser.");
     }
   };
@@ -136,29 +127,26 @@ const Index = () => {
     toast.info("Logged out");
   };
 
-  // ======= Spin Handler =======
   const handleSpinClick = async (spinType: string, cost: number) => {
     if (!isAuthenticated || !user) {
       toast.error("Please login with Pi first");
       return;
     }
-
     if (isSpinning) return;
-
     if (spinType === "free" && !canFreeSpin()) {
       toast.info("Free spin not available yet");
       return;
     }
-
     await spin(spinType, cost);
     refreshData();
     await refreshProfile();
   };
 
   return (
-    <div className="min-h-screen bg-background overflow-hidden">
-      <div className="fixed inset-0 bg-stars opacity-50 pointer-events-none" />
-      <div className="fixed inset-0 bg-gradient-radial from-pi-purple/10 via-transparent to-transparent pointer-events-none" />
+    <div className="min-h-screen bg-[#050507] overflow-hidden selection:bg-gold/30">
+      {/* Background Effects */}
+      <div className="fixed inset-0 bg-[url('/stars-pattern.svg')] opacity-20 pointer-events-none" />
+      <div className="fixed inset-0 bg-gradient-to-b from-gold/5 via-transparent to-transparent pointer-events-none" />
 
       <Header
         isLoggedIn={isAuthenticated}
@@ -169,26 +157,64 @@ const Index = () => {
         isLoading={isAuthLoading}
       />
 
-      <main className="container mx-auto px-4 pt-24 pb-12">
-        <section className="text-center mb-12">
-          <h1 className="text-6xl font-display font-black mb-4">
-            <span className="text-gradient-gold">Spin</span>4
-            <span className="text-gradient-purple">Pi</span>
-          </h1>
-          <p className="text-muted-foreground text-xl">Spin & win Pi rewards instantly!</p>
+      <main className="container mx-auto px-4 pt-28 pb-20 relative">
+        
+        {/* ======= RE-DESIGNED HERO SECTION (IMPERIAL STYLE) ======= */}
+        <section className="relative text-center mb-16 px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            {/* Glow effect behind text */}
+            <div className="absolute inset-0 bg-gold/10 blur-[120px] rounded-full -z-10 h-32 w-full max-w-2xl mx-auto" />
 
+            <h1 className="relative inline-block mb-6">
+              <span className="text-7xl md:text-9xl font-black tracking-tighter italic uppercase 
+                bg-gradient-to-b from-[#FFFFFF] via-[#FFD700] to-[#B8860B] bg-clip-text text-transparent
+                drop-shadow-[0_15px_30px_rgba(184,134,11,0.4)] leading-none">
+                Spin4<span className="text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.4)]">Pi</span>
+              </span>
+              
+              {/* Decorative line under main title */}
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: "80%" }}
+                transition={{ delay: 0.5, duration: 1 }}
+                className="absolute -bottom-2 left-1/2 -translate-x-1/2 h-[3px] 
+                bg-gradient-to-r from-transparent via-gold to-transparent opacity-60" 
+              />
+            </h1>
+
+            <div className="mt-4 flex flex-col items-center gap-2">
+              <p className="text-lg md:text-xl font-bold tracking-[0.25em] text-white/90 uppercase italic">
+                <span className="text-gold">✦</span> Spin & win <span className="text-gold">Pi rewards</span> instantly <span className="text-gold">✦</span>
+              </p>
+              <div className="h-[1px] w-24 bg-gold/20" />
+              <p className="text-[10px] font-medium text-white/40 tracking-[0.5em] uppercase">
+                Imperial Entertainment System
+              </p>
+            </div>
+          </motion.div>
+
+          {/* Daily Tribute Button with matching style */}
           {user && (
-            <DailyRewardButton
-              piUsername={user.username}
-              onRewardClaimed={() => fetchWalletData(user.username)}
-            />
+            <div className="mt-10">
+              <DailyRewardButton
+                piUsername={user.username}
+                onRewardClaimed={() => fetchWalletData(user.username)}
+              />
+            </div>
           )}
         </section>
 
-        <JackpotCounter amount={jackpot} />
+        {/* Jackpot Counter with more impact */}
+        <div className="mb-16">
+          <JackpotCounter amount={jackpot} />
+        </div>
 
-        <div className="flex flex-col lg:flex-row gap-12 my-16 justify-center">
-          <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col lg:flex-row gap-12 my-16 justify-center items-start">
+          <div className="flex flex-col items-center gap-6 sticky top-24">
             <SpinWheel
               isSpinning={isSpinning}
               setIsSpinning={setIsSpinning}
@@ -200,7 +226,7 @@ const Index = () => {
             )}
           </div>
 
-          <div className="flex flex-col gap-6 w-full lg:w-80">
+          <div className="flex flex-col gap-6 w-full lg:w-96">
             <VIPStatus totalSpins={wallet.totalSpins} compact />
             <TournamentPanel
               profileId={profileId}
@@ -230,12 +256,14 @@ const Index = () => {
           </div>
         </div>
 
-        <SpinButtons
-          onSpin={handleSpinClick}
-          disabled={isSpinning}
-          canFreeSpin={canFreeSpin()}
-          freeSpinTimer={freeSpinTimer}
-        />
+        <div className="mt-12 mb-24">
+          <SpinButtons
+            onSpin={handleSpinClick}
+            disabled={isSpinning}
+            canFreeSpin={canFreeSpin()}
+            freeSpinTimer={freeSpinTimer}
+          />
+        </div>
 
         <Features />
       </main>

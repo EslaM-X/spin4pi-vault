@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
 import { FileText, Shield, MessageCircle, Twitter, Globe, Cpu } from "lucide-react";
 import { Link } from "react-router-dom";
+// استيراد الشعار من المسار الذي حددته
+import appLogo from "@/assets/spin4pi-logo.png";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -16,16 +18,12 @@ export function Footer() {
           {/* Brand & Mission */}
           <div className="md:col-span-2 space-y-6">
             <div className="flex items-center gap-3">
-              {/* استبدال التاج بشعار التطبيق */}
-              <div className="w-12 h-12 bg-gold rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(251,191,36,0.3)] overflow-hidden p-1">
+              {/* الحاوية الذهبية للشعار */}
+              <div className="w-12 h-12 bg-gold rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.4)] overflow-hidden p-1">
                 <img 
-                  src="/spin4pi-logo.png" 
+                  src={appLogo} 
                   alt="Spin4Pi Logo" 
                   className="w-full h-full object-contain rounded-lg"
-                  onError={(e) => {
-                    // في حال لم يجد المسار، يضع خلفية بديلة ليظل التصميم سليماً
-                    e.currentTarget.src = "https://api.dicebear.com/7.x/initials/svg?seed=S4P&backgroundColor=fbbf24";
-                  }}
                 />
               </div>
               <h4 className="text-2xl font-black text-white italic uppercase tracking-tighter" style={{ fontFamily: 'Cinzel, serif' }}>
@@ -81,15 +79,14 @@ export function Footer() {
           </div>
         </div>
         
-        {/* Important Disclaimer - crucial for Pi Network compliance */}
+        {/* Important Disclaimer */}
         <div className="p-8 rounded-[2rem] bg-white/[0.02] border border-white/5 relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-1 h-full bg-gold/20 group-hover:bg-gold transition-colors" />
           <p className="text-[10px] text-white/30 text-center leading-loose font-medium uppercase tracking-wider max-w-4xl mx-auto">
             <span className="text-gold/50 font-black block mb-2 tracking-[0.3em]">Imperial Proclamation</span>
             Spin4Pi is a probabilistic entertainment interface. All digital rewards are determined by secure random algorithms. 
             This is <span className="text-white/60">not a gambling service</span>, but a skill and luck-based ecosystem within the Pi Network. 
-            Participation is voluntary. We make no guarantees of financial gain. Digital assets held within this domain 
-            have utility only for internal progression and rewards.
+            Participation is voluntary. We make no guarantees of financial gain.
           </p>
         </div>
         

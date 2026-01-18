@@ -47,7 +47,7 @@ export function Header({
               </div>
             </div>
 
-            {/* 3. User Balance & Auth (Desktop/Header) */}
+            {/* 3. User Balance & Auth */}
             <AnimatePresence mode="wait">
               {isLoggedIn ? (
                 <div className="flex items-center gap-2">
@@ -80,17 +80,18 @@ export function Header({
                   </button>
                 </div>
               ) : (
+                /* تم إرجاع الزر للظهور في كل الشاشات (flex) */
                 <Button 
                   onClick={onLogin} 
                   disabled={isLoading}
-                  className="bg-gold hover:bg-gold/90 text-black font-black uppercase tracking-widest text-[9px] h-9 px-4 rounded-xl hidden md:flex"
+                  className="bg-gold hover:bg-gold/90 text-black font-black uppercase tracking-widest text-[9px] h-9 px-4 rounded-xl flex"
                 >
                   {isLoading ? "..." : "Connect Pi"}
                 </Button>
               )}
             </AnimatePresence>
             
-            {/* 4. Menu - تم تمرير onLogin و isLoading هنا */}
+            {/* 4. Menu */}
             <MobileMenu 
               isLoggedIn={isLoggedIn} 
               onLogin={onLogin} 

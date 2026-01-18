@@ -8,32 +8,39 @@ import { WithdrawModal } from "./WithdrawModal";
 import { MobileMenu } from "./MobileMenu";
 import { PiPriceDisplay } from "./PiPriceDisplay"; 
 import { Button } from "./ui/button";
+import { LegalConsentModal } from "./LegalConsentModal"; // استيراد المودال
 
 export function Header({ isLoggedIn, username, balance, onLogin, onLogout, onDepositSuccess, isLoading }: any) {
   const [showDeposit, setShowDeposit] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
-  
-  // حالة مشتركة لمزامنة السعر والنسبة مع المنيو
+  const [showLegalModal, setShowLegalModal] = useState(false); // حالة فتح المودال القانوني
   const [livePriceData, setLivePriceData] = useState({ price: 0, change: 0 });
+
+  // دالة فحص الموافقة قبل الدخول
+  const handleLoginAttempt = () => {
+    const hasConsented = localStorage.getItem('imperial_legal_consent');
+    if (!hasConsented) {
+      setShowLegalModal(true); // إذا لم يوافق، افتح المودال
+    } else {
+      onLogin(); // إذا وافق، ابدأ الدخول العادي
+    }
+  };
 
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-[100] h-20 flex items-center bg-[#0a0a0c]/90 backdrop-blur-xl border-b border-white/5">
         <div className="container mx-auto px-4 flex items-center justify-between gap-2">
-          
           <Link to="/" className="flex items-center gap-2 flex-shrink-0">
             <img src={logo} alt="Spin4Pi" className="h-9 md:h-11 w-auto" />
           </Link>
           
           <div className="flex items-center gap-2 md:gap-4 flex-1 justify-end">
-            
             <div className="flex items-center px-3 py-1.5 bg-white/[0.03] border border-white/10 rounded-2xl group">
               <div className="flex flex-col">
                 <div className="flex items-center gap-1 leading-none mb-1">
                   <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse" />
                   <span className="text-[7px] font-black text-white/30 uppercase tracking-widest">Live Price</span>
                 </div>
-                {/* نقوم بتحديث الحالة عند جلب بيانات جديدة */}
                 <PiPriceDisplay onDataUpdate={(data) => setLivePriceData({ price: data.price, change: data.change24h })} />
               </div>
             </div>
@@ -43,8 +50,7 @@ export function Header({ isLoggedIn, username, balance, onLogin, onLogout, onDep
                 <div className="flex items-center gap-2">
                   <div className="flex items-center bg-[#13131a] border border-gold/30 rounded-2xl p-1 pr-3 md:pr-4 gap-2 md:gap-3 shadow-xl">
                     <motion.button 
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
+                      whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                       onClick={() => setShowDeposit(true)}
                       className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-gold flex items-center justify-center text-black shadow-lg"
                     >
@@ -61,7 +67,7 @@ export function Header({ isLoggedIn, username, balance, onLogin, onLogout, onDep
                 </div>
               ) : (
                 <Button 
-                  onClick={onLogin} 
+                  onClick={handleLoginAttempt} // استخدام الدالة الجديدة
                   disabled={isLoading}
                   className="bg-gold hover:bg-gold/90 text-black font-black uppercase tracking-widest text-[9px] h-9 px-4 rounded-xl flex"
                 >
@@ -70,10 +76,9 @@ export function Header({ isLoggedIn, username, balance, onLogin, onLogout, onDep
               )}
             </AnimatePresence>
             
-            {/* تمرير بيانات السعر الحقيقية للمنيو */}
             <MobileMenu 
               isLoggedIn={isLoggedIn} 
-              onLogin={onLogin} 
+              onLogin={handleLoginAttempt} // تمرير الدالة الجديدة للمنيو أيضاً
               onLogout={onLogout} 
               balance={balance}
               piPrice={livePriceData.price}
@@ -82,6 +87,13 @@ export function Header({ isLoggedIn, username, balance, onLogin, onLogout, onDep
           </div>
         </div>
       </header>
+
+      {/* مودال الموافقة القانونية */}
+      <LegalConsentModal 
+        isOpenExternal={showLegalModal} 
+        onClose={() => setShowLegalModal(false)} 
+        onSuccess={onLogin} 
+      />
 
       {showDeposit && username && (
         <DepositModal isOpen={showDeposit} onClose={() => setShowDeposit(false)} username={username} onSuccess={onDepositSuccess} />

@@ -18,35 +18,32 @@ import Legal from '@/pages/Legal';
 import Admin from '@/pages/Admin';
 import NotFound from '@/pages/NotFound';
 
-// استيراد نافذة الموافقة القانونية الإمبراطورية
 import { LegalConsentModal } from '@/components/LegalConsentModal';
 
 const queryClient = new QueryClient();
 
 const AppRoutes = () => {
   const location = useLocation();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // اجعلها false افتراضياً لتجنب الوميض
 
   useEffect(() => {
+    // لا تشغل التحميل إذا كنت تنتقل بين صفحات داخلية إلا لو كانت البيانات ضخمة
+    // هذا يحافظ على استقرار حالة الـ Auth
     setLoading(true);
-
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 1000); // Simulate data fetching delay
+    }, 500); // تقليل المدة ليكون الانتقال أسلس
 
     return () => clearTimeout(timer);
   }, [location.pathname]);
 
   return (
     <>
-      {/* 1. نافذة الموافقة تظهر فوق كل شيء عند الحاجة */}
       <LegalConsentModal />
-
-      {/* 2. تأثير التحميل العام */}
       <GlobalLoading isVisible={loading} />
 
-      {/* 3. نظام الروابط */}
-      <Routes location={location} key={location.pathname}>
+      {/* حذفت key={location.pathname} من هنا لحل مشكلة تسجيل الخروج */}
+      <Routes location={location}>
         <Route path="/" element={<Index />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/marketplace" element={<Marketplace />} />

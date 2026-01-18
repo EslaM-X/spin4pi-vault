@@ -137,13 +137,13 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
           {/* 5. الأزرار السفلية (تسجيل دخول أو خروج) */}
           <div className="mt-auto pt-4">
             {!isLoggedIn ? (
-              /* زر Connect Pi يظهر فقط إذا لم يسجل دخول */
+              /* زر Connect With Pi يظهر فقط إذا لم يسجل دخول */
               <button 
                 onClick={() => { onLogin?.(); setIsOpen(false); }}
                 className="w-full py-4 rounded-2xl bg-gradient-to-r from-gold to-[#B8860B] text-black text-xs font-black uppercase tracking-[2px] shadow-[0_0_20px_rgba(212,175,55,0.3)] flex items-center justify-center gap-2 active:scale-95 transition-all"
               >
                 <LogIn size={18} />
-                Connect Pi Wallet
+                Connect With Pi
               </button>
             ) : (
               /* زر تسجيل الخروج يظهر فقط إذا كان مسجلاً */

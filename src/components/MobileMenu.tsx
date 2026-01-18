@@ -11,7 +11,6 @@ import {
 import logoIcon from "@/assets/spin4pi-logo.png";
 import piNetworkLogo from "@/assets/pinetwork.jpg";
 
-// أضفنا piPrice و piChange للـ props
 export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", piPrice = 0, piChange = 0 }: any) {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
@@ -45,6 +44,7 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
           padding: '20px',
           overflowY: 'auto'
         }}>
+          {/* Header Section */}
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-3">
               <img src={logoIcon} className="w-10 h-10 object-contain" alt="Logo" />
@@ -60,7 +60,7 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
             </button>
           </div>
 
-          {/* 1. Live Market - مرتبط الآن ببيانات الهيدر الحقيقية */}
+          {/* Live Market */}
           <div className="bg-[#13131a] border border-gold/10 rounded-2xl p-4 mb-4 flex justify-between items-center">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full overflow-hidden border border-gold/30">
@@ -127,7 +127,7 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
           <div className="mt-auto pt-4">
             {!isLoggedIn ? (
               <button 
-                onClick={() => { onLogin?.(); setIsOpen(false); }}
+                onClick={() => { onLogin?.(); setIsOpen(false); }} // هنا سيستدعي دالة الفحص من الهيدر
                 className="w-full py-4 rounded-2xl bg-gradient-to-r from-gold to-[#B8860B] text-black text-xs font-black uppercase tracking-[2px] shadow-[0_0_20px_rgba(212,175,55,0.3)] flex items-center justify-center gap-2 active:scale-95 transition-all"
               >
                 <LogIn size={18} />

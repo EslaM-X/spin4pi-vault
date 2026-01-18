@@ -4,14 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { 
   X, LayoutGrid, Trophy, Crown, 
   UserCircle, Shield, ShoppingCart, 
-  Medal, Wallet, TrendingUp, ChevronRight 
+  Medal, Wallet, TrendingUp, ChevronRight,
+  LogIn
 } from 'lucide-react';
 
-// استيراد الشعارات من المسارات التي ذكرتها
+// استيراد الشعارات
 import logoIcon from "@/assets/spin4pi-logo.png";
 import piNetworkLogo from "@/assets/pinetwork.jpg";
 
-export function MobileMenu({ isLoggedIn, onLogout, balance = "0.00", piPrice = "0.20" }: any) {
+export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", piPrice = "0.20" }: any) {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -62,7 +63,7 @@ export function MobileMenu({ isLoggedIn, onLogout, balance = "0.00", piPrice = "
             </button>
           </div>
 
-          {/* Live Market - استخدام شعار pinetwork.jpg */}
+          {/* 1. Live Market - يظهر دائماً */}
           <div className="bg-[#13131a] border border-gold/10 rounded-2xl p-4 mb-4 flex justify-between items-center">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full overflow-hidden border border-gold/30">
@@ -79,7 +80,7 @@ export function MobileMenu({ isLoggedIn, onLogout, balance = "0.00", piPrice = "
             </div>
           </div>
 
-          {/* Available Pi Card - إصلاح مشكلة الظهور الكامل */}
+          {/* 2. Available Pi - يظهر فقط للمسجلين */}
           {isLoggedIn && (
             <div className="bg-[#13131a] border border-gold/40 rounded-[28px] p-5 mb-6 flex items-center gap-4 relative shadow-2xl">
               <div className="w-12 h-12 bg-gold rounded-xl flex items-center justify-center text-black shrink-0">
@@ -91,49 +92,69 @@ export function MobileMenu({ isLoggedIn, onLogout, balance = "0.00", piPrice = "
                   {balance} <span className="text-sm text-gold">π</span>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/20 shrink-0">
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                <span className="text-[8px] font-bold text-emerald-500 uppercase tracking-tighter">Secure</span>
-              </div>
             </div>
           )}
 
-          {/* Quick Actions Grid */}
+          {/* 3. Grid Actions - التحكم فيما يظهر بناءً على حالة الدخول */}
           <div className="grid grid-cols-2 gap-3 mb-6">
             <button onClick={() => handleNav('/')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10">
               <LayoutGrid size={20} className="text-gold" />
               <span className="text-[10px] font-bold text-white/70 uppercase">Arena</span>
             </button>
-            <button onClick={() => handleNav('/leaderboard')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10">
-              <Trophy size={20} className="text-gold" />
-              <span className="text-[10px] font-bold text-white/70 uppercase">Rankings</span>
-            </button>
-            <button onClick={() => handleNav('/vip-benefits')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10">
-              <Crown size={20} className="text-gold" />
-              <span className="text-[10px] font-bold text-white/70 uppercase">VIP Vault</span>
-            </button>
+
+            {/* العناصر التي تختفي إذا لم يسجل دخول */}
+            {isLoggedIn && (
+              <>
+                <button onClick={() => handleNav('/leaderboard')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10">
+                  <Trophy size={20} className="text-gold" />
+                  <span className="text-[10px] font-bold text-white/70 uppercase">Rankings</span>
+                </button>
+                <button onClick={() => handleNav('/vip-benefits')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10">
+                  <Crown size={20} className="text-gold" />
+                  <span className="text-[10px] font-bold text-white/70 uppercase">VIP Vault</span>
+                </button>
+              </>
+            )}
+
             <button onClick={() => handleNav('/profile')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10">
               <UserCircle size={20} className="text-gold" />
               <span className="text-[10px] font-bold text-white/70 uppercase">Account</span>
             </button>
           </div>
 
-          {/* List Options */}
+          {/* 4. List Options */}
           <div className="space-y-2 mb-8">
-            <MenuLink icon={<Medal size={18} />} label="Imperial Achievements" onClick={() => handleNav('/achievements')} />
-            <MenuLink icon={<ShoppingCart size={18} />} label="Marketplace" onClick={() => handleNav('/marketplace')} />
+            {isLoggedIn && (
+              <>
+                <MenuLink icon={<Medal size={18} />} label="Imperial Achievements" onClick={() => handleNav('/achievements')} />
+                <MenuLink icon={<ShoppingCart size={18} />} label="Marketplace" onClick={() => handleNav('/marketplace')} />
+              </>
+            )}
+            {/* يظهر دائماً */}
             <MenuLink icon={<Shield size={18} />} label="Security & Legal" onClick={() => handleNav('/legal')} />
           </div>
 
-          {/* Logout Button - تم توضيحه بشكل كامل */}
-          {isLoggedIn && (
-            <button 
-              onClick={() => { onLogout?.(); setIsOpen(false); }}
-              className="mt-auto w-full py-4 rounded-2xl bg-red-500/10 border border-red-500/40 text-red-500 text-xs font-black uppercase tracking-[2px] shadow-lg active:scale-95 transition-all"
-            >
-              LOGOUT SYSTEM
-            </button>
-          )}
+          {/* 5. الأزرار السفلية (تسجيل دخول أو خروج) */}
+          <div className="mt-auto pt-4">
+            {!isLoggedIn ? (
+              /* زر Connect Pi يظهر فقط إذا لم يسجل دخول */
+              <button 
+                onClick={() => { onLogin?.(); setIsOpen(false); }}
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-gold to-[#B8860B] text-black text-xs font-black uppercase tracking-[2px] shadow-[0_0_20px_rgba(212,175,55,0.3)] flex items-center justify-center gap-2 active:scale-95 transition-all"
+              >
+                <LogIn size={18} />
+                Connect Pi Wallet
+              </button>
+            ) : (
+              /* زر تسجيل الخروج يظهر فقط إذا كان مسجلاً */
+              <button 
+                onClick={() => { onLogout?.(); setIsOpen(false); }}
+                className="w-full py-4 rounded-2xl bg-red-500/10 border border-red-500/40 text-red-500 text-xs font-black uppercase tracking-[2px] shadow-lg active:scale-95 transition-all"
+              >
+                LOGOUT SYSTEM
+              </button>
+            )}
+          </div>
         </div>,
         document.body
       )}

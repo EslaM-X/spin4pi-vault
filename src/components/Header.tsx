@@ -9,7 +9,16 @@ import { MobileMenu } from "./MobileMenu";
 import { PiPriceDisplay } from "./PiPriceDisplay"; 
 import { Button } from "./ui/button";
 
-export function Header({ isLoggedIn, username, balance, onLogin, onLogout, onDepositSuccess, isLoading, isAdmin = false }: any) {
+export function Header({ 
+  isLoggedIn, 
+  username, 
+  balance, 
+  onLogin, 
+  onLogout, 
+  onDepositSuccess, 
+  isLoading, 
+  isAdmin = false 
+}: any) {
   const [showDeposit, setShowDeposit] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
 
@@ -25,25 +34,23 @@ export function Header({ isLoggedIn, username, balance, onLogin, onLogout, onDep
           
           <div className="flex items-center gap-2 md:gap-4 flex-1 justify-end">
             
-            {/* 2. Pi Market Price - تم حذف الدائرة الصفراء وتصغير الحاوية */}
+            {/* 2. Pi Market Price */}
             <div className="flex items-center px-3 py-1.5 bg-white/[0.03] border border-white/10 rounded-2xl group">
               <div className="flex flex-col">
                 <div className="flex items-center gap-1 leading-none mb-1">
                   <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse" />
                   <span className="text-[7px] font-black text-white/30 uppercase tracking-widest">Live Price</span>
                 </div>
-                {/* السعر المباشر يظهر هنا */}
                 <div className="text-[11px] md:text-xs font-bold text-white tracking-tighter leading-none">
                   <PiPriceDisplay />
                 </div>
               </div>
             </div>
 
-            {/* 3. User Balance & Auth */}
+            {/* 3. User Balance & Auth (Desktop/Header) */}
             <AnimatePresence mode="wait">
               {isLoggedIn ? (
                 <div className="flex items-center gap-2">
-                  {/* Pi Balance Capsule */}
                   <div className="flex items-center bg-[#13131a] border border-gold/30 rounded-2xl p-1 pr-3 md:pr-4 gap-2 md:gap-3 shadow-xl">
                     <motion.button 
                       whileHover={{ scale: 1.05 }}
@@ -65,7 +72,6 @@ export function Header({ isLoggedIn, username, balance, onLogin, onLogout, onDep
                     </div>
                   </div>
 
-                  {/* Withdraw Button (Desktop) */}
                   <button 
                     onClick={() => setShowWithdraw(true)}
                     className="hidden lg:block text-[9px] font-black uppercase text-white/40 hover:text-white transition-colors px-2"
@@ -77,15 +83,21 @@ export function Header({ isLoggedIn, username, balance, onLogin, onLogout, onDep
                 <Button 
                   onClick={onLogin} 
                   disabled={isLoading}
-                  className="bg-gold hover:bg-gold/90 text-black font-black uppercase tracking-widest text-[9px] h-9 px-4 rounded-xl"
+                  className="bg-gold hover:bg-gold/90 text-black font-black uppercase tracking-widest text-[9px] h-9 px-4 rounded-xl hidden md:flex"
                 >
                   {isLoading ? "..." : "Connect Pi"}
                 </Button>
               )}
             </AnimatePresence>
             
-            {/* 4. Menu */}
-            <MobileMenu isLoggedIn={isLoggedIn} onLogout={onLogout} />
+            {/* 4. Menu - تم تمرير onLogin و isLoading هنا */}
+            <MobileMenu 
+              isLoggedIn={isLoggedIn} 
+              onLogin={onLogin} 
+              onLogout={onLogout} 
+              balance={balance}
+              isLoading={isLoading} 
+            />
           </div>
         </div>
       </header>

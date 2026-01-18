@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { 
   X, LayoutGrid, Trophy, Crown, 
@@ -15,9 +14,13 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
 
+  // تعديل: دالة التنقل الآن تغلق المنيو أولاً ثم تنتقل
   const handleNav = (path: string) => {
-    navigate(path);
     setIsOpen(false);
+    // إضافة تأخير بسيط جداً لضمان انغلاق الواجهة قبل الانتقال
+    setTimeout(() => {
+      navigate(path);
+    }, 10);
   };
 
   const isPositive = piChange >= 0;
@@ -33,17 +36,9 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
         <div className="w-5 h-[2px] bg-gold rounded-full" />
       </button>
 
-      {isOpen && createPortal(
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(5, 5, 7, 0.98)',
-          zIndex: 1000000,
-          display: 'flex',
-          flexDirection: 'column',
-          padding: '20px',
-          overflowY: 'auto'
-        }}>
+      {/* تم إزالة الـ createPortal واستبداله بـ div عادي بـ z-index عالي */}
+      {isOpen && (
+        <div className="fixed inset-0 bg-[#050507] z-[999999] flex flex-col p-5 overflow-y-auto">
           {/* Header Section */}
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-3">
@@ -60,7 +55,7 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
             </button>
           </div>
 
-          {/* Live Market */}
+          {/* Market Data */}
           <div className="bg-[#13131a] border border-gold/10 rounded-2xl p-4 mb-4 flex justify-between items-center">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full overflow-hidden border border-gold/30">
@@ -78,7 +73,7 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
           </div>
 
           {isLoggedIn && (
-            <div className="bg-[#13131a] border border-gold/40 rounded-[28px] p-5 mb-6 flex items-center gap-4 relative shadow-2xl">
+            <div className="bg-[#13131a] border border-gold/40 rounded-[28px] p-5 mb-6 flex items-center gap-4 shadow-2xl">
               <div className="w-12 h-12 bg-gold rounded-xl flex items-center justify-center text-black shrink-0">
                 <Wallet size={24} />
               </div>
@@ -98,12 +93,10 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
             </button>
             {isLoggedIn && (
               <>
-                {/* تم تعديل المسار من /leaderboard إلى /achievements ليتوافق مع App.tsx */}
                 <button onClick={() => handleNav('/achievements')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10">
                   <Trophy size={20} className="text-gold" />
                   <span className="text-[10px] font-bold text-white/70 uppercase">Rankings</span>
                 </button>
-                {/* تم تعديل المسار من /vip-benefits إلى /vip ليتوافق مع App.tsx */}
                 <button onClick={() => handleNav('/vip')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10">
                   <Crown size={20} className="text-gold" />
                   <span className="text-[10px] font-bold text-white/70 uppercase">VIP Vault</span>
@@ -121,7 +114,6 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
               <>
                 <MenuLink icon={<Medal size={18} />} label="Imperial Achievements" onClick={() => handleNav('/achievements')} />
                 <MenuLink icon={<ShoppingCart size={18} />} label="Marketplace" onClick={() => handleNav('/marketplace')} />
-                {/* إضافة رابط سجل السحوبات المفقود ليتوافق مع App.tsx */}
                 <MenuLink icon={<Wallet size={18} />} label="Withdrawal History" onClick={() => handleNav('/withdrawals')} />
               </>
             )}
@@ -132,7 +124,7 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
             {!isLoggedIn ? (
               <button 
                 onClick={() => { onLogin?.(); setIsOpen(false); }}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-gold to-[#B8860B] text-black text-xs font-black uppercase tracking-[2px] shadow-[0_0_20px_rgba(212,175,55,0.3)] flex items-center justify-center gap-2 active:scale-95 transition-all"
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-gold to-[#B8860B] text-black text-xs font-black uppercase tracking-[2px] flex items-center justify-center gap-2 active:scale-95 transition-all"
               >
                 <LogIn size={18} />
                 Connect With Pi
@@ -140,14 +132,13 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
             ) : (
               <button 
                 onClick={() => { onLogout?.(); setIsOpen(false); }}
-                className="w-full py-4 rounded-2xl bg-red-500/10 border border-red-500/40 text-red-500 text-xs font-black uppercase tracking-[2px] shadow-lg active:scale-95 transition-all"
+                className="w-full py-4 rounded-2xl bg-red-500/10 border border-red-500/40 text-red-500 text-xs font-black uppercase tracking-[2px] active:scale-95 transition-all"
               >
                 LOGOUT SYSTEM
               </button>
             )}
           </div>
-        </div>,
-        document.body
+        </div>
       )}
     </>
   );

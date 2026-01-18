@@ -1,259 +1,141 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Gift, Loader2, CheckCircle2, AlertCircle, Tv } from "lucide-react";
+import { Play, Gift, Zap, Clock, Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-interface AdSpinRewardProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSpinEarned: () => void;
-  piUsername: string;
-}
-
-// Minimum ads to watch for a free spin (ensures ad revenue > spin cost)
-const MIN_ADS_REQUIRED = 3;
-const S4P_PER_AD = 10;
-
-export function AdSpinReward({ isOpen, onClose, onSpinEarned, piUsername }: AdSpinRewardProps) {
+export function AdSpinReward({ isOpen, onClose, onSpinEarned, piUsername }: any) {
   const [adsWatched, setAdsWatched] = useState(0);
   const [isWatchingAd, setIsWatchingAd] = useState(false);
-  const [isClaiming, setIsClaiming] = useState(false);
-  const [claimSuccess, setClaimSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [adProgress, setAdProgress] = useState(0);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [isChecking, setIsChecking] = useState(true);
 
-  const canClaim = adsWatched >= MIN_ADS_REQUIRED;
-  const s4pReward = adsWatched * S4P_PER_AD;
+  const ADS_NEEDED = 2;
 
-  // Reset state when modal opens
   useEffect(() => {
-    if (isOpen) {
-      setAdsWatched(0);
-      setClaimSuccess(false);
-      setError(null);
+    if (isOpen && piUsername) {
+      checkUserCooldown();
     }
-  }, [isOpen]);
+  }, [isOpen, piUsername]);
 
-  const watchAd = useCallback(async () => {
-    setIsWatchingAd(true);
-    setAdProgress(0);
-    setError(null);
-
+  // التحقق من قاعدة البيانات عن آخر موعد للمطالبة
+  const checkUserCooldown = async () => {
+    setIsChecking(true);
     try {
-      // Try to use Pi Ads SDK if available
-      if (typeof window !== 'undefined' && (window as any).PiAds?.showRewardedAd) {
-        const result = await (window as any).PiAds.showRewardedAd();
-        if (result?.completed) {
-          setAdsWatched(prev => prev + 1);
-          toast.success("إعلان مكتمل!", { description: `+${S4P_PER_AD} S4P` });
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('last_ad_spin_date')
+        .eq('pi_username', piUsername)
+        .single();
+
+      if (data?.last_ad_spin_date) {
+        const lastDate = new Date(data.last_ad_spin_date).getTime();
+        const now = new Date().getTime();
+        const diff = now - lastDate;
+        const cooldown = 24 * 60 * 60 * 1000;
+
+        if (diff < cooldown) {
+          setTimeLeft(cooldown - diff);
+        } else {
+          setTimeLeft(null);
         }
-      } else {
-        // Simulate ad watching with progress
-        const duration = 5000; // 5 seconds per ad
-        const interval = 100;
-        const steps = duration / interval;
-        let currentStep = 0;
-
-        await new Promise<void>((resolve) => {
-          const timer = setInterval(() => {
-            currentStep++;
-            setAdProgress((currentStep / steps) * 100);
-            if (currentStep >= steps) {
-              clearInterval(timer);
-              resolve();
-            }
-          }, interval);
-        });
-
-        setAdsWatched(prev => prev + 1);
-        toast.success("إعلان مكتمل!", { description: `+${S4P_PER_AD} S4P` });
       }
     } catch (err) {
-      console.error('Ad error:', err);
-      setError("فشل تحميل الإعلان. حاول مرة أخرى.");
+      console.error("Error checking cooldown", err);
     } finally {
-      setIsWatchingAd(false);
-      setAdProgress(0);
-    }
-  }, []);
-
-  const claimFreeSpin = async () => {
-    if (!canClaim || isClaiming) return;
-
-    setIsClaiming(true);
-    setError(null);
-
-    try {
-      const { data, error: claimError } = await supabase.functions.invoke('claim-ad-spin', {
-        body: { pi_username: piUsername, ads_watched: adsWatched }
-      });
-
-      if (claimError) {
-        throw new Error(claimError.message);
-      }
-
-      if (data?.error) {
-        throw new Error(data.error);
-      }
-
-      setClaimSuccess(true);
-      toast.success("🎉 حصلت على لفة مجانية!", {
-        description: `+${s4pReward} S4P tokens`
-      });
-
-      setTimeout(() => {
-        onSpinEarned();
-        onClose();
-      }, 1500);
-
-    } catch (err: any) {
-      console.error('Claim error:', err);
-      setError(err.message || "فشل المطالبة. حاول مرة أخرى.");
-    } finally {
-      setIsClaiming(false);
+      setIsChecking(false);
     }
   };
 
+  const handleWatchAd = async () => {
+    // هنا نقوم باستدعاء Pi Ads SDK الحقيقي
+    // Pi.Ads.showRewardedAd()...
+    
+    setIsWatchingAd(true);
+    
+    // محاكاة وقت الإعلان
+    setTimeout(() => {
+      setIsWatchingAd(false);
+      const newCount = adsWatched + 1;
+      setAdsWatched(newCount);
+
+      if (newCount >= ADS_NEEDED) {
+        completeReward();
+      } else {
+        toast.info("إعلان واحد متبقي للحصول على الجائزة!");
+      }
+    }, 4000); 
+  };
+
+  const completeReward = async () => {
+    try {
+      // تحديث قاعدة البيانات بالوقت الحالي
+      await supabase
+        .from('profiles')
+        .update({ last_ad_spin_date: new Date().toISOString() })
+        .eq('pi_username', piUsername);
+
+      onSpinEarned(); // إضافة اللفة للمستخدم
+      toast.success("تم شحن الطاقة! حصلت على لفة مجانية");
+      onClose();
+    } catch (err) {
+      toast.error("حدث خطأ أثناء تحديث البيانات");
+    }
+  };
+
+  // تنسيق الوقت للعداد التنازلي
+  const formatTime = (ms: number) => {
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    const s = Math.floor((ms % 60000) / 1000);
+    return `${h}h ${m}m ${s}s`;
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="bg-gradient-to-br from-card via-card to-primary/5 border-primary/20 max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl font-display">
-            <Tv className="w-6 h-6 text-gold" />
-            شاهد إعلانات واحصل على لفة مجانية
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-6 py-4">
-          {/* Progress indicator */}
-          <div className="text-center">
-            <div className="flex justify-center gap-2 mb-3">
-              {Array.from({ length: MIN_ADS_REQUIRED }).map((_, i) => (
-                <motion.div
-                  key={i}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    i < adsWatched 
-                      ? 'bg-green-500 text-white' 
-                      : 'bg-muted text-muted-foreground'
-                  }`}
-                  initial={false}
-                  animate={{ scale: i < adsWatched ? [1, 1.2, 1] : 1 }}
-                >
-                  {i < adsWatched ? <CheckCircle2 className="w-5 h-5" /> : i + 1}
-                </motion.div>
-              ))}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {adsWatched}/{MIN_ADS_REQUIRED} إعلانات تمت مشاهدتها
-            </p>
-          </div>
-
-          {/* S4P reward info */}
-          <div className="bg-gradient-to-r from-gold/10 to-amber-500/10 border border-gold/20 rounded-lg p-3 text-center">
-            <div className="flex items-center justify-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center">
-                <span className="text-[8px] font-bold text-background">S4P</span>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-[#0d0d12] border-gold/20 max-w-sm rounded-[2.5rem] p-8 overflow-hidden">
+        <AnimatePresence mode="wait">
+          {isChecking ? (
+            <div className="py-10 flex justify-center"><Loader2 className="animate-spin text-gold" /></div>
+          ) : timeLeft ? (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center space-y-6">
+              <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto border border-white/10">
+                <Lock className="w-10 h-10 text-white/20" />
               </div>
-              <span className="text-lg font-bold text-gold">+{s4pReward} S4P</span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">مكافأة رموز S4P</p>
-          </div>
-
-          {/* Ad watching area */}
-          <AnimatePresence mode="wait">
-            {claimSuccess ? (
-              <motion.div
-                key="success"
-                className="text-center py-8"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <motion.div
-                  className="w-20 h-20 mx-auto bg-green-500 rounded-full flex items-center justify-center mb-4"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: [0, 1.2, 1] }}
-                >
-                  <Gift className="w-10 h-10 text-white" />
-                </motion.div>
-                <h3 className="text-xl font-bold text-green-500">تم!</h3>
-                <p className="text-muted-foreground">اللفة المجانية جاهزة</p>
-              </motion.div>
-            ) : isWatchingAd ? (
-              <motion.div
-                key="watching"
-                className="text-center py-6"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                  <Play className="w-8 h-8 text-primary animate-pulse" />
-                </div>
-                <p className="text-sm text-muted-foreground mb-2">جاري مشاهدة الإعلان...</p>
-                <Progress value={adProgress} className="h-2" />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="watch"
-                className="space-y-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                {!canClaim && (
-                  <Button
-                    onClick={watchAd}
-                    className="w-full bg-gradient-to-r from-pi-purple to-gold hover:opacity-90"
-                    size="lg"
-                  >
-                    <Play className="w-5 h-5 mr-2" />
-                    شاهد إعلان ({adsWatched + 1}/{MIN_ADS_REQUIRED})
-                  </Button>
-                )}
-
-                {canClaim && (
-                  <Button
-                    onClick={claimFreeSpin}
-                    disabled={isClaiming}
-                    className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:opacity-90"
-                    size="lg"
-                  >
-                    {isClaiming ? (
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    ) : (
-                      <Gift className="w-5 h-5 mr-2" />
-                    )}
-                    احصل على اللفة المجانية!
-                  </Button>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Error message */}
-          {error && (
-            <motion.div
-              className="flex items-center gap-2 text-destructive text-sm"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <AlertCircle className="w-4 h-4" />
-              {error}
+              <h3 className="text-xl font-black text-white italic">RECHARGE IN PROGRESS</h3>
+              <div className="bg-gold/10 border border-gold/20 p-4 rounded-2xl">
+                <span className="text-2xl font-black text-gold font-mono">{formatTime(timeLeft)}</span>
+              </div>
+              <p className="text-[10px] text-white/30 uppercase tracking-[0.2em]">Next broadcast available after cooldown</p>
             </motion.div>
-          )}
+          ) : (
+            <div className="text-center space-y-8">
+              <div className="relative mx-auto w-20 h-20 bg-gold rounded-3xl flex items-center justify-center shadow-lg rotate-3">
+                <Zap className="w-10 h-10 text-black fill-black" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-white italic uppercase">Power Station</h2>
+                <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest mt-2">Watch 2 ads for 1 Free Spin</p>
+              </div>
+              
+              <div className="flex justify-center gap-4">
+                {[...Array(ADS_NEEDED)].map((_, i) => (
+                  <div key={i} className={`w-4 h-4 rounded-full border-2 ${i < adsWatched ? 'bg-gold border-gold' : 'border-white/20'}`} />
+                ))}
+              </div>
 
-          {/* Info text */}
-          <p className="text-xs text-center text-muted-foreground">
-            شاهد {MIN_ADS_REQUIRED} إعلانات للحصول على لفة مجانية إضافية يومياً.
-            <br />
-            متاحة مرة واحدة يومياً فقط.
-          </p>
-        </div>
+              <Button 
+                onClick={handleWatchAd}
+                disabled={isWatchingAd}
+                className="w-full py-8 bg-gold hover:bg-gold-dark text-black font-black rounded-2xl text-lg transition-transform active:scale-95"
+              >
+                {isWatchingAd ? "WATCHING..." : `START BROADCAST ${adsWatched + 1}`}
+              </Button>
+            </div>
+          )}
+        </AnimatePresence>
       </DialogContent>
     </Dialog>
   );

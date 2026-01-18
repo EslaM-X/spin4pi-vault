@@ -1,11 +1,22 @@
 import { motion } from "framer-motion";
-import { FileText, Shield, MessageCircle, Twitter, Globe, Cpu } from "lucide-react";
+import { FileText, Shield, Cpu } from "lucide-react";
 import { Link } from "react-router-dom";
-// استيراد الشعار من المسار الذي حددته
+// استيراد الشعار من المسار الخاص بك
 import appLogo from "@/assets/spin4pi-logo.png";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
+
+  // أيقونة X بتنسيق SVG لضمان الدقة العالية والحداثة
+  const XIcon = () => (
+    <svg 
+      viewBox="0 0 24 24" 
+      aria-hidden="true" 
+      className="w-5 h-5 fill-current"
+    >
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
+    </svg>
+  );
 
   return (
     <footer className="mt-32 relative border-t border-gold/10 bg-[#08080c]">
@@ -18,7 +29,6 @@ export function Footer() {
           {/* Brand & Mission */}
           <div className="md:col-span-2 space-y-6">
             <div className="flex items-center gap-3">
-              {/* الحاوية الذهبية للشعار */}
               <div className="w-12 h-12 bg-gold rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.4)] overflow-hidden p-1">
                 <img 
                   src={appLogo} 
@@ -56,30 +66,25 @@ export function Footer() {
             </ul>
           </div>
           
-          {/* Social Command Center */}
+          {/* Social Command Center - تم تعديله ليكون زر X فقط */}
           <div>
             <h4 className="text-gold font-black uppercase tracking-[0.2em] text-xs mb-6">Social Command</h4>
             <div className="flex gap-4">
-              {[
-                { icon: MessageCircle, href: "#" },
-                { icon: Twitter, href: "#" },
-                { icon: Globe, href: "#" }
-              ].map((social, i) => (
-                <motion.a
-                  key={i}
-                  href={social.href}
-                  className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center hover:bg-gold hover:text-black transition-all duration-300"
-                  whileHover={{ y: -5, rotate: 5 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <social.icon className="w-5 h-5" />
-                </motion.a>
-              ))}
+              <motion.a
+                href="https://x.com/Spin4Pi"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center hover:bg-gold hover:text-black transition-all duration-300 shadow-lg shadow-black"
+                whileHover={{ y: -5, scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <XIcon />
+              </motion.a>
             </div>
           </div>
         </div>
         
-        {/* Important Disclaimer */}
+        {/* Imperial Proclamation */}
         <div className="p-8 rounded-[2rem] bg-white/[0.02] border border-white/5 relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-1 h-full bg-gold/20 group-hover:bg-gold transition-colors" />
           <p className="text-[10px] text-white/30 text-center leading-loose font-medium uppercase tracking-wider max-w-4xl mx-auto">

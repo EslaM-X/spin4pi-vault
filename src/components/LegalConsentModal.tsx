@@ -6,10 +6,11 @@ export function LegalConsentModal() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    // التحقق مما إذا كان المستخدم قد وافق مسبقاً
+    // Check if user has already consented
     const hasConsented = localStorage.getItem('imperial_legal_consent');
     if (!hasConsented) {
-      const timer = setTimeout(() => setIsOpen(true), 1500); // يظهر بعد ثانية ونصف من الدخول
+      // Delay appearance for better UX after loading screen
+      const timer = setTimeout(() => setIsOpen(true), 1500);
       return () => clearTimeout(timer);
     }
   }, []);
@@ -23,7 +24,7 @@ export function LegalConsentModal() {
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4">
-          {/* Backdrop */}
+          {/* Backdrop with blur for high-end feel */}
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -31,7 +32,7 @@ export function LegalConsentModal() {
             className="absolute inset-0 bg-black/80 backdrop-blur-md"
           />
 
-          {/* Modal Card */}
+          {/* Imperial Modal Card */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -46,27 +47,27 @@ export function LegalConsentModal() {
               <h2 className="text-xl font-black text-white uppercase italic tracking-tight">
                 Imperial <span className="text-gold">Protocols</span>
               </h2>
-              <p className="text-[10px] text-gold/60 font-bold tracking-[2px] uppercase mt-1">Review & Acceptance Required</p>
+              <p className="text-[10px] text-gold/60 font-bold tracking-[2px] uppercase mt-1">Compliance & Safety Review</p>
             </div>
 
-            {/* Content */}
+            {/* Content Section */}
             <div className="p-6 space-y-4">
               <div className="flex gap-4 items-start bg-white/5 p-4 rounded-2xl border border-white/5">
                 <Scale className="text-gold shrink-0" size={20} />
                 <p className="text-[11px] text-white/70 leading-relaxed">
-                  بمتابعتك، أنت تقر بأنك قرأت وتوافق على <span className="text-white font-bold">شروط الخدمة</span> و <span className="text-white font-bold">سياسة الخصوصية</span> الإمبراطورية.
+                  By proceeding, you acknowledge that you have read and agree to the <span className="text-white font-bold">Terms of Service</span> and <span className="text-white font-bold">Privacy Policy</span>.
                 </p>
               </div>
 
               <div className="flex gap-4 items-start bg-red-500/5 p-4 rounded-2xl border border-red-500/10">
                 <AlertCircle className="text-red-500 shrink-0" size={20} />
-                <p className="text-[11px] text-red-400/80 leading-relaxed italic">
-                  أنت تدرك أن هذا التطبيق للأغراض الترفيهية فقط، ولا يوجد ضمان لأي نتائج مادية.
+                <p className="text-[11px] text-red-400/80 leading-relaxed italic uppercase font-bold tracking-tighter">
+                  Entertainment purposes only. No guarantee of profit. All randomized outcomes are final.
                 </p>
               </div>
             </div>
 
-            {/* Action Button */}
+            {/* Action Section */}
             <div className="p-6 pt-0">
               <button
                 onClick={handleAccept}
@@ -76,8 +77,8 @@ export function LegalConsentModal() {
                 <Check size={18} strokeWidth={3} className="group-hover:translate-x-1 transition-transform" />
               </button>
               
-              <p className="text-[8px] text-center text-white/20 mt-4 uppercase tracking-widest font-bold">
-                Certified Pi Network Ecosystem Participant
+              <p className="text-[8px] text-center text-white/20 mt-4 uppercase tracking-[3px] font-bold">
+                Independent Pi Ecosystem Application
               </p>
             </div>
           </motion.div>

@@ -538,10 +538,48 @@ MIT License - See [LICENSE](./LICENSE) for details.
 
 ---
 
-<p align="center">
-  <img src="./src/assets/spin4pi-logo.png" alt="Spin4Pi" width="100"/>
-  <br/>
-  <strong>Built with ❤️ for the Pi Network Community</strong>
-  <br/>
-  <sub>© 2026 Spin4Pi. All rights reserved.</sub>
-</p>
+<div align="center">
+
+  <p align="center">
+    <a href="https://github.com/EslaM-X/spin4pi-vault">
+      <img src="src/assets/1768573805945-01.jpeg" width="120" style="border-radius: 50%; border: 4px solid #fbbf24; box-shadow: 0 0 50px rgba(251, 191, 36, 0.4); background: linear-gradient(145deg, #1a1528, #050507);" />
+    </a>
+  </p>
+
+  <h1 align="center">👑 SPIN4PI VAULT 👑</h1>
+  
+  <p align="center">
+    <img src="https://img.shields.io/badge/Status-Imperial_Vault_Active-gold?style=for-the-badge&logo=probot&logoColor=white" />
+    <img src="https://img.shields.io/badge/Network-Pi_Network-purple?style=for-the-badge&logo=target&logoColor=white" />
+  </p>
+
+  <p align="center">
+    <b>"Where Every Spin Echoes in the Halls of the Empire"</b><br>
+    <i>Redefining the Golden Standard of Pi Network Entertainment</i>
+  </p>
+
+  <table align="center">
+    <tr>
+      <td align="center" style="border: none;">
+        <a href="https://github.com/EslaM-X/spin4pi-vault/stargazers">
+          <img src="https://img.shields.io/github/stars/EslaM-X/spin4pi-vault?style=for-the-badge&color=fbbf24&labelColor=1a1528&logo=github" />
+        </a>
+      </td>
+      <td align="center" style="border: none;">
+        <a href="https://github.com/EslaM-X/spin4pi-vault/network/members">
+          <img src="https://img.shields.io/github/forks/EslaM-X/spin4pi-vault?style=for-the-badge&color=fbbf24&labelColor=1a1528&logo=git" />
+        </a>
+      </td>
+    </tr>
+  </table>
+
+  <br>
+
+  <p align="center">
+    Built with <b>Royal Excellence</b> for the <b>Pi Network Community</b><br>
+    <small>© 2026 Spin4Pi. All Rights Reserved. | Secured by Pi SDK v2.0</small>
+  </p>
+
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=fbbf24&height=60&section=footer" width="100%"/>
+
+</div>

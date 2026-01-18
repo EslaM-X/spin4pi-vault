@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Crown, Medal, Award, Loader2, RefreshCw, WifiOff, Zap, ShieldCheck } from "lucide-react";
+import { Crown, Medal, Award, Loader2, RefreshCw, Zap, ShieldCheck, Trophy, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface LeaderboardEntry {
@@ -20,7 +20,6 @@ const CACHE_KEY = "spin4pi_leaderboard_cache";
 
 export function Leaderboard({ entries, isLoading, error, onRetry }: LeaderboardProps) {
   const [cachedEntries, setCachedEntries] = useState<LeaderboardEntry[]>([]);
-  const [isRetrying, setIsRetrying] = useState(false);
 
   useEffect(() => {
     const cached = localStorage.getItem(CACHE_KEY);
@@ -38,71 +37,82 @@ export function Leaderboard({ entries, isLoading, error, onRetry }: LeaderboardP
   }, [entries, error]);
 
   const displayEntries = entries.length > 0 ? entries : cachedEntries;
-  const topThree = displayEntries.slice(0, 3);
+  const topThree = [displayEntries[1], displayEntries[0], displayEntries[2]]; // ترتيب المنصة: 2, 1, 3
   const theRest = displayEntries.slice(3, 10);
 
   return (
     <motion.div
-      className="w-full max-w-xl bg-[#0d0d12] rounded-[2.5rem] border-2 border-gold/20 p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden relative"
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
+      className="w-full max-w-xl bg-[#0d0d12]/90 backdrop-blur-xl rounded-[3rem] border-2 border-gold/20 p-6 md:p-8 shadow-[0_0_80px_rgba(0,0,0,0.8)] relative overflow-hidden"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
     >
-      {/* Background Decorative Element */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gold/5 blur-[60px] rounded-full" />
+      {/* تأثيرات الإضاءة الخلفية */}
+      <div className="absolute -top-20 -left-20 w-64 h-64 bg-gold/10 blur-[100px] rounded-full pointer-events-none" />
+      <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-pi-purple/10 blur-[100px] rounded-full pointer-events-none" />
 
-      <div className="relative flex flex-col items-center mb-10">
-        <div className="bg-gold/10 px-6 py-2 rounded-full border border-gold/20 mb-4 backdrop-blur-md">
-          <h3 className="text-xl font-black text-gold uppercase tracking-[0.3em] flex items-center gap-2" style={{ fontFamily: 'Cinzel, serif' }}>
-            <Zap className="w-5 h-5 fill-gold" />
+      {/* العنوان الإمبراطوري */}
+      <div className="relative flex flex-col items-center mb-12">
+        <motion.div 
+          initial={{ y: -20 }}
+          animate={{ y: 0 }}
+          className="bg-gradient-to-b from-gold/20 to-transparent px-8 py-3 rounded-2xl border border-gold/30 shadow-xl backdrop-blur-sm"
+        >
+          <h3 className="text-2xl font-black text-gold uppercase tracking-[0.2em] flex items-center gap-3" style={{ fontFamily: 'Cinzel, serif' }}>
+            <Trophy className="w-6 h-6 fill-gold/20" />
             Hall of Legends
           </h3>
-        </div>
+        </motion.div>
+        <div className="h-[2px] w-24 bg-gradient-to-r from-transparent via-gold/50 to-transparent mt-4" />
       </div>
 
-      {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <Loader2 className="w-12 h-12 animate-spin text-gold" />
-          <p className="text-gold/50 font-bold uppercase tracking-widest text-xs">Consulting the Oracle...</p>
+      {isLoading && displayEntries.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 gap-6">
+          <div className="relative">
+            <Loader2 className="w-16 h-16 animate-spin text-gold" />
+            <div className="absolute inset-0 blur-xl bg-gold/20 animate-pulse" />
+          </div>
+          <p className="text-gold/40 font-black uppercase tracking-[0.3em] text-[10px]">Syncing Imperial Records...</p>
         </div>
       ) : (
-        <div className="space-y-8">
-          {/* THE PODIUM (TOP 3) */}
-          <div className="flex justify-center items-end gap-2 md:gap-4 mb-12 h-64 pt-10">
-            {/* 2nd Place */}
-            {topThree[1] && (
-              <PodiumStep entry={topThree[1]} rank={2} color="#C0C0C0" height="h-32" />
-            )}
-            {/* 1st Place */}
-            {topThree[0] && (
-              <PodiumStep entry={topThree[0]} rank={1} color="#FBBC05" height="h-44" />
-            )}
-            {/* 3rd Place */}
-            {topThree[2] && (
-              <PodiumStep entry={topThree[2]} rank={3} color="#CD7F32" height="h-24" />
-            )}
+        <div className="space-y-10">
+          {/* منصة التتويج (THE PODIUM) */}
+          <div className="flex justify-center items-end gap-2 md:gap-4 h-72 pt-10 px-2">
+            {topThree[0] && <PodiumStep entry={topThree[0]} rank={2} color="#E5E7EB" height="h-32" delay={0.3} />}
+            {topThree[1] && <PodiumStep entry={topThree[1]} rank={1} color="#FBBC05" height="h-48" delay={0.1} />}
+            {topThree[2] && <PodiumStep entry={topThree[2]} rank={3} color="#D97706" height="h-24" delay={0.5} />}
           </div>
 
-          {/* THE REST (List) */}
-          <div className="space-y-3">
+          {/* قائمة الـ 7 الباقين */}
+          <div className="space-y-3 relative z-10">
             <AnimatePresence>
               {theRest.map((player, index) => (
                 <motion.div
                   key={player.pi_username}
-                  initial={{ opacity: 0, x: -20 }}
+                  initial={{ opacity: 0, x: -30 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-gold/30 hover:bg-white/10 transition-all group"
+                  className="flex items-center gap-4 p-4 rounded-[1.5rem] bg-white/[0.03] border border-white/5 hover:border-gold/30 hover:bg-white/[0.08] transition-all group"
                 >
-                  <span className="text-white/30 font-black italic w-6">{index + 4}</span>
+                  <div className="w-8 h-8 rounded-full bg-black border border-white/10 flex items-center justify-center text-[10px] font-black text-white/30 italic group-hover:text-gold transition-colors">
+                    {index + 4}
+                  </div>
+                  
                   <div className="flex-1">
-                    <p className="font-bold text-white group-hover:text-gold transition-colors">{player.pi_username}</p>
-                    <div className="flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3 text-white/20" />
-                      <p className="text-[10px] text-white/40 uppercase tracking-widest">{player.total_spins} Spins</p>
+                    <p className="font-black text-sm text-white/90 group-hover:text-white transition-colors tracking-tight">
+                      {player.pi_username}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[8px] font-black text-gold/40 uppercase tracking-widest">{player.total_spins} Battles</span>
                     </div>
                   </div>
+
                   <div className="text-right">
-                    <p className="font-black text-gold tracking-tighter italic">{player.total_winnings.toFixed(2)} π</p>
+                    <div className="flex items-center justify-end gap-1">
+                      <span className="text-lg font-black text-gold italic tracking-tighter">
+                        {player.total_winnings.toFixed(2)}
+                      </span>
+                      <span className="text-xs font-bold text-gold/60">π</span>
+                    </div>
                   </div>
                 </motion.div>
               ))}
@@ -110,57 +120,75 @@ export function Leaderboard({ entries, isLoading, error, onRetry }: LeaderboardP
           </div>
         </div>
       )}
+
+      {/* زر التحديث اليدوي */}
+      <div className="mt-8 flex justify-center">
+        <Button 
+          variant="ghost" 
+          onClick={onRetry} 
+          disabled={isLoading}
+          className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20 hover:text-gold transition-colors gap-2"
+        >
+          <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
+          Refresh Standings
+        </Button>
+      </div>
     </motion.div>
   );
 }
 
-// مكون فرعي للمنصة (Podium Step)
-function PodiumStep({ entry, rank, color, height }: { entry: LeaderboardEntry; rank: number; color: string; height: string }) {
+function PodiumStep({ entry, rank, color, height, delay }: any) {
   const isFirst = rank === 1;
   return (
     <motion.div 
-      className="flex flex-col items-center flex-1 max-w-[120px]"
-      initial={{ opacity: 0, y: 50 }}
+      className="flex flex-col items-center flex-1 min-w-[80px] max-w-[110px]"
+      initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: rank * 0.2 }}
+      transition={{ delay, duration: 0.8, type: "spring" }}
     >
-      {/* Avatar / Icon */}
-      <div className="relative mb-3">
+      <div className="relative mb-4">
         {isFirst && (
           <motion.div
-            animate={{ rotate: [0, 5, -5, 0], scale: [1, 1.1, 1] }}
-            transition={{ repeat: Infinity, duration: 3 }}
-            className="absolute -top-8 left-1/2 -translate-x-1/2"
+            animate={{ y: [0, -8, 0], rotate: [0, 5, -5, 0] }}
+            transition={{ repeat: Infinity, duration: 4 }}
+            className="absolute -top-10 left-1/2 -translate-x-1/2 z-20"
           >
-            <Crown className="w-8 h-8 text-gold drop-shadow-[0_0_10px_#fbbf24]" />
+            <Crown className="w-10 h-10 text-gold drop-shadow-[0_0_15px_rgba(251,191,36,0.8)]" />
           </motion.div>
         )}
+        
+        {/* أفاتار "إمبراطوري" */}
         <div 
-          className="w-16 h-16 rounded-2xl flex items-center justify-center border-2 rotate-45 overflow-hidden bg-[#1a1a1a]"
+          className="w-16 h-16 md:w-20 md:h-20 rounded-[1.5rem] bg-[#1a1a1a] border-2 rotate-3 group-hover:rotate-0 transition-transform overflow-hidden relative"
           style={{ borderColor: color }}
         >
-          <div className="-rotate-45 font-black text-xl" style={{ color }}>
-            {entry.pi_username.substring(0, 2).toUpperCase()}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
+          <div className="w-full h-full flex items-center justify-center -rotate-3 font-black text-2xl uppercase italic" style={{ color }}>
+            {entry.pi_username.substring(0, 2)}
           </div>
+        </div>
+        
+        {/* رقم الترتيب فوق الأفاتار */}
+        <div className="absolute -bottom-2 -right-2 w-7 h-7 bg-white text-black rounded-lg flex items-center justify-center font-black text-xs shadow-xl">
+          {rank}
         </div>
       </div>
 
-      {/* Name & Prize */}
-      <div className="text-center mb-4">
-        <p className="text-xs font-black text-white truncate w-full px-1 mb-1">{entry.pi_username}</p>
-        <p className="text-sm font-black italic tracking-tighter" style={{ color }}>{entry.total_winnings.toFixed(2)} π</p>
+      <div className="text-center mb-4 px-1">
+        <p className="text-[10px] font-black text-white truncate uppercase tracking-tighter mb-1">{entry.pi_username}</p>
+        <p className="text-sm font-black italic tracking-tighter shadow-gold" style={{ color }}>{entry.total_winnings.toFixed(2)} π</p>
       </div>
 
-      {/* Podium Box */}
+      {/* بوكس المنصة بتأثير زجاجي */}
       <div 
-        className={`w-full ${height} rounded-t-2xl relative overflow-hidden flex flex-col items-center justify-center`}
+        className={`w-full ${height} rounded-t-[1.5rem] relative overflow-hidden flex flex-col items-center pt-4`}
         style={{ 
-          background: `linear-gradient(to bottom, ${color}33, transparent)`,
-          borderTop: `3px solid ${color}` 
+          background: `linear-gradient(to bottom, ${color}22, transparent)`,
+          borderTop: `2px solid ${color}44` 
         }}
       >
-        <span className="text-4xl font-black opacity-20" style={{ color }}>{rank}</span>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-60" />
+        <Star className="w-4 h-4 opacity-20 animate-pulse" style={{ color }} />
       </div>
     </motion.div>
   );

@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Wallet, ShieldCheck, User, LogOut, LayoutDashboard } from "lucide-react";
+import { Plus, Wallet, ShieldCheck, User, LogOut, LayoutDashboard, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import logo from "@/assets/spin4pi-logo.png";
 import { DepositModal } from "./DepositModal";
 import { WithdrawModal } from "./WithdrawModal";
 import { MobileMenu } from "./MobileMenu";
-import { PiPriceDisplay } from "./PiPriceDisplay";
+import { PiPriceDisplay } from "./PiPriceDisplay"; // تأكد من وجود هذا المكون
 import { Button } from "./ui/button";
 
 export function Header({ isLoggedIn, username, balance, onLogin, onLogout, onDepositSuccess, isLoading, isAdmin = false }: any) {
@@ -19,94 +19,98 @@ export function Header({ isLoggedIn, username, balance, onLogin, onLogout, onDep
         <div className="container mx-auto px-4 md:px-6 flex items-center justify-between">
           
           {/* Logo Section */}
-          <Link to="/" className="relative group">
-            <motion.div 
-              className="absolute -inset-2 bg-gold/10 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-            />
-            <img src={logo} alt="Spin4Pi" className="h-10 w-auto relative z-10 drop-shadow-lg" />
+          <Link to="/" className="relative group flex items-center gap-2">
+            <div className="absolute -inset-2 bg-gold/10 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+            <img src={logo} alt="Spin4Pi" className="h-10 w-auto relative z-10" />
+            <span className="hidden lg:block font-black text-xl italic tracking-tighter text-white" style={{ fontFamily: 'Cinzel, serif' }}>
+              SPIN4<span className="text-gold">PI</span>
+            </span>
           </Link>
           
-          <div className="flex items-center gap-4">
-            {/* Pi Price (Hidden on tiny screens) */}
-            <div className="hidden sm:block">
-              <PiPriceDisplay />
+          <div className="flex items-center gap-3 md:gap-6">
+            
+            {/* Pi Network Live Price - السعر المتغير مع الشعار */}
+            <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-white/[0.03] border border-white/5 rounded-2xl group hover:border-gold/20 transition-all">
+              <div className="relative">
+                <div className="w-6 h-6 rounded-full bg-[#fed429] flex items-center justify-center shadow-[0_0_10px_rgba(254,212,41,0.3)]">
+                  <span className="text-black font-black text-[14px]">π</span>
+                </div>
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full border-2 border-[#0a0a0c] animate-pulse" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">Live Market</span>
+                <PiPriceDisplay />
+              </div>
             </div>
             
             <AnimatePresence mode="wait">
               {isLoggedIn ? (
-                <motion.div 
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center gap-2"
-                >
-                  {/* Wealth Capsule */}
-                  <div className="flex items-center bg-white/[0.03] border border-gold/20 rounded-2xl p-1 pr-3 gap-3 shadow-inner">
-                    <button 
+                <div className="flex items-center gap-3">
+                  {/* Pi Balance - الرصيد الواضح والفخم */}
+                  <div className="flex items-center bg-white/[0.03] border border-gold/30 rounded-2xl p-1 pr-4 gap-3 shadow-lg backdrop-blur-md group">
+                    <motion.button 
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
                       onClick={() => setShowDeposit(true)}
-                      className="w-8 h-8 rounded-xl bg-gold flex items-center justify-center text-black hover:bg-gold-dark transition-colors shadow-lg shadow-gold/20"
+                      className="w-9 h-9 rounded-xl bg-gradient-to-br from-gold to-amber-600 flex items-center justify-center text-black shadow-[0_0_15px_rgba(251,191,36,0.2)]"
                     >
-                      <Plus size={18} strokeWidth={3} />
-                    </button>
-                    <div className="flex flex-col items-start leading-none">
-                      <span className="text-[10px] font-black text-gold uppercase tracking-tighter">Imperial Vault</span>
-                      <span className="text-sm font-black text-white italic">
-                        {Number(balance).toFixed(2)} <span className="text-[10px] text-gold/80">π</span>
-                      </span>
+                      <Plus size={20} strokeWidth={3} />
+                    </motion.button>
+
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-1.5 leading-none mb-0.5">
+                        <span className="text-[10px] font-black text-gold uppercase tracking-[0.1em]">Pi Balance</span>
+                      </div>
+                      <div className="flex items-baseline gap-1 leading-none">
+                        <span className="text-lg font-black text-white italic tracking-tighter group-hover:text-gold transition-colors">
+                          {Number(balance).toFixed(2)}
+                        </span>
+                        <span className="text-[10px] font-black text-gold">π</span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Desktop Actions */}
-                  <div className="hidden md:flex items-center gap-2 border-l border-white/10 ml-2 pl-2">
+                  {/* Actions Icons */}
+                  <div className="hidden md:flex items-center gap-1">
                     {isAdmin && (
                       <Link to="/admin">
-                        <Button variant="ghost" size="icon" className="text-white/40 hover:text-gold hover:bg-gold/5 rounded-xl">
-                          <LayoutDashboard size={20} />
+                        <Button variant="ghost" size="icon" className="text-white/40 hover:text-gold rounded-xl">
+                          <LayoutDashboard size={18} />
                         </Button>
                       </Link>
                     )}
                     <Button 
                       onClick={() => setShowWithdraw(true)}
                       variant="ghost" 
-                      className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white"
+                      className="text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white"
                     >
                       Withdraw
                     </Button>
                   </div>
-                </motion.div>
+                </div>
               ) : (
                 <Button 
                   onClick={onLogin} 
                   disabled={isLoading}
-                  className="bg-gold hover:bg-gold/80 text-black font-black uppercase tracking-widest text-[10px] h-10 px-6 rounded-2xl shadow-xl shadow-gold/10"
+                  className="bg-gold hover:bg-gold/80 text-black font-black uppercase tracking-[0.2em] text-[10px] h-11 px-6 rounded-2xl shadow-xl shadow-gold/10"
                 >
-                  {isLoading ? "Authenticating..." : "Establish Connection"}
+                  {isLoading ? "Connecting..." : "Connect Wallet"}
                 </Button>
               )}
             </AnimatePresence>
             
-            {/* Royal Menu */}
+            {/* Mobile Navigation */}
             <MobileMenu isLoggedIn={isLoggedIn} onLogout={onLogout} />
           </div>
         </div>
       </header>
 
-      {/* Modals Bridge */}
+      {/* Modals */}
       {showDeposit && username && (
-        <DepositModal 
-          isOpen={showDeposit} 
-          onClose={() => setShowDeposit(false)} 
-          username={username} 
-          onSuccess={onDepositSuccess} 
-        />
+        <DepositModal isOpen={showDeposit} onClose={() => setShowDeposit(false)} username={username} onSuccess={onDepositSuccess} />
       )}
       {showWithdraw && username && (
-        <WithdrawModal 
-          isOpen={showWithdraw} 
-          onClose={() => setShowWithdraw(false)} 
-          piUsername={username} 
-          currentBalance={balance} 
-          onWithdrawSuccess={onDepositSuccess} 
-        />
+        <WithdrawModal isOpen={showWithdraw} onClose={() => setShowWithdraw(false)} piUsername={username} currentBalance={balance} onWithdrawSuccess={onDepositSuccess} />
       )}
     </>
   );

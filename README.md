@@ -546,7 +546,7 @@ MIT License - See [LICENSE](./LICENSE) for details.
     </a>
   </p>
 
-  <h1 align="center">👑 SPIN4PI VAULT 👑</h1>
+  <h1 align="center">👑 SPIN4PI 👑</h1>
   
   <p align="center">
     <img src="https://img.shields.io/badge/Status-Imperial_Vault_Active-gold?style=for-the-badge&logo=probot&logoColor=white" />

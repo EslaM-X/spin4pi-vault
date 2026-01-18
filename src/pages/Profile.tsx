@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Wallet as WalletIcon, Trophy, Loader2, 
-  CheckCircle2, XCircle, 
+  CheckCircle2, XCircle, Camera,
   History, User, Zap, Share2, Star
 } from "lucide-react";
 import { toast } from "sonner";
@@ -17,6 +17,9 @@ import { usePiAuth } from "@/hooks/usePiAuth";
 import { useWallet } from "@/hooks/useWallet";
 import { useSpin } from "@/hooks/useSpin";
 
+// استيراد شعار باي (تأكد من المسار الصحيح في مشروعك)
+import piNetworkLogo from "@/assets/pinetwork.jpg";
+
 interface SpinHistory {
   id: string;
   result: string;
@@ -29,17 +32,16 @@ interface SpinHistory {
 const Profile = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading, canFreeSpin } = usePiAuth();
-  const {
-    wallet,
-    fetchWalletData,
-    leaderboard,
-    isLoading: walletLoading,
-  } = useWallet();
+  const { wallet, fetchWalletData, leaderboard, isLoading: walletLoading } = useWallet();
 
   const [freeSpinCountdown, setFreeSpinCountdown] = useState("00:00:00");
   const [loading, setLoading] = useState(true);
   const [spinError, setSpinError] = useState<string | null>(null);
   const [spinSuccess, setSpinSuccess] = useState<{ result: string; reward: number } | null>(null);
+  
+  // حالة الصورة الشخصية
+  const [profileImage, setProfileImage] = useState<string | null>(localStorage.getItem(`profile_img_${user?.uid}`));
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const successSfx = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'));
 
@@ -56,6 +58,25 @@ const Profile = () => {
       setTimeout(() => setSpinError(null), 5000);
     },
   });
+
+  // معالجة تغيير الصورة
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("Image too large (Max 2MB)");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setProfileImage(base64String);
+        localStorage.setItem(`profile_img_${user?.uid}`, base64String);
+        toast.success("Profile image updated!");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   useEffect(() => {
     const hasConsented = localStorage.getItem('imperial_legal_consent');
@@ -98,7 +119,11 @@ const Profile = () => {
   }, [wallet.lastFreeSpin]);
 
   useEffect(() => {
-    if (user) fetchWalletData();
+    if (user) {
+        fetchWalletData();
+        const savedImg = localStorage.getItem(`profile_img_${user?.uid}`);
+        if (savedImg) setProfileImage(savedImg);
+    }
   }, [user, fetchWalletData]);
 
   const handleFreeSpin = useCallback(async () => {
@@ -120,13 +145,11 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-[#050507] text-white selection:bg-gold/30 pb-20">
-      {/* Background Decor */}
       <div className="fixed inset-0 bg-[url('/stars-pattern.svg')] opacity-5 pointer-events-none" />
       
-      {/* تم زيادة pt-28 ليعطي مساحة للهيدر الثابت المشترك */}
       <div className="container mx-auto px-4 pt-28 relative z-10">
         
-        {/* Profile Header - تم تعديل عرض الاسم هنا */}
+        {/* Profile Header */}
         <div className="flex items-center gap-4 mb-8">
           <Button 
             variant="ghost" 
@@ -136,37 +159,38 @@ const Profile = () => {
           >
             <Link to="/"><ArrowLeft className="w-5 h-5" /></Link>
           </Button>
+
+          {/* User Image/Avatar Section */}
+          <div className="relative group shrink-0">
+            <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-16 h-16 rounded-2xl border-2 border-gold/30 overflow-hidden bg-[#13131a] flex items-center justify-center cursor-pointer hover:border-gold transition-all"
+            >
+              {profileImage ? (
+                <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <User className="text-gold w-8 h-8" />
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                <Camera className="text-white w-5 h-5" />
+              </div>
+            </div>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              className="hidden" 
+              accept="image/*" 
+              onChange={handleImageChange} 
+            />
+          </div>
+
           <div className="flex-1 min-w-0">
             <p className="text-[10px] font-black text-gold uppercase tracking-[3px]">Imperial Identity</p>
-            <div className="flex items-center gap-3">
-              <User className="text-gold w-6 h-6 shrink-0" />
-              {/* تم إزالة truncate وإضافة break-words لضمان ظهور الاسم كاملاً */}
-              <h1 className="text-xl md:text-2xl font-black italic tracking-tighter uppercase break-words leading-tight">
-                {user?.username}
-              </h1>
-            </div>
+            <h1 className="text-xl md:text-2xl font-black italic tracking-tighter uppercase break-words leading-tight">
+              {user?.username}
+            </h1>
           </div>
         </div>
-
-        {/* Alerts */}
-        <AnimatePresence>
-          {spinError && (
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mb-4">
-              <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 rounded-2xl">
-                <AlertDescription className="font-bold uppercase text-[10px]">{spinError}</AlertDescription>
-              </Alert>
-            </motion.div>
-          )}
-          {spinSuccess && (
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="mb-4">
-              <Alert className="border-gold/30 bg-gold/10 rounded-2xl backdrop-blur-md">
-                <AlertDescription className="text-gold font-black italic uppercase text-xs">
-                  Success: {spinSuccess.result}! +{spinSuccess.reward.toFixed(4)} π
-                </AlertDescription>
-              </Alert>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 gap-4 mb-8">
@@ -177,10 +201,13 @@ const Profile = () => {
                 <WalletIcon className="w-6 h-6 text-gold" />
               </div>
               <div>
-                <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Imperial Balance</p>
-                <p className="text-2xl font-black italic text-white leading-none mt-1">
-                  {wallet.balance.toFixed(4)} <span className="text-gold text-sm ml-1">π</span>
-                </p>
+                <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Pi Balance</p>
+                <div className="flex items-center gap-2 mt-1">
+                    <p className="text-2xl font-black italic text-white leading-none">
+                        {wallet.balance.toFixed(4)}
+                    </p>
+                    <img src={piNetworkLogo} className="w-5 h-5 rounded-full object-cover" alt="Pi" />
+                </div>
               </div>
             </div>
           </Card>
@@ -220,8 +247,8 @@ const Profile = () => {
 
         {/* Action Section */}
         <div className="space-y-6">
-          <Card className="bg-[#0d0d12] border-gold/10 rounded-[32px] p-6 shadow-2xl relative overflow-hidden">
-            <h2 className="text-lg font-black italic uppercase tracking-tighter mb-5 flex items-center gap-2 text-white">
+          <Card className="bg-[#0d0d12] border-gold/10 rounded-[32px] p-6 shadow-2xl relative overflow-hidden text-center">
+            <h2 className="text-lg font-black italic uppercase tracking-tighter mb-5 flex items-center justify-center gap-2 text-white">
               <Zap className="text-gold w-5 h-5" /> Immediate Action
             </h2>
             <div className="flex flex-col gap-3">
@@ -242,53 +269,35 @@ const Profile = () => {
               </Button>
             </div>
           </Card>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
-              <h2 className="text-lg font-black italic uppercase mb-4 flex items-center gap-2 px-2 text-white">
-                <History className="text-gold w-5 h-5" /> History
-              </h2>
-              <div className="space-y-3">
-                {!wallet.recentSpins?.length ? (
-                  <div className="p-10 text-center bg-[#0d0d12] rounded-[24px] border border-white/5 text-white/20 font-black uppercase text-[10px]">
-                    Vault is empty
-                  </div>
-                ) : (
-                  wallet.recentSpins.map((spinItem: SpinHistory) => (
-                    <div key={spinItem.id} className="bg-[#0d0d12] border border-white/5 p-4 rounded-2xl flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl shrink-0">{spinItem.spin_type === "free" ? "🎁" : "💰"}</span>
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-black uppercase truncate">{spinItem.result}</p>
-                          <p className="text-[8px] text-white/30 uppercase">{new Date(spinItem.created_at).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className={`font-black text-sm italic ${(spinItem.reward_amount || 0) > 0 ? "text-emerald-500" : "text-red-500"}`}>
-                          {(spinItem.reward_amount || 0) > 0 ? "+" : ""}{(spinItem.reward_amount || 0).toFixed(4)} π
-                        </p>
+          
+          {/* History Section */}
+          <div className="lg:col-span-2">
+            <h2 className="text-lg font-black italic uppercase mb-4 flex items-center gap-2 px-2 text-white">
+              <History className="text-gold w-5 h-5" /> History
+            </h2>
+            <div className="space-y-3">
+              {!wallet.recentSpins?.length ? (
+                <div className="p-10 text-center bg-[#0d0d12] rounded-[24px] border border-white/5 text-white/20 font-black uppercase text-[10px]">
+                  Vault is empty
+                </div>
+              ) : (
+                wallet.recentSpins.map((spinItem: SpinHistory) => (
+                  <div key={spinItem.id} className="bg-[#0d0d12] border border-white/5 p-4 rounded-2xl flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl shrink-0">{spinItem.spin_type === "free" ? "🎁" : "💰"}</span>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-black uppercase truncate">{spinItem.result}</p>
+                        <p className="text-[8px] text-white/30 uppercase">{new Date(spinItem.created_at).toLocaleDateString()}</p>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="hidden lg:block">
-              <h2 className="text-lg font-black italic uppercase mb-4 flex items-center gap-2 px-2 text-white">
-                <Trophy className="text-gold w-5 h-5" /> Leaders
-              </h2>
-              <div className="bg-[#0d0d12] border border-gold/10 rounded-[24px] overflow-hidden">
-                {leaderboard.map((entry, i) => (
-                  <div key={i} className={`p-4 flex items-center justify-between border-b border-white/5 last:border-0 ${i === 0 ? "bg-gold/5" : ""}`}>
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="text-[10px] font-black text-gold/50">{i + 1}</span>
-                      <span className="text-xs font-black uppercase truncate">{entry.username}</span>
+                    <div className="text-right shrink-0">
+                      <p className={`font-black text-sm italic ${(spinItem.reward_amount || 0) > 0 ? "text-emerald-500" : "text-red-500"}`}>
+                        {(spinItem.reward_amount || 0) > 0 ? "+" : ""}{(spinItem.reward_amount || 0).toFixed(4)} π
+                      </p>
                     </div>
-                    <span className="text-[10px] font-black italic shrink-0">{entry.totalWinnings.toFixed(2)} π</span>
                   </div>
-                ))}
-              </div>
+                ))
+              )}
             </div>
           </div>
         </div>

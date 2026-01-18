@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Coins, Gift, Sparkles, Crown } from "lucide-react";
+import { Coins, Gift, Sparkles, Crown, Zap, ShieldCheck } from "lucide-react";
 
 interface SpinButtonsProps {
   onSpin: (type: string, cost: number) => void;
@@ -11,53 +11,52 @@ interface SpinButtonsProps {
 const spinOptions = [
   {
     id: "free",
-    label: "Daily Free",
+    label: "Daily Tribute",
     cost: 0,
     icon: Gift,
     color: "#10b981", // Emerald
     gradient: "from-[#064e3b] via-[#10b981] to-[#064e3b]",
-    description: "Gift from Vault",
-    glow: "shadow-[0_0_20px_rgba(16,185,129,0.3)]",
+    description: "Imperial Gift",
+    badge: "FREE"
   },
   {
     id: "basic",
-    label: "Basic Spin",
+    label: "Commoner Spin",
     cost: 0.1,
     icon: Coins,
-    color: "#9333ea", // Purple
-    gradient: "from-[#3b0764] via-[#9333ea] to-[#3b0764]",
-    description: "Standard Entry",
-    glow: "shadow-[0_0_20px_rgba(147,51,234,0.3)]",
+    color: "#94a3b8", // Slate/Silver
+    gradient: "from-[#1e293b] via-[#94a3b8] to-[#1e293b]",
+    description: "Standard Odds",
+    badge: "BASIC"
   },
   {
     id: "pro",
-    label: "Pro Spin",
+    label: "Elite Spin",
     cost: 0.25,
     icon: Sparkles,
     color: "#fbbf24", // Gold
     gradient: "from-[#78350f] via-[#fbbf24] to-[#78350f]",
-    description: "+10% Luck Boost",
-    glow: "shadow-[0_0_20px_rgba(251,191,36,0.3)]",
+    description: "+15% Luck Boost",
+    badge: "15% BOOST"
   },
   {
     id: "vault",
-    label: "Vault Spin",
+    label: "Imperial Spin",
     cost: 1,
     icon: Crown,
     color: "#f59e0b", // Amber/Gold
     gradient: "from-[#451a03] via-[#f59e0b] to-[#451a03]",
-    description: "Royal Jackpot Odds",
-    glow: "shadow-[0_0_30px_rgba(245,158,11,0.5)]",
+    description: "Jackpot Protocol",
+    badge: "MAX ODDS"
   },
 ];
 
 export function SpinButtons({ onSpin, disabled, canFreeSpin, freeSpinTimer }: SpinButtonsProps) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-5xl mx-auto px-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-6xl mx-auto px-4 mt-8">
       {spinOptions.map((option, index) => {
         const Icon = option.icon;
         const isFreeSpin = option.id === "free";
-        const isActive = isFreeSpin ? canFreeSpin : true;
         const isDisabled = disabled || (isFreeSpin && !canFreeSpin);
         
         return (
@@ -66,63 +65,80 @@ export function SpinButtons({ onSpin, disabled, canFreeSpin, freeSpinTimer }: Sp
             onClick={() => onSpin(option.id, option.cost)}
             disabled={isDisabled}
             className={`
-              relative overflow-hidden rounded-2xl p-[2px] transition-all duration-300
-              ${isDisabled ? 'opacity-40 grayscale-[0.5]' : `hover:scale-105 ${option.glow}`}
+              relative overflow-hidden rounded-[2rem] p-[1.5px] transition-all duration-500
+              ${isDisabled ? 'opacity-30 grayscale cursor-not-allowed' : 'hover:scale-[1.03] active:scale-95 shadow-2xl shadow-black/50'}
               group
             `}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: index * 0.1, type: "spring", stiffness: 200 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
           >
-            {/* الخلفية المتحركة للحواف (Border Gradient Animation) */}
-            <div className={`absolute inset-0 bg-gradient-to-r ${option.gradient} opacity-50 group-hover:opacity-100 animate-pulse`} />
+            {/* Border Gradient Overlay */}
+            <div className={`absolute inset-0 bg-gradient-to-b ${option.gradient} opacity-20 group-hover:opacity-100 transition-opacity`} />
             
-            {/* جسم الزر الرئيسي (Inner Body) */}
-            <div className="relative bg-[#0a0a0c] rounded-[14px] p-5 h-full flex flex-col items-center gap-3 border border-white/5 backdrop-blur-xl">
+            {/* Main Button Body */}
+            <div className="relative bg-[#0d0d12] rounded-[1.9rem] p-6 h-full flex flex-col items-center gap-4 border border-white/5 backdrop-blur-3xl overflow-hidden">
               
-              {/* تأثير الهالة الخلفية للأيقونة */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-16 blur-2xl opacity-20 group-hover:opacity-40 transition-opacity" 
+              {/* Decorative Background Element */}
+              <div className="absolute -top-10 -right-10 w-24 h-24 blur-[40px] opacity-10 group-hover:opacity-30 transition-opacity" 
                    style={{ backgroundColor: option.color }} />
 
-              <div className="relative z-10 p-3 rounded-full bg-white/5 border border-white/10 group-hover:border-white/20 transition-colors">
-                <Icon className="w-8 h-8 text-white group-hover:scale-110 transition-transform duration-500" 
-                      style={{ filter: `drop-shadow(0 0 8px ${option.color})` }} />
+              {/* Top Badge */}
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/5">
+                <Zap className="w-2.5 h-2.5 text-gold" />
+                <span className="text-[8px] font-black text-white/50 uppercase tracking-[0.2em]">
+                  {option.badge}
+                </span>
               </div>
 
-              <div className="flex flex-col items-center">
-                <span className="font-display font-black text-xs uppercase tracking-[0.2em] text-white/50 mb-1">
-                  {option.id === 'vault' ? '⭐ Legendary' : 'Premium'}
-                </span>
-                <span className="font-display font-bold text-xl text-white tracking-tight">
+              {/* Icon Container */}
+              <div className="relative">
+                <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-center group-hover:border-gold/30 group-hover:bg-gold/5 transition-all duration-500 transform group-hover:rotate-6">
+                  <Icon className="w-8 h-8 text-white group-hover:text-gold transition-colors" 
+                        style={{ filter: !isDisabled ? `drop-shadow(0 0 10px ${option.color}40)` : 'none' }} />
+                </div>
+              </div>
+
+              {/* Labels */}
+              <div className="text-center">
+                <h3 className="font-black text-sm text-white uppercase tracking-wider mb-1 italic" style={{ fontFamily: 'Cinzel, serif' }}>
                   {option.label}
-                </span>
+                </h3>
+                <p className="text-[9px] font-bold text-white/30 uppercase tracking-[0.1em]">
+                  {option.description}
+                </p>
               </div>
 
-              <div className="flex flex-col items-center gap-1">
+              {/* Price / Status Area */}
+              <div className="w-full mt-2 pt-4 border-t border-white/5 flex flex-col items-center">
                 {isFreeSpin ? (
-                  <span className={`text-sm font-bold px-3 py-1 rounded-full ${canFreeSpin ? 'bg-emerald-500/20 text-emerald-400 animate-pulse' : 'bg-white/5 text-white/40'}`}>
-                    {canFreeSpin ? "COLLECT NOW" : freeSpinTimer}
-                  </span>
+                  <div className={`text-[10px] font-black px-4 py-2 rounded-xl transition-all ${
+                    canFreeSpin 
+                    ? 'bg-emerald-500 text-black shadow-[0_0_15px_rgba(16,185,129,0.4)] animate-pulse' 
+                    : 'bg-white/5 text-white/20 border border-white/5'
+                  }`}>
+                    {canFreeSpin ? "READY TO SPIN" : freeSpinTimer}
+                  </div>
                 ) : (
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl font-black text-white tracking-tighter italic">
                       {option.cost}
                     </span>
-                    <span className="text-sm font-bold text-[#fbbf24]">π</span>
+                    <div className="flex flex-col items-start leading-none">
+                       <span className="text-[10px] font-black text-gold">PI</span>
+                       <span className="text-[7px] font-bold text-white/20 uppercase">Network</span>
+                    </div>
                   </div>
                 )}
               </div>
 
-              <p className="text-[10px] uppercase font-medium tracking-wider text-white/40 group-hover:text-white/70 transition-colors">
-                {option.description}
-              </p>
-
-              {/* تأثير اللمعان المتحرك (Shine) */}
-              <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[14px]">
+              {/* Hover Shine Effect */}
+              <div className="absolute inset-0 pointer-events-none">
                 <motion.div 
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12"
-                  animate={{ x: ['-200%', '200%'] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "linear", delay: index }}
+                  className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent"
+                  initial={{ x: '-100%', y: '-100%' }}
+                  whileHover={{ x: '100%', y: '100%' }}
+                  transition={{ duration: 0.8 }}
                 />
               </div>
             </div>

@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Sparkles, Zap, Shield, Crown } from "lucide-react";
+import { ArrowLeft, Sparkles, Zap, Shield, Crown, ShoppingBag, Lock, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -19,13 +19,13 @@ interface NFT {
 
 const UTILITY_ICONS: Record<string, React.ReactNode> = {
   boost: <Zap className="w-5 h-5 text-gold" />,
-  vip: <Crown className="w-5 h-5 text-pi-purple" />,
-  discount: <Shield className="w-5 h-5 text-green-400" />,
+  vip: <Crown className="w-5 h-5 text-gold" />,
+  discount: <Shield className="w-5 h-5 text-emerald-400" />,
 };
 
 export default function Marketplace() {
   const navigate = useNavigate();
-  const { user, isAuthenticated, isLoading } = usePiAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = usePiAuth();
 
   const [nfts, setNfts] = useState<NFT[]>([]);
   const [owned, setOwned] = useState<string[]>([]);
@@ -33,14 +33,24 @@ export default function Marketplace() {
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
 
-  // Protect route: redirect if not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      navigate("/");
-    }
-  }, [isAuthenticated, isLoading]);
+  // مرجع لصوت الشراء
+  const purchaseSfx = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'));
 
-  // Fetch NFTs after user is available
+  // الفحص الإمبراطوري (الدخول + الموافقة القانونية)
+  useEffect(() => {
+    const hasConsented = localStorage.getItem('imperial_legal_consent');
+    if (!authLoading) {
+      if (!isAuthenticated || !hasConsented) {
+        navigate("/");
+        if (!hasConsented && isAuthenticated) {
+          toast.error("Access Denied: Accept Imperial Protocols first", {
+            icon: <ShieldAlert className="text-gold" />
+          });
+        }
+      }
+    }
+  }, [isAuthenticated, authLoading, navigate]);
+
   useEffect(() => {
     if (user?.username) fetchNFTs();
   }, [user]);
@@ -52,23 +62,18 @@ export default function Marketplace() {
         body: {},
       });
       if (error) throw error;
-
       setNfts(data.nfts || []);
       setOwned(data.owned || []);
       setEquipped(data.equipped || []);
     } catch (err: any) {
-      console.error("Error fetching NFTs:", err);
-      toast.error(err?.message || "Failed to load NFTs");
+      toast.error("Failed to sync with Imperial Vault");
     } finally {
       setLoading(false);
     }
   };
 
   const handlePurchase = async (nftId: string) => {
-    if (!user?.username) {
-      toast.error("Please login first");
-      return;
-    }
+    if (!user?.username) return;
     setPurchasing(nftId);
     try {
       const { data, error } = await supabase.functions.invoke("purchase-nft", {
@@ -76,13 +81,14 @@ export default function Marketplace() {
       });
 
       if (error || !data?.success) {
-        toast.error(data?.error || "Purchase failed");
+        toast.error(data?.error || "Transaction Declined");
       } else {
-        toast.success("NFT purchased!");
+        purchaseSfx.current.play().catch(() => {});
+        toast.success("Artifact Secured in your Vault!");
         setOwned([...owned, nftId]);
       }
     } catch (err: any) {
-      toast.error(err?.message || "Purchase failed");
+      toast.error("Transaction Error");
     } finally {
       setPurchasing(null);
     }
@@ -96,84 +102,125 @@ export default function Marketplace() {
       });
       if (!error && data?.success) {
         setEquipped(equip ? [...equipped, nftId] : equipped.filter((id) => id !== nftId));
-        toast.success(equip ? "NFT equipped!" : "NFT unequipped");
+        toast.success(equip ? "Artifact Active" : "Artifact Holstered");
       }
     } catch (err: any) {
-      toast.error(err?.message || "Failed to equip NFT");
+      toast.error("Equipment Failure");
     }
   };
 
-  // GlobalLoading while checking user or loading NFTs
-  if (isLoading || !isAuthenticated || loading) {
-    return <GlobalLoading isVisible={true} />;
-  }
+  if (authLoading || loading) return <GlobalLoading isVisible={true} />;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-[#050507] text-white selection:bg-gold/30">
+      {/* Background Decor */}
+      <div className="fixed inset-0 bg-[url('/stars-pattern.svg')] opacity-10 pointer-events-none" />
+      <div className="fixed inset-0 bg-gradient-to-b from-gold/5 via-transparent to-transparent pointer-events-none" />
+
+      <div className="container mx-auto px-4 py-12 relative z-10">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6"
+          className="inline-flex items-center gap-2 text-white/40 hover:text-gold transition-colors mb-12 group"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Game
+          <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-gold/20 transition-all">
+            <ArrowLeft className="w-4 h-4" />
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-[2px]">Return to Arena</span>
         </Link>
 
-        <motion.h1
-          className="text-4xl font-display font-bold mb-2"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <Sparkles className="inline w-8 h-8 text-gold mr-2" />
-          NFT Marketplace
-        </motion.h1>
-        <p className="text-muted-foreground mb-8">Boost your rewards with powerful NFT power-ups</p>
+        <header className="mb-16 text-center md:text-left">
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex flex-col md:flex-row md:items-end justify-between gap-6"
+          >
+            <div>
+              <div className="flex items-center gap-2 mb-2 justify-center md:justify-start">
+                 <div className="h-[1px] w-8 bg-gold" />
+                 <span className="text-[10px] font-black text-gold uppercase tracking-[4px]">Imperial Treasury</span>
+              </div>
+              <h1 className="text-5xl md:text-6xl font-black italic tracking-tighter uppercase leading-none">
+                IMPERIAL <span className="text-gold">VAULT</span>
+              </h1>
+              <p className="text-white/40 mt-4 text-xs font-medium uppercase tracking-[1px]">Secure rare artifacts to dominate the Pi ecosystem</p>
+            </div>
+            
+            <div className="flex items-center gap-3 px-6 py-3 bg-gold/5 border border-gold/20 rounded-2xl backdrop-blur-md self-center md:self-auto">
+               <ShoppingBag className="text-gold w-5 h-5" />
+               <span className="text-sm font-black italic">{owned.length} <span className="text-gold/50 not-italic uppercase text-[10px] ml-1">Items Secured</span></span>
+            </div>
+          </motion.div>
+        </header>
 
         {nfts.length === 0 ? (
-          <div className="text-center py-12 bg-card rounded-xl border border-border">
-            <Sparkles className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground">No NFTs available yet</h3>
-            <p className="text-muted-foreground mt-2">Check back later for new power-ups</p>
+          <div className="text-center py-24 bg-[#0d0d12] rounded-[40px] border border-white/5 shadow-2xl">
+            <Lock className="w-16 h-16 text-white/10 mx-auto mb-6" />
+            <h3 className="text-xl font-black uppercase italic text-white/60 tracking-widest">Vault is Currently Sealed</h3>
+            <p className="text-white/30 text-xs mt-2 uppercase">New artifacts arriving in the next cycle</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {nfts.map((nft, index) => (
               <motion.div
                 key={nft.id}
-                className="bg-card border border-border rounded-xl p-6 hover:border-pi-purple/50 transition-colors"
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                whileHover={{ y: -4 }}
+                transition={{ delay: index * 0.1 }}
+                className="group relative bg-[#0d0d12] border border-white/5 rounded-[32px] p-6 hover:border-gold/30 transition-all duration-500 overflow-hidden shadow-xl"
               >
-                <div className="aspect-square bg-muted rounded-lg mb-4 flex items-center justify-center">
+                {/* Glow behind image */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-gold/5 blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                <div className="aspect-square bg-white/[0.02] border border-white/5 rounded-2xl mb-6 flex items-center justify-center overflow-hidden relative group-hover:scale-[1.02] transition-transform duration-500">
                   {nft.image_url ? (
-                    <img
-                      src={nft.image_url}
-                      alt={nft.name}
-                      className="w-full h-full object-cover rounded-lg"
-                    />
+                    <img src={nft.image_url} alt={nft.name} className="w-full h-full object-cover" />
                   ) : (
-                    <Sparkles className="w-16 h-16 text-pi-purple/30" />
+                    <Sparkles className="w-12 h-12 text-gold/20" />
+                  )}
+                  {owned.includes(nft.id) && (
+                    <div className="absolute top-4 right-4 bg-gold text-black text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-lg">
+                      Secured
+                    </div>
                   )}
                 </div>
-                <div className="flex items-center gap-2 mb-2">
-                  {UTILITY_ICONS[nft.utility] || <Zap className="w-5 h-5 text-muted-foreground" />}
-                  <h3 className="font-display font-bold text-lg">{nft.name}</h3>
+
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-gold/30 transition-colors">
+                    {UTILITY_ICONS[nft.utility] || <Zap className="w-5 h-5 text-gold" />}
+                  </div>
+                  <h3 className="font-black italic text-xl uppercase tracking-tight">{nft.name}</h3>
                 </div>
-                <p className="text-sm text-muted-foreground mb-4">{nft.description}</p>
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-gold">{nft.price_pi} π</span>
+
+                <p className="text-[11px] text-white/40 leading-relaxed mb-8 h-12 overflow-hidden italic uppercase">
+                  {nft.description}
+                </p>
+
+                <div className="flex items-center justify-between pt-6 border-t border-white/5">
+                  <div className="flex flex-col">
+                     <span className="text-[8px] font-black text-gold uppercase tracking-widest leading-none mb-1">Price</span>
+                     <span className="text-xl font-black italic">{nft.price_pi} <span className="text-gold text-xs">π</span></span>
+                  </div>
+
                   {owned.includes(nft.id) ? (
                     <Button
                       size="sm"
-                      variant={equipped.includes(nft.id) ? "default" : "outline"}
                       onClick={() => handleEquip(nft.id, !equipped.includes(nft.id))}
+                      className={`rounded-xl px-6 h-10 font-black uppercase text-[10px] tracking-widest transition-all ${
+                        equipped.includes(nft.id) 
+                        ? "bg-gold text-black hover:bg-gold/80" 
+                        : "bg-white/5 text-white hover:bg-white/10 border border-white/10"
+                      }`}
                     >
-                      {equipped.includes(nft.id) ? "Equipped" : "Equip"}
+                      {equipped.includes(nft.id) ? "Active" : "Equip"}
                     </Button>
                   ) : (
-                    <Button size="sm" onClick={() => handlePurchase(nft.id)} disabled={purchasing === nft.id}>
-                      {purchasing === nft.id ? "Buying..." : "Buy"}
+                    <Button 
+                      size="sm" 
+                      onClick={() => handlePurchase(nft.id)} 
+                      disabled={purchasing === nft.id}
+                      className="rounded-xl px-8 h-10 bg-gradient-to-r from-gold to-[#B8860B] text-black font-black uppercase text-[10px] tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all"
+                    >
+                      {purchasing === nft.id ? "..." : "Buy"}
                     </Button>
                   )}
                 </div>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, LayoutDashboard, TrendingUp, Globe } from "lucide-react";
+import { Plus, LayoutDashboard } from "lucide-react";
 import { Link } from "react-router-dom";
 import logo from "@/assets/spin4pi-logo.png";
 import { DepositModal } from "./DepositModal";
@@ -25,20 +25,15 @@ export function Header({ isLoggedIn, username, balance, onLogin, onLogout, onDep
           
           <div className="flex items-center gap-2 md:gap-4 flex-1 justify-end">
             
-            {/* 2. Pi Market Price (المكون الذي كان مفقوداً في الصورة) */}
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/10 rounded-2xl group">
-              {/* Pi Official Coin Icon */}
-              <div className="w-6 h-6 rounded-full bg-[#fed429] flex items-center justify-center shadow-[0_0_10px_rgba(254,212,41,0.2)] flex-shrink-0">
-                <span className="text-black font-black text-[12px]">π</span>
-              </div>
-              
+            {/* 2. Pi Market Price - تم حذف الدائرة الصفراء وتصغير الحاوية */}
+            <div className="flex items-center px-3 py-1.5 bg-white/[0.03] border border-white/10 rounded-2xl group">
               <div className="flex flex-col">
-                <div className="flex items-center gap-1 leading-none mb-0.5">
+                <div className="flex items-center gap-1 leading-none mb-1">
                   <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse" />
                   <span className="text-[7px] font-black text-white/30 uppercase tracking-widest">Live Price</span>
                 </div>
-                {/* هنا يظهر السعر المتغير */}
-                <div className="text-[11px] md:text-xs font-bold text-white tracking-tighter">
+                {/* السعر المباشر يظهر هنا */}
+                <div className="text-[11px] md:text-xs font-bold text-white tracking-tighter leading-none">
                   <PiPriceDisplay />
                 </div>
               </div>

@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Sparkles, X, Coins, Share2 } from "lucide-react";
+import { Trophy, Sparkles, X, Coins, Share2, Crown, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { usePiShare } from "@/hooks/usePiShare";
+import confetti from 'canvas-confetti';
 
 interface Achievement {
   name: string;
@@ -19,13 +20,17 @@ export function AchievementUnlockModal({ achievements, onClose }: AchievementUnl
   const [currentIndex, setCurrentIndex] = useState(0);
   const { playAchievementSound } = useSoundEffects();
   const { shareAchievement } = usePiShare();
-  const [showConfetti, setShowConfetti] = useState(false);
+
   useEffect(() => {
     if (achievements.length > 0) {
       playAchievementSound();
-      setShowConfetti(true);
-      const timer = setTimeout(() => setShowConfetti(false), 2000);
-      return () => clearTimeout(timer);
+      // انفجار كونفيتي احترافي
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#FBBC05', '#7D3CF0', '#FFFFFF']
+      });
     }
   }, [currentIndex, playAchievementSound, achievements.length]);
 
@@ -42,188 +47,156 @@ export function AchievementUnlockModal({ achievements, onClose }: AchievementUnl
     }
   };
 
-  const handleShare = () => {
-    shareAchievement(currentAchievement.name, currentAchievement.reward_pi);
-  };
   return (
     <AnimatePresence>
-      <motion.div
-        className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-      >
-        {/* Confetti particles */}
-        {showConfetti && (
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            {[...Array(30)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute w-3 h-3 rounded-full"
-                style={{
-                  background: ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'][i % 6],
-                  left: `${Math.random() * 100}%`,
-                  top: -20,
-                }}
-                initial={{ y: 0, rotate: 0, opacity: 1 }}
-                animate={{
-                  y: window.innerHeight + 100,
-                  rotate: Math.random() * 720 - 360,
-                  opacity: 0,
-                }}
-                transition={{
-                  duration: 2 + Math.random(),
-                  delay: Math.random() * 0.5,
-                  ease: "easeOut",
-                }}
-              />
-            ))}
-          </div>
-        )}
+      <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+        {/* Backdrop مع تعتيم عالي */}
+        <motion.div
+          className="absolute inset-0 bg-black/90 backdrop-blur-xl"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+        />
 
         <motion.div
           className="relative w-full max-w-sm"
-          initial={{ scale: 0.5, opacity: 0, y: 50 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.5, opacity: 0, y: 50 }}
-          transition={{ type: "spring", damping: 15, stiffness: 300 }}
+          initial={{ scale: 0.7, opacity: 0, rotateX: 45 }}
+          animate={{ scale: 1, opacity: 1, rotateX: 0 }}
+          exit={{ scale: 0.7, opacity: 0 }}
+          transition={{ type: "spring", damping: 20, stiffness: 300 }}
         >
-          {/* Glow effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-gold via-amber-400 to-gold rounded-3xl blur-xl opacity-50 animate-pulse" />
+          {/* Aura الخلفية المضيئة */}
+          <div className="absolute -inset-4 bg-gradient-to-r from-gold/30 via-pi-purple/30 to-gold/30 rounded-[3rem] blur-3xl animate-pulse" />
           
-          <div className="relative bg-card border-2 border-gold/50 rounded-3xl p-8 text-center overflow-hidden">
-            {/* Background shimmer */}
+          <div className="relative bg-[#0d0d12] border-2 border-gold/40 rounded-[2.5rem] p-8 text-center overflow-hidden shadow-[0_0_100px_rgba(251,191,36,0.2)]">
+            
+            {/* لمعة الستيل المتحركة */}
             <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-gold/10 to-transparent"
-              animate={{ x: ["-100%", "200%"] }}
-              transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+              className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none"
+              animate={{ x: ["-200%", "200%"] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
             />
             
-            {/* Close button */}
+            {/* زر الإغلاق الملكي */}
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 p-1 rounded-full hover:bg-muted transition-colors"
+              className="absolute top-5 right-5 p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors z-50"
             >
-              <X className="w-5 h-5 text-muted-foreground" />
+              <X className="w-5 h-5 text-gold/60" />
             </button>
 
-            {/* Trophy icon with animation */}
-            <motion.div
-              className="relative mx-auto w-24 h-24 mb-6"
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: "spring", damping: 10, delay: 0.2 }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-gold to-amber-600 rounded-full flex items-center justify-center shadow-2xl">
-                <Trophy className="w-12 h-12 text-background" />
-              </div>
+            {/* الأيقونة المركزية: الكأس المحاط بالهالة */}
+            <div className="relative mx-auto w-32 h-32 mb-8 flex items-center justify-center">
+              <motion.div
+                className="absolute inset-0 bg-gold/20 rounded-full blur-2xl"
+                animate={{ scale: [1, 1.4, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
               
-              {/* Sparkles around trophy */}
-              {[...Array(6)].map((_, i) => (
+              <motion.div
+                className="relative z-10 w-24 h-24 bg-gradient-to-b from-gold via-amber-500 to-amber-700 rounded-[2rem] flex items-center justify-center shadow-[0_15px_35px_rgba(251,191,36,0.4)] rotate-12"
+                initial={{ y: 20, rotate: 0 }}
+                animate={{ y: 0, rotate: 12 }}
+                transition={{ type: "spring", bounce: 0.6 }}
+              >
+                <Trophy className="w-12 h-12 text-black" strokeWidth={2.5} />
+                
+                {/* تاج صغير فوق الكأس */}
+                <Crown className="absolute -top-4 -right-2 w-8 h-8 text-gold drop-shadow-lg rotate-12" />
+              </motion.div>
+
+              {/* نجوم متطايرة */}
+              {[...Array(8)].map((_, i) => (
                 <motion.div
                   key={i}
                   className="absolute"
-                  style={{
-                    top: "50%",
-                    left: "50%",
-                  }}
-                  initial={{ scale: 0, opacity: 0 }}
                   animate={{
                     scale: [0, 1, 0],
                     opacity: [0, 1, 0],
-                    x: Math.cos((i * Math.PI * 2) / 6) * 50 - 8,
-                    y: Math.sin((i * Math.PI * 2) / 6) * 50 - 8,
+                    x: Math.cos(i) * 70,
+                    y: Math.sin(i) * 70,
                   }}
-                  transition={{
-                    duration: 1,
-                    delay: 0.5 + i * 0.1,
-                    repeat: Infinity,
-                    repeatDelay: 2,
-                  }}
+                  transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
                 >
-                  <Sparkles className="w-4 h-4 text-gold" />
+                  <Sparkles className="w-4 h-4 text-gold/50" />
                 </motion.div>
               ))}
-            </motion.div>
+            </div>
 
-            {/* Achievement unlocked text */}
-            <motion.p
-              className="text-sm font-semibold text-gold uppercase tracking-wider mb-2"
+            {/* نصوص الإنجاز */}
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              Achievement Unlocked!
-            </motion.p>
+              <span className="inline-block px-4 py-1 rounded-full bg-gold/10 border border-gold/20 text-[10px] font-black text-gold uppercase tracking-[0.3em] mb-4">
+                Imperial Decree
+              </span>
+              
+              <h2 className="text-3xl font-black text-white mb-2 tracking-tight italic uppercase" style={{ fontFamily: 'Cinzel, serif' }}>
+                {currentAchievement.name}
+              </h2>
+              
+              <p className="text-white/40 text-sm font-medium mb-6 uppercase tracking-widest">
+                New Honor Unlocked
+              </p>
+            </motion.div>
 
-            {/* Achievement name */}
-            <motion.h2
-              className="text-2xl font-display font-bold mb-4"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              {currentAchievement.name}
-            </motion.h2>
-
-            {/* Reward */}
+            {/* المكافأة */}
             {currentAchievement.reward_pi > 0 && (
               <motion.div
-                className="flex items-center justify-center gap-2 text-lg mb-6"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.5 }}
+                className="inline-flex items-center gap-3 px-6 py-3 bg-white/5 rounded-2xl border border-white/10 mb-8"
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.5, type: "spring" }}
               >
-                <Coins className="w-5 h-5 text-gold" />
-                <span className="font-bold text-gold">+{currentAchievement.reward_pi} π</span>
-                <span className="text-muted-foreground">reward</span>
+                <div className="w-10 h-10 bg-gold rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(251,191,36,0.5)]">
+                  <Coins className="w-6 h-6 text-black" />
+                </div>
+                <div className="text-left">
+                  <p className="text-[10px] text-white/40 font-bold uppercase tracking-tighter">Imperial Bounty</p>
+                  <p className="text-xl font-black text-gold">+{currentAchievement.reward_pi} π</p>
+                </div>
               </motion.div>
             )}
 
-            {/* Progress indicator */}
-            {achievements.length > 1 && (
-              <motion.div
-                className="flex justify-center gap-2 mb-6"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
+            {/* الأزرار الأسطورية */}
+            <div className="grid gap-3 relative z-20">
+              <Button
+                onClick={() => shareAchievement(currentAchievement.name, currentAchievement.reward_pi)}
+                variant="ghost"
+                className="w-full py-6 rounded-2xl border border-white/10 text-white/60 hover:text-gold hover:bg-white/5 transition-all group"
               >
+                <Share2 className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                Spread the Glory
+              </Button>
+              
+              <Button
+                onClick={handleNext}
+                className="w-full py-7 bg-gold hover:bg-gold-dark text-black font-black text-lg rounded-2xl shadow-[0_10px_20px_rgba(251,191,36,0.3)] group"
+              >
+                <span>{hasMore ? "Next Honor" : "Claim & Close"}</span>
+                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </div>
+
+            {/* مؤشر الصفحات السفلي */}
+            {achievements.length > 1 && (
+              <div className="flex justify-center gap-1.5 mt-6">
                 {achievements.map((_, i) => (
                   <div
                     key={i}
-                    className={`w-2 h-2 rounded-full transition-colors ${
-                      i === currentIndex ? 'bg-gold' : 'bg-muted'
+                    className={`h-1 rounded-full transition-all duration-500 ${
+                      i === currentIndex ? 'w-8 bg-gold' : 'w-2 bg-white/10'
                     }`}
                   />
                 ))}
-              </motion.div>
+              </div>
             )}
-
-            {/* Action buttons */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
-              className="space-y-2"
-            >
-              <Button
-                onClick={handleShare}
-                variant="outline"
-                className="w-full gap-2 border-pi-purple/50 hover:bg-pi-purple/20"
-              >
-                <Share2 className="w-4 h-4" />
-                Share Achievement
-              </Button>
-              <Button
-                onClick={handleNext}
-                className="w-full bg-gradient-to-r from-gold to-amber-600 hover:from-gold-dark hover:to-amber-700 text-background font-bold"
-              >
-                {hasMore ? `Next (${achievements.length - currentIndex - 1} more)` : 'Awesome!'}
-              </Button>
-            </motion.div>
           </div>
         </motion.div>
-      </motion.div>
+      </div>
     </AnimatePresence>
   );
 }

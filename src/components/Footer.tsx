@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { FileText, Shield, MessageCircle, Twitter, Globe, Cpu, Crown } from "lucide-react";
+import { FileText, Shield, MessageCircle, Twitter, Globe, Cpu } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export function Footer() {
@@ -16,8 +16,17 @@ export function Footer() {
           {/* Brand & Mission */}
           <div className="md:col-span-2 space-y-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gold rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(251,191,36,0.3)]">
-                <Crown className="w-6 h-6 text-black fill-black" />
+              {/* استبدال التاج بشعار التطبيق */}
+              <div className="w-12 h-12 bg-gold rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(251,191,36,0.3)] overflow-hidden p-1">
+                <img 
+                  src="/spin4pi-logo.png" 
+                  alt="Spin4Pi Logo" 
+                  className="w-full h-full object-contain rounded-lg"
+                  onError={(e) => {
+                    // في حال لم يجد المسار، يضع خلفية بديلة ليظل التصميم سليماً
+                    e.currentTarget.src = "https://api.dicebear.com/7.x/initials/svg?seed=S4P&backgroundColor=fbbf24";
+                  }}
+                />
               </div>
               <h4 className="text-2xl font-black text-white italic uppercase tracking-tighter" style={{ fontFamily: 'Cinzel, serif' }}>
                 Spin4<span className="text-gold">Pi</span>

@@ -7,7 +7,7 @@ interface SplashScreenProps {
   minDuration?: number;
 }
 
-export function SplashScreen({ onComplete, minDuration = 2500 }: SplashScreenProps) {
+export function SplashScreen({ onComplete, minDuration = 3000 }: SplashScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
   const [progress, setProgress] = useState(0);
 
@@ -22,10 +22,11 @@ export function SplashScreen({ onComplete, minDuration = 2500 }: SplashScreenPro
         clearInterval(interval);
         setTimeout(() => {
           setIsVisible(false);
-          setTimeout(onComplete, 300);
-        }, 300);
+          // تأخير بسيط لإعطاء فرصة لأنميشن الخروج (Exit Animation)
+          setTimeout(onComplete, 500);
+        }, 500);
       }
-    }, 50);
+    }, 30);
 
     return () => clearInterval(interval);
   }, [minDuration, onComplete]);
@@ -35,47 +36,80 @@ export function SplashScreen({ onComplete, minDuration = 2500 }: SplashScreenPro
       {isVisible && (
         <motion.div
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.5 }}
-          className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background"
+          exit={{ opacity: 0, scale: 1.1 }}
+          transition={{ duration: 0.8, ease: "easeInOut" }}
+          className="fixed inset-0 z-[999999] flex flex-col items-center justify-center bg-[#050505]"
         >
-          {/* Logo */}
-          <motion.img
-            src={logo}
-            alt="Spin4Pi"
-            className="w-40 h-40 mb-4"
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.8 }}
-          />
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.6 }}
-            className="text-4xl font-bold text-gradient-gold"
-          >
-            Spin4Pi
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.6 }}
-            className="text-muted-foreground mt-2"
-          >
-            Win Real Pi • Play to Earn
-          </motion.p>
+          {/* خلفية فخمة خافتة (Ambient Glow) */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(251,191,36,0.05)_0%,_transparent_70%)]" />
+          
+          <div className="relative flex flex-col items-center">
+            {/* Logo مع تأثير نبض ذهبي */}
+            <div className="relative mb-8">
+              <motion.div
+                className="absolute inset-0 bg-gold/20 blur-[50px] rounded-full"
+                animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+              <motion.img
+                src={logo}
+                alt="Spin4Pi Empire"
+                className="w-48 h-48 md:w-56 md:h-56 relative z-10 drop-shadow-[0_0_30px_rgba(251,191,36,0.3)]"
+                initial={{ scale: 0.8, opacity: 0, rotate: -10 }}
+                animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                transition={{ duration: 1, ease: "easeOut" }}
+              />
+            </div>
 
-          {/* Progress bar */}
-          <div className="w-48 h-1 bg-muted rounded-full overflow-hidden mt-6">
+            {/* العنوان الإمبراطوري */}
             <motion.div
-              className="h-1 bg-gradient-to-r from-primary to-secondary"
-              style={{ width: `${progress}%` }}
-              transition={{ duration: 0.1 }}
-            />
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+              className="text-center"
+            >
+              <h1 
+                className="text-5xl md:text-6xl font-black tracking-[0.2em] uppercase italic text-transparent bg-clip-text bg-gradient-to-b from-gold via-amber-500 to-amber-800"
+                style={{ fontFamily: 'Cinzel, serif' }}
+              >
+                Spin4Pi
+              </h1>
+              <div className="flex items-center justify-center gap-4 mt-2">
+                <div className="h-[1px] w-12 bg-gold/30" />
+                <p className="text-[10px] font-black text-gold/60 uppercase tracking-[0.4em]">
+                  The Imperial Games
+                </p>
+                <div className="h-[1px] w-12 bg-gold/30" />
+              </div>
+            </motion.div>
+
+            {/* شريط التحميل (The Golden Path) */}
+            <div className="mt-12 flex flex-col items-center gap-4">
+              <div className="w-64 h-[2px] bg-white/5 rounded-full overflow-hidden relative border border-white/5">
+                <motion.div
+                  className="absolute h-full bg-gradient-to-r from-amber-900 via-gold to-amber-900 shadow-[0_0_15px_rgba(251,191,36,0.5)]"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              
+              <motion.div 
+                className="flex items-center gap-2"
+                animate={{ opacity: [0.4, 1, 0.4] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">
+                  {progress < 100 ? "Syncing with Pi Mainnet..." : "Access Granted"}
+                </span>
+              </motion.div>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            {progress < 100 ? 'Loading game...' : 'Ready!'}
-          </p>
+
+          {/* تذييل الشاشة */}
+          <div className="absolute bottom-10">
+            <p className="text-[8px] font-bold text-white/10 uppercase tracking-[0.3em]">
+              Authorized Imperial Connection
+            </p>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

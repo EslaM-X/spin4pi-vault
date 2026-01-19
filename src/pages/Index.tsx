@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { ShieldCheck } from "lucide-react"; // استيراد أيقونة الحماية
 
 // Components
 import { Header } from "@/components/Header";
@@ -20,7 +21,7 @@ import { VIPStatus } from "@/components/VIPStatus";
 import StakingPanel from "@/components/StakingPanel";
 import GlobalLoading from "@/components/GlobalLoading";
 import { BackendHealthCheck } from "@/components/BackendHealthCheck";
-import { LegalConsentModal } from "@/components/LegalConsentModal"; // استيراد المودال
+import { LegalConsentModal } from "@/components/LegalConsentModal";
 
 // Hooks
 import { useGameData } from "@/hooks/useGameData";
@@ -50,7 +51,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [freeSpinTimer, setFreeSpinTimer] = useState("Available");
   const [showResultModal, setShowResultModal] = useState(false);
-  const [showLegalModal, setShowLegalModal] = useState(false); // حالة المودال
+  const [showLegalModal, setShowLegalModal] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -67,7 +68,6 @@ const Index = () => {
     if (targetResult) setShowResultModal(true);
   }, [targetResult]);
 
-  // دالة الدخول الذكية
   const handleLoginAttempt = async () => {
     const hasConsented = localStorage.getItem('imperial_legal_consent');
     if (!hasConsented) {
@@ -100,7 +100,7 @@ const Index = () => {
 
   const handleSpinClick = async (spinType: string, cost: number) => {
     if (!isAuthenticated || !user) {
-      handleLoginAttempt(); // إذا حاول يلف وهو مش مسجل، نفتح له الموافقة الأول
+      handleLoginAttempt();
       return;
     }
     if (isSpinning) return;
@@ -124,7 +124,7 @@ const Index = () => {
         isLoggedIn={isAuthenticated}
         username={user?.username || null}
         balance={wallet.balance}
-        onLogin={handleLoginAttempt} // مررنا دالة الفحص
+        onLogin={handleLoginAttempt}
         onLogout={handleLogout}
         isLoading={isAuthLoading}
       />
@@ -186,13 +186,29 @@ const Index = () => {
       <Footer />
       <ResultModal isOpen={showResultModal} onClose={() => { setShowResultModal(false); setTargetResult(null); }} result={targetResult} />
       
-      {/* المودال القانوني لضمان ظهوره عند محاولة تسجيل الدخول من أي مكان */}
       <LegalConsentModal 
         isOpenExternal={showLegalModal} 
         onClose={() => setShowLegalModal(false)} 
         onSuccess={handleLoginAttempt} 
       />
       <BackendHealthCheck />
+
+      {/* ADMIN FLOATING ACTION BUTTON - الحل النهائي */}
+      {isAuthenticated && (
+        <motion.button
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => navigate('/admin')}
+          className="fixed bottom-24 right-6 z-[9999] w-14 h-14 bg-emerald-500 rounded-2xl shadow-[0_0_25px_rgba(16,185,129,0.5)] border-2 border-white/20 flex items-center justify-center text-black shadow-emerald-500/20"
+        >
+          <ShieldCheck size={30} strokeWidth={2.5} />
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center border border-emerald-500">
+             <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+          </div>
+        </motion.button>
+      )}
     </div>
   );
 };

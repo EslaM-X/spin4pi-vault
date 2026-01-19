@@ -14,6 +14,7 @@ import Marketplace from '@/pages/Marketplace';
 import WithdrawalHistory from '@/pages/WithdrawalHistory';
 import Achievements from '@/pages/Achievements';
 import VIPBenefits from '@/pages/VIPBenefits';
+import Leaderboard from '@/pages/Leaderboard'; // إضافة استيراد صفحة المتصدرين
 import Legal from '@/pages/Legal';
 import Admin from '@/pages/Admin';
 import NotFound from '@/pages/NotFound';
@@ -45,8 +46,9 @@ const AppRoutes = () => {
         <Route path="/marketplace" element={<Marketplace />} />
         <Route path="/withdrawals" element={<WithdrawalHistory />} />
         <Route path="/achievements" element={<Achievements />} />
-        {/* تم التعديل هنا ليطابق الرابط في المنيو */}
         <Route path="/vip-benefits" element={<VIPBenefits />} /> 
+        {/* إضافة المسار الخاص بالمتصدرين ليتطابق مع القائمة */}
+        <Route path="/leaderboard" element={<Leaderboard />} /> 
         <Route path="/legal" element={<Legal />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="*" element={<NotFound />} />

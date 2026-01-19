@@ -77,73 +77,73 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
             </div>
           </div>
 
-          {/* Balance Display (Logged In Only) */}
+          {/* --- تم تكبير قسم الرصيد هنا --- */}
           {isLoggedIn && (
-            <div className="bg-[#13131a] border border-gold/40 rounded-[28px] p-5 mb-6 flex items-center gap-4 relative shadow-2xl overflow-hidden group">
-              <div className="absolute inset-0 bg-gold/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="w-12 h-12 bg-gold rounded-xl flex items-center justify-center text-black shrink-0 shadow-[0_0_15px_rgba(212,175,55,0.3)]">
-                <Wallet size={24} />
+            <div className="bg-gradient-to-br from-[#1a1a23] to-[#0d0d12] border border-gold/30 rounded-[32px] p-6 mb-8 flex items-center gap-5 relative shadow-[0_10px_40px_rgba(0,0,0,0.5)] overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gold/5 blur-[50px] -mr-16 -mt-16" />
+              <div className="w-14 h-14 bg-gold rounded-2xl flex items-center justify-center text-black shrink-0 shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-transform group-hover:scale-105 duration-500">
+                <Wallet size={28} />
               </div>
               <div className="flex-1 min-w-0 relative z-10">
-                <span className="text-[10px] font-black text-gold uppercase tracking-[1.5px] block mb-1">Available Pi</span>
-                <div className="text-2xl font-black text-white truncate leading-none">
-                  {Number(balance).toFixed(2)} <span className="text-sm text-gold">π</span>
+                <span className="text-[11px] font-black text-gold uppercase tracking-[3px] block mb-1 opacity-80">Available Pi</span>
+                <div className="text-4xl font-black text-white tracking-tighter italic flex items-baseline gap-2">
+                  {Number(balance).toFixed(2)} 
+                  <span className="text-xl text-gold/80 not-italic">π</span>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Top Quick Links Grid */}
+          {/* Quick Links Grid */}
           <div className="grid grid-cols-2 gap-3 mb-6">
-            <button onClick={() => handleNav('/')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10 transition-colors group">
-              <LayoutGrid size={20} className="text-gold group-hover:scale-110 transition-transform" />
+            <button onClick={() => handleNav('/')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10 transition-colors">
+              <LayoutGrid size={20} className="text-gold" />
               <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Arena</span>
             </button>
             {isLoggedIn && (
               <>
-                <button onClick={() => handleNav('/leaderboard')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10 transition-colors group">
-                  <Trophy size={20} className="text-gold group-hover:scale-110 transition-transform" />
+                <button onClick={() => handleNav('/leaderboard')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10 transition-colors">
+                  <Trophy size={20} className="text-gold" />
                   <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Rankings</span>
                 </button>
-                <button onClick={() => handleNav('/vip-benefits')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10 transition-colors group">
-                  <Crown size={20} className="text-gold group-hover:scale-110 transition-transform" />
+                <button onClick={() => handleNav('/vip-benefits')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10 transition-colors">
+                  <Crown size={20} className="text-gold" />
                   <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">VIP Vault</span>
                 </button>
               </>
             )}
-            <button onClick={() => handleNav('/profile')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10 transition-colors group">
-              <UserCircle size={20} className="text-gold group-hover:scale-110 transition-transform" />
+            <button onClick={() => handleNav('/profile')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10 transition-colors">
+              <UserCircle size={20} className="text-gold" />
               <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Account</span>
             </button>
           </div>
 
-          {/* Detailed Menu Links Section */}
+          {/* Navigation List */}
           <div className="space-y-2 mb-8">
             {isLoggedIn && (
               <>
                 <MenuLink icon={<Medal size={18} />} label="Imperial Achievements" onClick={() => handleNav('/achievements')} />
                 <MenuLink icon={<ShoppingCart size={18} />} label="Marketplace" onClick={() => handleNav('/marketplace')} />
-                {/* الرابط المطلوب بالمسمى المطلوب */}
                 <MenuLink icon={<History size={18} />} label="Withdrawal History" onClick={() => handleNav('/withdrawals')} />
               </>
             )}
             <MenuLink icon={<Shield size={18} />} label="Security & Legal" onClick={() => handleNav('/legal')} />
           </div>
 
-          {/* Footer Actions (Login/Logout) */}
+          {/* Auth Button */}
           <div className="mt-auto pt-4">
             {!isLoggedIn ? (
               <button 
                 onClick={() => { onLogin?.(); setIsOpen(false); }}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-gold to-[#B8860B] text-black text-xs font-black uppercase tracking-[2px] shadow-[0_10px_20px_rgba(212,175,55,0.2)] flex items-center justify-center gap-2 active:scale-95 transition-all"
+                className="w-full py-5 rounded-[24px] bg-gradient-to-r from-gold via-[#FFD700] to-[#B8860B] text-black text-[13px] font-black uppercase tracking-[3px] shadow-[0_15px_30px_rgba(212,175,55,0.25)] flex items-center justify-center gap-3 active:scale-95 transition-all"
               >
-                <LogIn size={18} />
+                <LogIn size={20} />
                 Connect With Pi
               </button>
             ) : (
               <button 
                 onClick={() => { onLogout?.(); setIsOpen(false); }}
-                className="w-full py-4 rounded-2xl bg-red-500/10 border border-red-500/40 text-red-500 text-xs font-black uppercase tracking-[2px] shadow-lg active:scale-95 transition-all"
+                className="w-full py-4 rounded-2xl bg-red-500/5 border border-red-500/20 text-red-500 text-[11px] font-black uppercase tracking-[2px] active:scale-95 transition-all opacity-60 hover:opacity-100"
               >
                 LOGOUT SYSTEM
               </button>
@@ -156,7 +156,6 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
   );
 }
 
-// مكون فرعي للروابط الطولية
 function MenuLink({ icon, label, onClick }: any) {
   return (
     <div 
@@ -167,7 +166,7 @@ function MenuLink({ icon, label, onClick }: any) {
         <div className="text-gold/60 group-hover:text-gold transition-colors">
           {icon}
         </div>
-        <span className="text-sm font-bold text-white/70 group-hover:text-white transition-colors uppercase tracking-tight">
+        <span className="text-[12px] font-bold text-white/70 group-hover:text-white transition-colors uppercase tracking-wide">
           {label}
         </span>
       </div>

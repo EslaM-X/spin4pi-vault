@@ -77,18 +77,30 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
             </div>
           </div>
 
-          {/* --- تم تكبير قسم الرصيد هنا --- */}
+          {/* --- Available Pi Section (Imperial Final Version) --- */}
           {isLoggedIn && (
-            <div className="bg-gradient-to-br from-[#1a1a23] to-[#0d0d12] border border-gold/30 rounded-[32px] p-6 mb-8 flex items-center gap-5 relative shadow-[0_10px_40px_rgba(0,0,0,0.5)] overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gold/5 blur-[50px] -mr-16 -mt-16" />
-              <div className="w-14 h-14 bg-gold rounded-2xl flex items-center justify-center text-black shrink-0 shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-transform group-hover:scale-105 duration-500">
-                <Wallet size={28} />
-              </div>
-              <div className="flex-1 min-w-0 relative z-10">
-                <span className="text-[11px] font-black text-gold uppercase tracking-[3px] block mb-1 opacity-80">Available Pi</span>
-                <div className="text-4xl font-black text-white tracking-tighter italic flex items-baseline gap-2">
-                  {Number(balance).toFixed(2)} 
-                  <span className="text-xl text-gold/80 not-italic">π</span>
+            <div className="relative mb-6 group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-gold/30 to-transparent rounded-[30px] blur opacity-20 transition duration-1000"></div>
+              
+              <div className="relative bg-[#13131a] border border-gold/40 rounded-[28px] p-1 flex items-center shadow-2xl overflow-hidden">
+                {/* Wallet Icon Box */}
+                <div className="w-16 h-16 bg-gold rounded-2xl flex items-center justify-center text-black shrink-0 m-1 shadow-[0_0_20px_rgba(212,175,55,0.3)]">
+                  <Wallet size={32} strokeWidth={2.5} />
+                </div>
+
+                {/* Balance Details */}
+                <div className="flex-1 px-4 py-2">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[10px] font-black text-gold uppercase tracking-[3px] opacity-80">Available Pi</span>
+                    <div className="h-[1px] flex-1 bg-gold/20"></div>
+                  </div>
+                  
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-black text-white italic tracking-tighter leading-none drop-shadow-[0_2px_10px_rgba(255,255,255,0.1)]">
+                      {Number(balance).toFixed(2)}
+                    </span>
+                    <span className="text-xl font-bold text-gold italic uppercase">π</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -96,24 +108,24 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
 
           {/* Quick Links Grid */}
           <div className="grid grid-cols-2 gap-3 mb-6">
-            <button onClick={() => handleNav('/')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10 transition-colors">
-              <LayoutGrid size={20} className="text-gold" />
+            <button onClick={() => handleNav('/')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10 transition-all group">
+              <LayoutGrid size={20} className="text-gold group-hover:scale-110 transition-transform" />
               <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Arena</span>
             </button>
             {isLoggedIn && (
               <>
-                <button onClick={() => handleNav('/leaderboard')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10 transition-colors">
-                  <Trophy size={20} className="text-gold" />
+                <button onClick={() => handleNav('/leaderboard')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10 transition-all group">
+                  <Trophy size={20} className="text-gold group-hover:scale-110 transition-transform" />
                   <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Rankings</span>
                 </button>
-                <button onClick={() => handleNav('/vip-benefits')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10 transition-colors">
-                  <Crown size={20} className="text-gold" />
+                <button onClick={() => handleNav('/vip-benefits')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10 transition-all group">
+                  <Crown size={20} className="text-gold group-hover:scale-110 transition-transform" />
                   <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">VIP Vault</span>
                 </button>
               </>
             )}
-            <button onClick={() => handleNav('/profile')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10 transition-colors">
-              <UserCircle size={20} className="text-gold" />
+            <button onClick={() => handleNav('/profile')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10 transition-all group">
+              <UserCircle size={20} className="text-gold group-hover:scale-110 transition-transform" />
               <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Account</span>
             </button>
           </div>
@@ -143,7 +155,7 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
             ) : (
               <button 
                 onClick={() => { onLogout?.(); setIsOpen(false); }}
-                className="w-full py-4 rounded-2xl bg-red-500/5 border border-red-500/20 text-red-500 text-[11px] font-black uppercase tracking-[2px] active:scale-95 transition-all opacity-60 hover:opacity-100"
+                className="w-full py-4 rounded-2xl bg-red-500/5 border border-red-500/20 text-red-500 text-[11px] font-black uppercase tracking-[2px] active:scale-95 transition-all opacity-60"
               >
                 LOGOUT SYSTEM
               </button>

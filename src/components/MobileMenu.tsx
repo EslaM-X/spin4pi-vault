@@ -5,7 +5,7 @@ import {
   X, LayoutGrid, Trophy, Crown, 
   UserCircle, Shield, ShoppingCart, 
   Medal, Wallet, TrendingUp, TrendingDown, ChevronRight,
-  LogIn, History 
+  LogIn, History, ShieldCheck // أضفنا ShieldCheck للـ Admin
 } from 'lucide-react';
 
 import logoIcon from "@/assets/spin4pi-logo.png";
@@ -77,24 +77,41 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
             </div>
           </div>
 
-          {/* --- Available Pi Section (Imperial Final Version) --- */}
+          {/* Admin Terminal Access (يظهر فقط للأدمن) */}
+          {/* ملاحظة: حالياً isLoggedIn للجميع، سنقيده لاحقاً بـ role === 'admin' */}
+          {isLoggedIn && (
+            <button
+              onClick={() => handleNav('/admin')}
+              className="relative overflow-hidden mb-6 p-1 rounded-[28px] bg-gradient-to-r from-emerald-500/40 via-gold/40 to-emerald-500/40 group active:scale-[0.98] transition-all"
+            >
+              <div className="bg-[#0d0d12] rounded-[24px] p-4 flex items-center gap-4 relative z-10">
+                <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+                  <ShieldCheck size={24} />
+                </div>
+                <div className="text-left">
+                  <p className="text-[9px] font-black text-emerald-500 uppercase tracking-[3px]">Authorized Only</p>
+                  <p className="text-base font-black italic uppercase text-white leading-none">Admin Terminal</p>
+                </div>
+                <ChevronRight className="ml-auto text-white/20 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
+              </div>
+              <div className="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+          )}
+
+          {/* --- Available Pi Section --- */}
           {isLoggedIn && (
             <div className="relative mb-6 group">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-gold/30 to-transparent rounded-[30px] blur opacity-20 transition duration-1000"></div>
               
               <div className="relative bg-[#13131a] border border-gold/40 rounded-[28px] p-1 flex items-center shadow-2xl overflow-hidden">
-                {/* Wallet Icon Box */}
                 <div className="w-16 h-16 bg-gold rounded-2xl flex items-center justify-center text-black shrink-0 m-1 shadow-[0_0_20px_rgba(212,175,55,0.3)]">
                   <Wallet size={32} strokeWidth={2.5} />
                 </div>
-
-                {/* Balance Details */}
                 <div className="flex-1 px-4 py-2">
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="text-[10px] font-black text-gold uppercase tracking-[3px] opacity-80">Available Pi</span>
                     <div className="h-[1px] flex-1 bg-gold/20"></div>
                   </div>
-                  
                   <div className="flex items-baseline gap-2">
                     <span className="text-4xl font-black text-white italic tracking-tighter leading-none drop-shadow-[0_2px_10px_rgba(255,255,255,0.1)]">
                       {Number(balance).toFixed(2)}
@@ -147,7 +164,7 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
             {!isLoggedIn ? (
               <button 
                 onClick={() => { onLogin?.(); setIsOpen(false); }}
-                className="w-full py-5 rounded-[24px] bg-gradient-to-r from-gold via-[#FFD700] to-[#B8860B] text-black text-[13px] font-black uppercase tracking-[3px] shadow-[0_15px_30px_rgba(212,175,55,0.25)] flex items-center justify-center gap-3 active:scale-95 transition-all"
+                className="w-full py-5 rounded-[24px] bg-gradient-to-r from-gold via-[#FFD700] to-[#B8860B] text-black text-[13px] font-black uppercase tracking-[3px] shadow-[0_15px_30_rgba(212,175,55,0.25)] flex items-center justify-center gap-3 active:scale-95 transition-all"
               >
                 <LogIn size={20} />
                 Connect With Pi

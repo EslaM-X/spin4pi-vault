@@ -5,7 +5,7 @@ import {
   X, LayoutGrid, Trophy, Crown, 
   UserCircle, Shield, ShoppingCart, 
   Medal, Wallet, TrendingUp, TrendingDown, ChevronRight,
-  LogIn, History, ShieldCheck // أضفنا ShieldCheck للـ Admin
+  LogIn, History, ShieldCheck // تأكد من استيراد ShieldCheck
 } from 'lucide-react';
 
 import logoIcon from "@/assets/spin4pi-logo.png";
@@ -15,9 +15,13 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
 
+  // تعديل دالة التنقل لضمان إغلاق القائمة فوراً
   const handleNav = (path: string) => {
-    navigate(path);
-    setIsOpen(false);
+    setIsOpen(false); // 1. نغلق المنيو أولاً
+    // نستخدم requestAnimationFrame لضمان إغلاق الـ Portal قبل تغيير الـ Route
+    requestAnimationFrame(() => {
+      navigate(path);
+    });
   };
 
   const isPositive = piChange >= 0;
@@ -42,7 +46,8 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
           display: 'flex',
           flexDirection: 'column',
           padding: '20px',
-          overflowY: 'auto'
+          overflowY: 'auto',
+          backdropFilter: 'blur(10px)' // إضافة بلور للخلفية لجمالية أكثر
         }}>
           {/* Header Section */}
           <div className="flex justify-between items-center mb-8">
@@ -77,33 +82,29 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
             </div>
           </div>
 
-          {/* Admin Terminal Access (يظهر فقط للأدمن) */}
-          {/* ملاحظة: حالياً isLoggedIn للجميع، سنقيده لاحقاً بـ role === 'admin' */}
+          {/* --- Admin Entry Point (The Fix) --- */}
           {isLoggedIn && (
             <button
               onClick={() => handleNav('/admin')}
-              className="relative overflow-hidden mb-6 p-1 rounded-[28px] bg-gradient-to-r from-emerald-500/40 via-gold/40 to-emerald-500/40 group active:scale-[0.98] transition-all"
+              className="relative overflow-hidden mb-6 p-[2px] rounded-3xl bg-gradient-to-r from-emerald-500/50 via-gold/50 to-emerald-500/50 group active:scale-[0.97] transition-all"
             >
-              <div className="bg-[#0d0d12] rounded-[24px] p-4 flex items-center gap-4 relative z-10">
-                <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+              <div className="bg-[#0d0d12] rounded-[22px] p-4 flex items-center gap-4 relative z-10">
+                <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center text-black shadow-[0_0_15px_rgba(16,185,129,0.4)]">
                   <ShieldCheck size={24} />
                 </div>
                 <div className="text-left">
-                  <p className="text-[9px] font-black text-emerald-500 uppercase tracking-[3px]">Authorized Only</p>
+                  <p className="text-[9px] font-black text-emerald-500 uppercase tracking-[3px]">Secure Access</p>
                   <p className="text-base font-black italic uppercase text-white leading-none">Admin Terminal</p>
                 </div>
                 <ChevronRight className="ml-auto text-white/20 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
               </div>
-              <div className="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
             </button>
           )}
 
           {/* --- Available Pi Section --- */}
           {isLoggedIn && (
-            <div className="relative mb-6 group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-gold/30 to-transparent rounded-[30px] blur opacity-20 transition duration-1000"></div>
-              
-              <div className="relative bg-[#13131a] border border-gold/40 rounded-[28px] p-1 flex items-center shadow-2xl overflow-hidden">
+            <div className="relative mb-6">
+              <div className="relative bg-[#13131a] border border-gold/40 rounded-[28px] p-1 flex items-center shadow-2xl">
                 <div className="w-16 h-16 bg-gold rounded-2xl flex items-center justify-center text-black shrink-0 m-1 shadow-[0_0_20px_rgba(212,175,55,0.3)]">
                   <Wallet size={32} strokeWidth={2.5} />
                 </div>
@@ -113,7 +114,7 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
                     <div className="h-[1px] flex-1 bg-gold/20"></div>
                   </div>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-black text-white italic tracking-tighter leading-none drop-shadow-[0_2px_10px_rgba(255,255,255,0.1)]">
+                    <span className="text-4xl font-black text-white italic tracking-tighter leading-none">
                       {Number(balance).toFixed(2)}
                     </span>
                     <span className="text-xl font-bold text-gold italic uppercase">π</span>
@@ -126,23 +127,23 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
           {/* Quick Links Grid */}
           <div className="grid grid-cols-2 gap-3 mb-6">
             <button onClick={() => handleNav('/')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10 transition-all group">
-              <LayoutGrid size={20} className="text-gold group-hover:scale-110 transition-transform" />
+              <LayoutGrid size={20} className="text-gold" />
               <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Arena</span>
             </button>
             {isLoggedIn && (
               <>
                 <button onClick={() => handleNav('/leaderboard')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10 transition-all group">
-                  <Trophy size={20} className="text-gold group-hover:scale-110 transition-transform" />
+                  <Trophy size={20} className="text-gold" />
                   <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Rankings</span>
                 </button>
                 <button onClick={() => handleNav('/vip-benefits')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10 transition-all group">
-                  <Crown size={20} className="text-gold group-hover:scale-110 transition-transform" />
+                  <Crown size={20} className="text-gold" />
                   <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">VIP Vault</span>
                 </button>
               </>
             )}
             <button onClick={() => handleNav('/profile')} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10 transition-all group">
-              <UserCircle size={20} className="text-gold group-hover:scale-110 transition-transform" />
+              <UserCircle size={20} className="text-gold" />
               <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Account</span>
             </button>
           </div>
@@ -160,11 +161,11 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
           </div>
 
           {/* Auth Button */}
-          <div className="mt-auto pt-4">
+          <div className="mt-auto pt-4 pb-8">
             {!isLoggedIn ? (
               <button 
                 onClick={() => { onLogin?.(); setIsOpen(false); }}
-                className="w-full py-5 rounded-[24px] bg-gradient-to-r from-gold via-[#FFD700] to-[#B8860B] text-black text-[13px] font-black uppercase tracking-[3px] shadow-[0_15px_30_rgba(212,175,55,0.25)] flex items-center justify-center gap-3 active:scale-95 transition-all"
+                className="w-full py-5 rounded-[24px] bg-gold text-black text-[13px] font-black uppercase tracking-[3px] shadow-[0_15px_30px_rgba(212,175,55,0.25)] flex items-center justify-center gap-3"
               >
                 <LogIn size={20} />
                 Connect With Pi
@@ -172,7 +173,7 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
             ) : (
               <button 
                 onClick={() => { onLogout?.(); setIsOpen(false); }}
-                className="w-full py-4 rounded-2xl bg-red-500/5 border border-red-500/20 text-red-500 text-[11px] font-black uppercase tracking-[2px] active:scale-95 transition-all opacity-60"
+                className="w-full py-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-[11px] font-black uppercase tracking-[2px]"
               >
                 LOGOUT SYSTEM
               </button>
@@ -192,14 +193,10 @@ function MenuLink({ icon, label, onClick }: any) {
       className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/[0.05] rounded-xl cursor-pointer active:bg-gold/5 group transition-all"
     >
       <div className="flex items-center gap-3">
-        <div className="text-gold/60 group-hover:text-gold transition-colors">
-          {icon}
-        </div>
-        <span className="text-[12px] font-bold text-white/70 group-hover:text-white transition-colors uppercase tracking-wide">
-          {label}
-        </span>
+        <div className="text-gold/60 group-hover:text-gold">{icon}</div>
+        <span className="text-[12px] font-bold text-white/70 uppercase tracking-wide">{label}</span>
       </div>
-      <ChevronRight size={14} className="text-white/10 group-hover:text-gold transition-all group-hover:translate-x-1" />
+      <ChevronRight size={14} className="text-white/10 group-hover:translate-x-1 transition-all" />
     </div>
   );
 }

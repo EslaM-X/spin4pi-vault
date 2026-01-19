@@ -28,13 +28,6 @@ const AppRoutes = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-
-    // الحل الجذري: منع اللودينج عند الدخول للأدمن لضمان عدم حدوث Overlay Conflict
-    if (location.pathname === '/admin') {
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
     const timer = setTimeout(() => {
       setLoading(false);
@@ -69,7 +62,7 @@ const App = () => {
       <SoundSettingsProvider>
         <TooltipProvider>
           <Toaster />
-          <Sonner position="top-center" expand={false} richColors />
+          <Sonner position="top-center" />
           <BrowserRouter>
             <AppRoutes />
           </BrowserRouter>

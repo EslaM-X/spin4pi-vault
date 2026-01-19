@@ -22,29 +22,29 @@ import { LegalConsentModal } from '@/components/LegalConsentModal';
 
 const queryClient = new QueryClient();
 
-// مكون داخلي للتحكم في التمرير واللودينج بشكل أنيق
 const AppRoutes = () => {
   const location = useLocation();
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // 1. التمرير لأعلى الصفحة فوراً عند تغيير المسار
     window.scrollTo(0, 0);
 
-    // 2. تفعيل اللودينج مع تأخير بسيط جداً للسماح للمنيو بالاختفاء أولاً
+    // الحل الجذري: منع اللودينج عند الدخول للأدمن لضمان عدم حدوث Overlay Conflict
+    if (location.pathname === '/admin') {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 600); // زيادة بسيطة لضمان استقرار الصفحة
-
+    }, 500);
     return () => clearTimeout(timer);
   }, [location.pathname]);
 
   return (
     <>
       <LegalConsentModal />
-      
-      {/* شاشة التحميل */}
       <GlobalLoading isVisible={loading} />
 
       <Routes location={location}>
@@ -56,7 +56,6 @@ const AppRoutes = () => {
         <Route path="/vip-benefits" element={<VIPBenefits />} /> 
         <Route path="/leaderboard" element={<Leaderboard />} /> 
         <Route path="/legal" element={<Legal />} />
-        {/* مسار الأدمن - تأكد أنه مسجل هنا بدقة */}
         <Route path="/admin" element={<Admin />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
@@ -69,7 +68,6 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <SoundSettingsProvider>
         <TooltipProvider>
-          {/* التأكد من أن التوسترات لا تتداخل مع المنيو */}
           <Toaster />
           <Sonner position="top-center" expand={false} richColors />
           <BrowserRouter>

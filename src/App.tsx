@@ -24,16 +24,13 @@ const queryClient = new QueryClient();
 
 const AppRoutes = () => {
   const location = useLocation();
-  const [loading, setLoading] = useState(false); // اجعلها false افتراضياً لتجنب الوميض
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // لا تشغل التحميل إذا كنت تنتقل بين صفحات داخلية إلا لو كانت البيانات ضخمة
-    // هذا يحافظ على استقرار حالة الـ Auth
     setLoading(true);
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 500); // تقليل المدة ليكون الانتقال أسلس
-
+    }, 500);
     return () => clearTimeout(timer);
   }, [location.pathname]);
 
@@ -42,14 +39,14 @@ const AppRoutes = () => {
       <LegalConsentModal />
       <GlobalLoading isVisible={loading} />
 
-      {/* حذفت key={location.pathname} من هنا لحل مشكلة تسجيل الخروج */}
       <Routes location={location}>
         <Route path="/" element={<Index />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/marketplace" element={<Marketplace />} />
         <Route path="/withdrawals" element={<WithdrawalHistory />} />
         <Route path="/achievements" element={<Achievements />} />
-        <Route path="/vip" element={<VIPBenefits />} />
+        {/* تم التعديل هنا ليطابق الرابط في المنيو */}
+        <Route path="/vip-benefits" element={<VIPBenefits />} /> 
         <Route path="/legal" element={<Legal />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="*" element={<NotFound />} />

@@ -56,7 +56,7 @@ export default function Marketplace() {
       setOwned(data.owned || []);
       setEquipped(data.equipped || []);
     } catch (err) {
-      console.error(err);
+      console.error("Fetch error:", err);
     } finally {
       setLoading(false);
     }
@@ -77,7 +77,7 @@ export default function Marketplace() {
       if (!error && data?.success) {
         purchaseSfx.current.play().catch(() => {});
         toast.success("Artifact Secured!");
-        setOwned([...owned, nftId]);
+        setOwned(prev => [...prev, nftId]);
       } else {
         toast.error(data?.error || "Transaction Declined");
       }
@@ -93,7 +93,7 @@ export default function Marketplace() {
         body: { pi_username: user.username, nft_id: nftId, equip },
       });
       if (!error && data?.success) {
-        setEquipped(equip ? [...equipped, nftId] : equipped.filter(id => id !== nftId));
+        setEquipped(prev => equip ? [...prev, nftId] : prev.filter(id => id !== nftId));
         toast.success(equip ? "Artifact Active" : "Artifact Holstered");
       }
     } catch (err) {
@@ -105,7 +105,6 @@ export default function Marketplace() {
 
   return (
     <div className="min-h-screen bg-[#050507] text-white pb-24 relative overflow-hidden">
-      {/* حل مشكلة الصورة: استخدام تدرج لوني بدلاً من ملف مفقود */}
       <div className="fixed inset-0 bg-gradient-to-tr from-gold/5 to-transparent pointer-events-none" />
       
       <div className="container mx-auto px-4 py-12 relative z-10">
@@ -118,7 +117,7 @@ export default function Marketplace() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
             <div>
               <p className="text-[10px] font-black text-gold uppercase tracking-[4px] mb-2">Spin4Pi Treasury</p>
-              <h1 className="text-5xl font-black italic tracking-tighter uppercase">ARTIFACT <span className="text-gold">VAULT</span></h1>
+              <h1 className="text-5xl font-black italic tracking-tighter uppercase leading-none">ARTIFACT <span className="text-gold">VAULT</span></h1>
             </div>
             <div className="flex items-center gap-3 px-6 py-3 bg-[#0d0d12] border border-white/5 rounded-2xl">
                <ShoppingBag className="text-gold w-5 h-5" />
@@ -172,7 +171,7 @@ export default function Marketplace() {
                   <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-gold/30 transition-colors">
                     {UTILITY_ICONS[nft.utility] || <Zap className="w-5 h-5 text-gold" />}
                   </div>
-                  <h3 className="font-black italic text-xl uppercase tracking-tighter leading-none">{nft.name}</h3>
+                  <h3 className="font-black italic text-xl uppercase tracking-tighter">{nft.name}</h3>
                 </div>
 
                 <p className="text-xs text-white/40 leading-relaxed mb-8 h-10 italic">"{nft.description}"</p>

@@ -1,10 +1,9 @@
-// src/hooks/useSpin.ts - Unified Spin Hook (Enhanced Security Version)
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { piSDK, PaymentCallbacks } from "@/lib/pi-sdk";
 import { useWallet } from "@/hooks/useWallet";
-import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { usePiAuth } from "@/hooks/usePiAuth"; // أضفنا هذا لجلب اسم المستخدم الحقيقي
 
 interface SpinResult {
   success: boolean;
@@ -19,29 +18,31 @@ interface UseSpinOptions {
   onError?: (error: string) => void;
 }
 
-function useSpinUnified({ onSpinComplete, onError }: UseSpinOptions = {}) {
+export function useSpinUnified({ onSpinComplete, onError }: UseSpinOptions = {}) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [lastResult, setLastResult] = useState<SpinResult | null>(null);
   const [targetResult, setTargetResult] = useState<string | null>(null);
 
+  const { user } = usePiAuth(); // لجلب اليوزر نيم
   const { wallet, updateBalance, profileId, fetchWalletData } = useWallet();
-  const { playResultSound } = useSoundEffects();
 
   const spin = useCallback(
     async (spinType: string, cost: number = 0) => {
       if (isSpinning) return null;
-      if (!profileId) {
-        toast.error("User not authenticated!");
+      
+      // التأكد من وجود المستخدم
+      if (!user?.username || !profileId) {
+        toast.error("Imperial Shield: Authentication Required");
         return null;
       }
 
       setIsSpinning(true);
 
       try {
-        // ===== Paid spin logic with Pi SDK =====
+        // 1. معالجة الدفع عبر Pi SDK إذا كانت اللفة مدفوعة
         if (cost > 0) {
           if (!piSDK.isAvailable()) {
-            toast.error("Open in Pi Browser to perform paid spin");
+            toast.error("Please open in Pi Browser for paid spins");
             setIsSpinning(false);
             return null;
           }
@@ -50,13 +51,9 @@ function useSpinUnified({ onSpinComplete, onError }: UseSpinOptions = {}) {
             const callbacks: PaymentCallbacks = {
               onReadyForServerApproval: async (paymentId) => {
                 try {
-                  const { error } = await supabase.functions.invoke("approve-payment", {
-                    body: { payment_id: paymentId, pi_username: profileId, amount: cost, memo: `Spin ${spinType}` },
+                  await supabase.functions.invoke("approve-payment", {
+                    body: { payment_id: paymentId, pi_username: user.username, amount: cost, memo: `Spin ${spinType}` },
                   });
-                  if (error) {
-                    console.error("Approval failed:", error);
-                    resolve(false);
-                  }
                 } catch (err) {
                   console.error("Approval error:", err);
                   resolve(false);
@@ -67,28 +64,24 @@ function useSpinUnified({ onSpinComplete, onError }: UseSpinOptions = {}) {
                   const { error } = await supabase.functions.invoke("complete-payment", {
                     body: { payment_id: paymentId, txid },
                   });
-                  if (error) {
-                    console.error("Completion failed:", error);
-                    resolve(false);
-                  } else {
-                    resolve(true);
-                  }
+                  if (error) resolve(false);
+                  else resolve(true);
                 } catch (err) {
-                  console.error("Completion error:", err);
                   resolve(false);
                 }
               },
               onCancel: () => {
-                toast.info("Payment cancelled");
+                toast.info("Payment cancelled by user");
                 resolve(false);
               },
               onError: (error) => {
-                toast.error("Payment error: " + error.message);
+                toast.error("Pi Network Error: " + error.message);
                 resolve(false);
               },
             };
 
-            piSDK.createPayment(cost, `Spin ${spinType}`, { pi_username: profileId }, callbacks);
+            // إنشاء عملية الدفع
+            piSDK.createPayment(cost, `Imperial Spin ${spinType}`, { pi_username: user.username }, callbacks);
           });
 
           if (!paymentSuccess) {
@@ -97,57 +90,51 @@ function useSpinUnified({ onSpinComplete, onError }: UseSpinOptions = {}) {
           }
         }
 
-        // ===== Fetch spin result from Supabase Edge Function =====
+        // 2. طلب نتيجة اللفة من السيرفر (Edge Function)
         const { data, error } = await supabase.functions.invoke<SpinResult>("spin-result", {
-          body: { pi_username: profileId, spin_type: spinType },
+          body: { pi_username: user.username, spin_type: spinType },
         });
 
         if (error || !data) {
-          const msg = error?.message || "Failed to fetch spin result";
-          toast.error(msg);
-          onError?.(msg);
-          setIsSpinning(false);
-          return null;
+          throw new Error(error?.message || "Empire connection lost");
         }
 
-        // Set results for animation
+        // 3. تحديث الحالة لبدء أنيميشن العجلة
         setTargetResult(data.result);
         setLastResult(data);
 
-        // Notify cooldown if it's a free spin
-        if (data.next_free_spin_in) {
-          const hours = Math.floor(data.next_free_spin_in / 3600000);
-          const mins = Math.floor((data.next_free_spin_in % 3600000) / 60000);
-          toast.info(`Next free spin available in ${hours}h ${mins}m`);
-        }
+        // 4. تحديث الرصيد في الواجهة وقاعدة البيانات
+        const currentBalance = Number(wallet.balance) || 0;
+        const newBalance = currentBalance + Number(data.reward_amount);
+        
+        // تحديث الرصيد وحفظه
+        await updateBalance(newBalance, true);
 
-        // Update balances and play sounds
-        const newBalance = (wallet.balance || 0) + data.reward_amount;
-        updateBalance(newBalance, true);
-        playResultSound(data.result);
-
-        // Finalize state
-        fetchWalletData();
         return data;
 
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "An unexpected error occurred during spin";
-        console.error("Spin error:", err);
-        toast.error(msg);
-        onError?.(msg);
+      } catch (err: any) {
+        toast.error(err.message || "An unexpected error occurred");
+        onError?.(err.message);
         setIsSpinning(false);
         return null;
       }
     },
-    [isSpinning, profileId, wallet, updateBalance, fetchWalletData, onError, playResultSound]
+    [isSpinning, user, profileId, wallet.balance, updateBalance, onError]
   );
 
+  // دالة تُستدعى عند انتهاء أنيميشن العجلة (توضع في OnComplete الخاص بـ SpinWheel)
   const completeAnimation = useCallback(() => {
-    if (lastResult && onSpinComplete) {
-      onSpinComplete(lastResult.result, lastResult.reward_amount);
+    if (lastResult) {
+      if (onSpinComplete) {
+        onSpinComplete(lastResult.result, lastResult.reward_amount);
+      }
+      // إشعار بالتبريد (Cooldown) للفة المجانية
+      if (lastResult.next_free_spin_in) {
+        fetchWalletData(); // تحديث أوقات اللفات المجانية
+      }
     }
     setIsSpinning(false);
-  }, [lastResult, onSpinComplete]);
+  }, [lastResult, onSpinComplete, fetchWalletData]);
 
   return {
     spin,
@@ -160,6 +147,5 @@ function useSpinUnified({ onSpinComplete, onError }: UseSpinOptions = {}) {
   };
 }
 
-export { useSpinUnified };
 export const useSpin = useSpinUnified;
 export default useSpinUnified;

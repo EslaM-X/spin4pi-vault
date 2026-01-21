@@ -12,8 +12,19 @@ import { usePiAuth } from '@/hooks/usePiAuth';
 import GlobalLoading from '@/components/GlobalLoading';
 import { Header } from '@/components/Header';
 
+// مكون فرعي للإحصائيات
+const StatBox = ({ label, value, icon, color }: any) => (
+  <div className="bg-[#0d0d12] border border-white/5 p-6 rounded-[30px] shadow-xl group hover:border-gold/20 transition-all">
+     <div className="flex items-center gap-3 mb-2 opacity-40 group-hover:opacity-100 transition-opacity">
+        <div className={color}>{icon}</div>
+        <span className="text-[9px] font-black uppercase tracking-[2px]">{label}</span>
+     </div>
+     <div className={`text-3xl font-black italic tracking-tighter ${color}`}>{value}</div>
+  </div>
+);
+
 const Admin = () => {
-  const { user, isAuthenticated, authenticate, logout } = usePiAuth();
+  const { user, isAuthenticated, authenticate } = usePiAuth();
   const navigate = useNavigate();
   const [pendingWithdrawals, setPendingWithdrawals] = useState([]);
   const [analytics, setAnalytics] = useState({
@@ -23,7 +34,6 @@ const Admin = () => {
   const [isSecureMode, setIsSecureMode] = useState(false);
   const [isAdminConfirmed, setIsAdminConfirmed] = useState(false);
 
-  // 1. التحقق من صلاحيات الآدمن
   useEffect(() => {
     const checkAdminStatus = async () => {
       if (!isAuthenticated) return;
@@ -36,7 +46,7 @@ const Admin = () => {
 
       if (error || !data?.is_admin) {
         toast.error("Access Denied: Imperial Clearance Required");
-        navigate('/'); // طرد المستخدم العادي للصفحة الرئيسية
+        navigate('/');
       } else {
         setIsAdminConfirmed(true);
         fetchData();
@@ -83,7 +93,6 @@ const Admin = () => {
       return;
     }
 
-    // فحص الرصيد لمنع الاحتيال (الرصيد في البروفايل يجب أن يغطي السحب)
     if (amount > userBalance) {
       toast.error(`Fraud Alert: User only has ${userBalance} π`);
       return;
@@ -91,14 +100,14 @@ const Admin = () => {
 
     const toastId = toast.loading(`Bridging Assets for @${piUser}...`);
     try {
-      const { data, error } = await supabase.functions.invoke('process-pi-payout', {
+      const { error } = await supabase.functions.invoke('process-pi-payout', {
         body: { withdrawalId: wId, amount, username: piUser }
       });
       
       if (error) throw error;
       
       toast.success("Extraction Completed Successfully!", { id: toastId });
-      fetchData(); // تحديث القائمة بعد السحب
+      fetchData();
     } catch (err: any) {
       toast.error(`Blockchain Error: ${err.message}`, { id: toastId });
     }
@@ -111,8 +120,6 @@ const Admin = () => {
       <Header isLoggedIn={isAuthenticated} username={user?.username} balance={0} onLogin={authenticate} />
 
       <main className="container mx-auto px-4 pt-32 pb-24 relative z-10">
-        
-        {/* Admin Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -128,14 +135,11 @@ const Admin = () => {
             <div className="px-4">
               <p className="text-[8px] font-black uppercase text-white/30 tracking-widest">Master Key</p>
               <p className={`text-[10px] font-bold uppercase ${isSecureMode ? 'text-emerald-500' : 'text-red-500'}`}>
-                {isSecureMode ? 'Ready for Transfer' : 'Encrypted & Locked'}
+                {isSecureMode ? 'Ready' : 'Locked'}
               </p>
             </div>
             <Button 
-              onClick={() => {
-                setIsSecureMode(!isSecureMode);
-                if(!isSecureMode) toast.warning("Warning: Security Protocols Bypassed");
-              }}
+              onClick={() => setIsSecureMode(!isSecureMode)}
               className={`h-12 w-12 rounded-xl transition-all duration-500 ${isSecureMode ? 'bg-red-500' : 'bg-gold text-black'}`}
             >
               {isSecureMode ? <Lock size={20} /> : <Unlock size={20} />}
@@ -143,15 +147,13 @@ const Admin = () => {
           </div>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
-           <StatBox label="Active Citizens" value={analytics.totalUsers} icon={<Users size={20}/>} color="text-white" />
-           <StatBox label="Total Inflow" value={`${analytics.totalDeposits.toFixed(4)} π`} icon={<TrendingUp size={20}/>} color="text-emerald-500" />
-           <StatBox label="Total Outflow" value={`${analytics.totalWithdrawals.toFixed(4)} π`} icon={<History size={20}/>} color="text-red-500" />
-           <StatBox label="Treasury Balance" value={`${analytics.jackpotAmount.toFixed(4)} π`} icon={<Wallet size={20}/>} color="text-gold" />
+           <StatBox label="Citizens" value={analytics.totalUsers} icon={<Users size={20}/>} color="text-white" />
+           <StatBox label="Inflow" value={`${analytics.totalDeposits.toFixed(2)} π`} icon={<TrendingUp size={20}/>} color="text-emerald-500" />
+           <StatBox label="Outflow" value={`${analytics.totalWithdrawals.toFixed(2)} π`} icon={<History size={20}/>} color="text-red-500" />
+           <StatBox label="Treasury" value={`${analytics.jackpotAmount.toFixed(2)} π`} icon={<Wallet size={20}/>} color="text-gold" />
         </div>
 
-        {/* Withdrawal Table */}
         <div className="bg-[#0d0d12]/80 border border-white/5 rounded-[40px] shadow-2xl overflow-hidden backdrop-blur-md">
           <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
             <h3 className="text-xl font-black italic uppercase tracking-tighter flex items-center gap-3 text-gold">
@@ -166,40 +168,33 @@ const Admin = () => {
             <Table>
               <TableHeader>
                 <TableRow className="border-white/5 bg-black/40">
-                  <TableHead className="px-8 text-[10px] font-black uppercase text-white/30">Recipient</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase text-white/30">Audit Status</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase text-white/30">Amount</TableHead>
-                  <TableHead className="text-right px-8 text-[10px] font-black uppercase text-white/30">Authorization</TableHead>
+                  <TableHead className="px-8 text-[10px] font-black text-white/30">Recipient</TableHead>
+                  <TableHead className="text-[10px] font-black text-white/30">Audit</TableHead>
+                  <TableHead className="text-[10px] font-black text-white/30">Amount</TableHead>
+                  <TableHead className="text-right px-8 text-[10px] font-black text-white/30">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {pendingWithdrawals.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="py-20 text-center text-white/10 font-black uppercase tracking-[5px] italic">
-                      No Pending Transfers
+                      Empty Queue
                     </TableCell>
                   </TableRow>
                 ) : (
                   pendingWithdrawals.map((w: any) => {
-                    // تصحيح: استخدام الحقل الصحيح wallet_balance بدلاً من balance
                     const isFraudRisk = w.amount > (w.profiles?.wallet_balance || 0);
                     return (
                       <TableRow key={w.id} className="border-white/5 hover:bg-white/[0.02] transition-all">
                         <TableCell className="px-8 py-6">
-                          <div className="text-white font-bold uppercase text-lg">@{w.profiles?.pi_username}</div>
+                          <div className="text-white font-bold text-lg">@{w.profiles?.pi_username}</div>
                           <div className="text-[9px] text-white/40 font-mono truncate max-w-[120px]">{w.profiles?.wallet_address || 'NO ADDRESS'}</div>
                         </TableCell>
                         <TableCell>
                           {isFraudRisk ? (
-                            <div className="flex items-center gap-2 text-red-500 bg-red-500/10 px-3 py-1 rounded-lg border border-red-500/20">
-                              <XCircle size={12} />
-                              <span className="text-[8px] font-black uppercase">Low Balance Warning</span>
-                            </div>
+                            <div className="text-red-500 bg-red-500/10 px-2 py-1 rounded text-[8px] font-black border border-red-500/20">RISK</div>
                           ) : (
-                            <div className="flex items-center gap-2 text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20">
-                              <ShieldCheck size={12} />
-                              <span className="text-[8px] font-black uppercase">Imperial Audit Passed</span>
-                            </div>
+                            <div className="text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded text-[8px] font-black border border-emerald-500/20">SAFE</div>
                           )}
                         </TableCell>
                         <TableCell className="text-gold font-black italic text-2xl">{w.amount} π</TableCell>
@@ -207,8 +202,24 @@ const Admin = () => {
                           <Button 
                             onClick={() => processBlockchainPayment(w.id, w.amount, w.profiles?.pi_username, w.profiles?.wallet_balance)}
                             disabled={!isSecureMode || isFraudRisk || !w.profiles?.wallet_address}
-                            className={`font-black uppercase text-[10px] rounded-xl px-6 py-5 ${
-                              isSecureMode && !isFraudRisk 
-                              ? 'bg-emerald-500 text-black hover:scale-105' 
-                              : 'bg-white/5 text-white/10 cursor-not-allowed'
+                            className={`font-black uppercase text-[10px] rounded-xl px-6 py-4 ${
+                              isSecureMode && !isFraudRisk ? 'bg-emerald-500 text-black' : 'bg-white/5 text-white/10'
                             }`}
+                          >
+                            {isSecureMode ? 'Authorize' : 'Locked'}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default Admin;

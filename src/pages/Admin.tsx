@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { 
-  RefreshCw, Users, Wallet, TrendingUp, History,
-  Code, ShieldCheck, Lock, Unlock, Fingerprint, XCircle
+  ArrowLeft, BarChart3, Trophy, RefreshCw, 
+  Users, Zap, Wallet, TrendingUp, History,
+  ExternalLink, AlertCircle, Code, Globe,
+  ShieldCheck, Lock, Unlock, Fingerprint, XCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -13,7 +15,7 @@ import GlobalLoading from '@/components/GlobalLoading';
 import { Header } from '@/components/Header';
 
 const Admin = () => {
-  const { user, isAuthenticated, authenticate, logout } = usePiAuth();
+  const { user, isAuthenticated, authenticate } = usePiAuth();
   const navigate = useNavigate();
   const [pendingWithdrawals, setPendingWithdrawals] = useState([]);
   const [analytics, setAnalytics] = useState({
@@ -23,13 +25,8 @@ const Admin = () => {
   const [isSecureMode, setIsSecureMode] = useState(false);
 
   useEffect(() => {
-    // حماية الصفحة: إذا لم يكن مسجل دخول، اطرده بعد 2 ثانية
-    if (!isAuthenticated && !isLoading) {
-      const timer = setTimeout(() => navigate('/'), 2000);
-      return () => clearTimeout(timer);
-    }
     if (isAuthenticated) fetchData();
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -67,31 +64,40 @@ const Admin = () => {
       toast.error("Security Protocol: System is Locked!");
       return;
     }
-    // ملاحظة: هذا الإجراء يجب أن يتم وفقاً لبروتوكول Pi SDK الرسمي فقط
-    toast.info("Point-to-Point (P2P) Manual Review Required per Pi Policy.");
+
+    if (amount > userBalance) {
+      toast.error("Security Alert: Insufficient User Funds!");
+      return;
+    }
+
+    const id = toast.loading(`Initiating Blockchain Bridge for @${piUser}...`);
+    try {
+      // استدعاء الوظيفة السحابية للربط مع Pi API
+      const { data, error } = await supabase.functions.invoke('process-pi-payout', {
+        body: { withdrawalId: wId, amount, username: piUser }
+      });
+      if (error) throw error;
+      toast.success("Transfer Confirmed on Pi Ledger!", { id });
+      fetchData();
+    } catch (err: any) {
+      toast.error(`Blockchain Error: ${err.message}`, { id });
+    }
   };
 
   if (isLoading) return <GlobalLoading isVisible={true} />;
 
   return (
     <div className="min-h-screen bg-[#050507] text-white">
-      {/* دمج الهيدر لضمان التناسق وقابلية العودة للخلف */}
-      <Header 
-        isLoggedIn={isAuthenticated} 
-        username={user?.username} 
-        balance={0} 
-        onLogin={authenticate} 
-        onLogout={() => { logout(); navigate('/'); }}
-      />
+      <Header isLoggedIn={isAuthenticated} username={user?.username} balance={0} onLogin={authenticate} />
 
       <main className="container mx-auto px-4 pt-32 pb-24 relative z-10">
         
-        {/* Header اللوحة */}
+        {/* Top Header & Status */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Code className="text-gold w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-[4px] text-white/40">Authorized Interface</span>
+              <span className="text-[10px] font-black uppercase tracking-[4px] text-white/40">Open-Source Project</span>
             </div>
             <h1 className="text-5xl font-black italic tracking-tighter uppercase leading-none">
               IMPERIAL <span className="text-gold">TERMINAL</span>
@@ -99,10 +105,10 @@ const Admin = () => {
           </div>
           
           <div className="flex items-center gap-4 bg-white/5 p-2 rounded-2xl border border-white/10">
-            <div className="px-4 text-right">
-              <p className="text-[8px] font-black uppercase text-white/30 tracking-widest">Master Auth</p>
+            <div className="px-4">
+              <p className="text-[8px] font-black uppercase text-white/30 tracking-widest">Security Status</p>
               <p className={`text-[10px] font-bold uppercase ${isSecureMode ? 'text-emerald-500' : 'text-red-500'}`}>
-                {isSecureMode ? 'System Unlocked' : 'System Locked'}
+                {isSecureMode ? 'Decrypted' : 'Encrypted'}
               </p>
             </div>
             <Button 
@@ -114,19 +120,19 @@ const Admin = () => {
           </div>
         </div>
 
-        {/* شبكة الإحصائيات */}
+        {/* Analytics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
-           <StatBox label="Total Citizens" value={analytics.totalUsers} icon={<Users size={20}/>} color="text-white" />
-           <StatBox label="Eco Inflow" value={`${analytics.totalDeposits.toFixed(2)} π`} icon={<TrendingUp size={20}/>} color="text-emerald-500" />
-           <StatBox label="Eco Outflow" value={`${analytics.totalWithdrawals.toFixed(2)} π`} icon={<History size={20}/>} color="text-red-500" />
+           <StatBox label="Active Citizens" value={analytics.totalUsers} icon={<Users size={20}/>} color="text-white" />
+           <StatBox label="Total Inflow" value={`${analytics.totalDeposits.toFixed(2)} π`} icon={<TrendingUp size={20}/>} color="text-emerald-500" />
+           <StatBox label="Total Outflow" value={`${analytics.totalWithdrawals.toFixed(2)} π`} icon={<History size={20}/>} color="text-red-500" />
            <StatBox label="Treasury" value={`${analytics.jackpotAmount.toFixed(2)} π`} icon={<Wallet size={20}/>} color="text-gold" />
         </div>
 
-        {/* جدول العمليات المعلقة */}
+        {/* Main Payout Control */}
         <div className="bg-[#0d0d12] border border-white/5 rounded-[40px] shadow-2xl overflow-hidden">
           <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
             <h3 className="text-xl font-black italic uppercase tracking-tighter flex items-center gap-3">
-              <Fingerprint className="text-gold" /> Extraction Queue
+              <Fingerprint className="text-gold" /> Blockchain Extraction Queue
             </h3>
             <Button onClick={fetchData} variant="ghost" className="text-white/20 hover:text-white">
               <RefreshCw size={16} />
@@ -137,17 +143,17 @@ const Admin = () => {
             <Table>
               <TableHeader>
                 <TableRow className="border-white/5 bg-black/40">
-                  <TableHead className="px-8 text-[10px] font-black uppercase text-white/30 tracking-widest">Recipient</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase text-white/30 tracking-widest">Audit Status</TableHead>
+                  <TableHead className="px-8 text-[10px] font-black uppercase text-white/30 tracking-widest">Recipient Identity</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase text-white/30 tracking-widest">Security Audit</TableHead>
                   <TableHead className="text-[10px] font-black uppercase text-white/30 tracking-widest">Amount</TableHead>
-                  <TableHead className="text-right px-8 text-[10px] font-black uppercase text-white/30 tracking-widest">Control</TableHead>
+                  <TableHead className="text-right px-8 text-[10px] font-black uppercase text-white/30 tracking-widest">Authorize</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {pendingWithdrawals.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="py-20 text-center text-white/10 font-black uppercase tracking-[5px] italic">
-                      No Pending Extractions
+                      No Extractions Pending
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -163,12 +169,12 @@ const Admin = () => {
                           {isFraudRisk ? (
                             <div className="flex items-center gap-2 text-red-500 bg-red-500/10 px-3 py-1 rounded-lg border border-red-500/20 w-fit">
                               <XCircle size={12} />
-                              <span className="text-[8px] font-black uppercase tracking-widest">Fraud Alert</span>
+                              <span className="text-[8px] font-black uppercase tracking-widest">Balance Mismatch</span>
                             </div>
                           ) : (
                             <div className="flex items-center gap-2 text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20 w-fit">
                               <ShieldCheck size={12} />
-                              <span className="text-[8px] font-black uppercase tracking-widest">Verified</span>
+                              <span className="text-[8px] font-black uppercase tracking-widest">Audit Passed</span>
                             </div>
                           )}
                         </TableCell>
@@ -179,11 +185,11 @@ const Admin = () => {
                             disabled={!isSecureMode || isFraudRisk || !w.profiles?.wallet_address}
                             className={`font-black uppercase text-[10px] rounded-xl px-8 py-6 transition-all ${
                               isSecureMode && !isFraudRisk && w.profiles?.wallet_address 
-                              ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20' 
-                              : 'bg-white/5 text-white/10 grayscale cursor-not-allowed'
+                              ? 'bg-emerald-500 text-black shadow-lg' 
+                              : 'bg-white/5 text-white/10 grayscale'
                             }`}
                           >
-                            {isSecureMode ? 'Review Transfer' : 'Unlock Terminal'}
+                            {isSecureMode ? 'Sign & Transfer' : 'Unlock Admin'}
                           </Button>
                         </TableCell>
                       </TableRow>

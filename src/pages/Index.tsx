@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { ShieldAlert } from "lucide-react"; // أيقونة صغيرة وبسيطة
+import { ShieldAlert, Zap } from "lucide-react";
 
 // Components
 import { Header } from "@/components/Header";
@@ -18,7 +18,7 @@ import { DailyRewardButton } from "@/components/DailyRewardButton";
 import { ActiveBoostsIndicator } from "@/components/ActiveBoostsIndicator";
 import { TournamentPanel } from "@/components/TournamentPanel";
 import { VIPStatus } from "@/components/VIPStatus";
-import StakingPanel from "@/components/StakingPanel";
+import StakingPanel from "@/components/StakingPanel"; // تم التأكد من تفعيله
 import GlobalLoading from "@/components/GlobalLoading";
 import { BackendHealthCheck } from "@/components/BackendHealthCheck";
 import { LegalConsentModal } from "@/components/LegalConsentModal";
@@ -61,7 +61,9 @@ const Index = () => {
   }, [getNextFreeSpinTime]);
 
   useEffect(() => {
-    if (!isAuthLoading && !isGameLoading) setIsLoading(false);
+    if (!isAuthLoading && !isGameLoading) {
+      setTimeout(() => setIsLoading(false), 500);
+    }
   }, [isAuthLoading, isGameLoading]);
 
   useEffect(() => {
@@ -86,7 +88,7 @@ const Index = () => {
         toast.success(`Welcome, ${result.username}!`);
       }
     } catch (error) {
-      toast.error("Login failed.");
+      toast.error("Imperial sync failed.");
     }
   };
 
@@ -94,7 +96,7 @@ const Index = () => {
     logout();
     localStorage.removeItem("pi_username");
     setWallet({ balance: 0, totalSpins: 0, referralCode: "", referralCount: 0, referralEarnings: 0 });
-    toast.info("Logged out");
+    toast.info("Session Terminated");
   };
 
   const handleSpinClick = async (spinType: string, cost: number) => {
@@ -104,18 +106,20 @@ const Index = () => {
     }
     if (isSpinning) return;
     if (spinType === "free" && !canFreeSpin()) {
-      toast.info("Free spin not available yet");
+      toast.info(`Available in: ${freeSpinTimer}`);
       return;
     }
     await spin(spinType, cost);
     refreshData();
     await refreshProfile();
+    // جلب الرصيد المحدث بعد اللفة
+    await fetchWalletData(user.username);
   };
 
   if (isLoading) return <GlobalLoading isVisible={true} />;
 
   return (
-    <div className="min-h-screen bg-[#050507] overflow-x-hidden">
+    <div className="min-h-screen bg-[#050507] overflow-x-hidden selection:bg-gold/20">
       <Header
         isLoggedIn={isAuthenticated}
         username={user?.username || null}
@@ -126,49 +130,113 @@ const Index = () => {
       />
 
       <main className="container mx-auto px-4 pt-28 pb-20 relative">
-        <section className="text-center mb-16">
-          <motion.h1 initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-6xl md:text-[110px] font-black italic text-white uppercase tracking-tighter">
-            SPIN4<span className="text-gold">PI</span>
-          </motion.h1>
-          {user && <DailyRewardButton piUsername={user.username} onRewardClaimed={() => fetchWalletData(user.username)} />}
+        <section className="text-center mb-16 relative">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-gold/5 blur-[120px] rounded-full pointer-events-none" />
+          
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+             <h1 className="text-7xl md:text-[120px] font-black italic text-white uppercase tracking-tighter leading-none mb-4">
+               SPIN4<span className="text-gold">PI</span>
+             </h1>
+             <p className="text-[10px] font-bold tracking-[0.5em] text-white/30 uppercase mb-8">
+               Imperial Utility Network
+             </p>
+          </motion.div>
+
+          {user && (
+            <div className="flex justify-center mt-4">
+              <DailyRewardButton piUsername={user.username} onRewardClaimed={() => fetchWalletData(user.username)} />
+            </div>
+          )}
         </section>
 
         <JackpotCounter amount={jackpot} />
 
-        <div className="flex flex-col lg:flex-row gap-12 my-12 justify-center items-center lg:items-start">
-          <div className="flex flex-col items-center gap-8 w-full max-w-[500px]">
-            <SpinWheel isSpinning={isSpinning} setIsSpinning={() => {}} targetResult={targetResult} onSpinComplete={() => setTargetResult(null)} />
+        {/* Game Layout */}
+        <div className="flex flex-col lg:flex-row gap-10 my-12 justify-center items-start">
+          {/* Wheel - Left Column */}
+          <div className="flex flex-col items-center gap-8 w-full max-w-[550px] mx-auto lg:mx-0">
+            <div className="relative group">
+              <div className="absolute -inset-4 bg-gold/10 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+              <SpinWheel 
+                isSpinning={isSpinning} 
+                setIsSpinning={() => {}} 
+                targetResult={targetResult} 
+                onSpinComplete={() => setTargetResult(null)} 
+              />
+            </div>
+            {user && <ActiveBoostsIndicator piUsername={user.username} isSpinning={isSpinning} />}
           </div>
-          <div className="flex flex-col gap-6 w-full lg:w-96">
+
+          {/* Side Panels - Right Column */}
+          <div className="flex flex-col gap-6 w-full lg:w-[400px]">
             <VIPStatus totalSpins={wallet.totalSpins} compact />
+            
+            <TournamentPanel 
+              profileId={profileId} 
+              walletBalance={wallet.balance} 
+              onRefresh={() => fetchWalletData(user?.username)} 
+            />
+
             <Leaderboard entries={leaderboard} isLoading={isGameLoading} onRetry={refreshData} />
-            {wallet.referralCode && <ReferralPanel referralCode={wallet.referralCode} referralCount={wallet.referralCount} referralEarnings={wallet.referralEarnings} />}
+            
+            {user && (
+              <StakingPanel 
+                username={user.username} 
+                walletBalance={wallet.balance} 
+                onBalanceUpdate={(newBal) => updateBalance(newBal, true)} 
+              />
+            )}
+
+            {wallet.referralCode && (
+              <ReferralPanel 
+                referralCode={wallet.referralCode} 
+                referralCount={wallet.referralCount} 
+                referralEarnings={wallet.referralEarnings} 
+              />
+            )}
           </div>
         </div>
 
-        <div className="mt-8 mb-24">
+        <div className="mt-8 mb-24 max-w-4xl mx-auto">
           <SpinButtons onSpin={handleSpinClick} disabled={isSpinning} canFreeSpin={canFreeSpin()} freeSpinTimer={freeSpinTimer} />
         </div>
+        
         <Features />
       </main>
 
       <Footer />
-      <ResultModal isOpen={showResultModal} onClose={() => { setShowResultModal(false); setTargetResult(null); }} result={targetResult} />
+
+      <AnimatePresence>
+        {showResultModal && (
+          <ResultModal 
+            isOpen={showResultModal} 
+            onClose={() => { setShowResultModal(false); setTargetResult(null); }} 
+            result={targetResult} 
+          />
+        )}
+      </AnimatePresence>
       
       <LegalConsentModal 
         isOpenExternal={showLegalModal} 
         onClose={() => setShowLegalModal(false)} 
         onSuccess={handleLoginAttempt} 
       />
+      
       <BackendHealthCheck />
 
-      {/* زر الأدمن الصغير جداً - بعيد تماماً عن القائمة */}
+      {/* Admin Quick Terminal - Improved Position */}
       {isAuthenticated && (
         <button
           onClick={() => navigate('/admin')}
-          className="fixed top-4 right-20 z-[60] w-10 h-10 bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-gold/50 hover:text-gold transition-colors"
+          className="fixed bottom-6 right-6 z-[60] bg-[#13131a] border border-gold/30 p-4 rounded-2xl shadow-2xl hover:bg-gold/10 transition-all flex items-center gap-3 group"
         >
-          <ShieldAlert size={18} />
+          <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center text-gold group-hover:scale-110 transition-transform">
+            <ShieldAlert size={20} />
+          </div>
+          <div className="hidden md:block text-left">
+            <p className="text-[8px] font-black text-gold uppercase tracking-widest leading-none">Access</p>
+            <p className="text-xs font-bold text-white uppercase">Terminal</p>
+          </div>
         </button>
       )}
     </div>

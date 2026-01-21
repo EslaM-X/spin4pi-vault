@@ -15,22 +15,20 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
 
-  // الحل النهائي: دالة تنقل تضمن تدمير المنيو قبل تغيير الصفحة
+  // دالة تنقل تضمن إغلاق المنيو وتنظيف الشاشة قبل تغيير الصفحة
   const handleNav = (path: string) => {
-    setIsOpen(false); // إغلاق القائمة فوراً لإزالة الـ Portal
-    
-    // تأخير بسيط جداً لضمان أن React قام بتحديث الـ DOM وإزالة المنيو
+    setIsOpen(false); 
     setTimeout(() => {
       navigate(path);
-      window.scrollTo(0, 0); // التمرير لأعلى الصفحة الجديدة
-    }, 120); 
+      window.scrollTo(0, 0);
+    }, 150); 
   };
 
   const isPositive = piChange >= 0;
 
   return (
     <>
-      {/* Trigger Button */}
+      {/* Trigger Button (Hamburger) */}
       <button 
         onClick={() => setIsOpen(true)}
         className="relative z-50 w-11 h-11 rounded-2xl border border-gold/20 bg-[#13131a] flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-all"
@@ -46,14 +44,14 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
           position: 'fixed',
           inset: 0,
           backgroundColor: 'rgba(5, 5, 7, 0.98)',
-          zIndex: 9999999, // أعلى من أي عنصر آخر
+          zIndex: 9999999, 
           display: 'flex',
           flexDirection: 'column',
           padding: '20px',
           overflowY: 'auto',
           backdropFilter: 'blur(12px)'
         }}>
-          {/* Header */}
+          {/* Header Section */}
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-3">
               <img src={logoIcon} className="w-10 h-10 object-contain" alt="Logo" />
@@ -72,7 +70,7 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
             </button>
           </div>
 
-          {/* Market Live Data */}
+          {/* Market Live Data Section */}
           <div className="bg-[#13131a] border border-gold/10 rounded-2xl p-4 mb-4 flex justify-between items-center">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full overflow-hidden border border-gold/30">
@@ -89,23 +87,25 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
             </div>
           </div>
 
-          {/* --- ADMIN TERMINAL BUTTON --- */}
+          {/* --- ADMIN TERMINAL BUTTON (الآن بارز وواضح جداً) --- */}
           {isLoggedIn && (
-            <button
-              onClick={() => handleNav('/admin')}
-              className="relative overflow-hidden mb-6 p-[2px] rounded-3xl bg-gradient-to-r from-emerald-500 via-gold to-emerald-500 group active:scale-[0.96] transition-all"
-            >
-              <div className="bg-[#050507] rounded-[22px] p-4 flex items-center gap-4 relative z-10">
-                <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center text-black shadow-[0_0_20px_rgba(16,185,129,0.4)]">
-                  <ShieldCheck size={24} />
+            <div className="mb-6 px-1">
+              <button
+                onClick={() => handleNav('/admin')}
+                className="relative w-full overflow-hidden p-[1px] rounded-2xl bg-gradient-to-r from-emerald-500 via-gold to-emerald-400 group active:scale-[0.98] transition-all"
+              >
+                <div className="bg-[#0f0f15] rounded-[15px] p-4 flex items-center gap-4 relative z-10">
+                  <div className="w-11 h-11 bg-emerald-500/10 border border-emerald-500/40 rounded-xl flex items-center justify-center text-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                    <ShieldCheck size={24} />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[8px] font-black text-emerald-500 uppercase tracking-[2px] mb-1">Authorization: Level 4</p>
+                    <p className="text-base font-black italic uppercase text-white">Admin Terminal</p>
+                  </div>
+                  <ChevronRight size={18} className="ml-auto text-white/20 group-hover:text-gold group-hover:translate-x-1 transition-all" />
                 </div>
-                <div className="text-left">
-                  <p className="text-[9px] font-black text-emerald-500 uppercase tracking-[3px]">Authorized Access</p>
-                  <p className="text-lg font-black italic uppercase text-white leading-none">Admin Terminal</p>
-                </div>
-                <ChevronRight className="ml-auto text-white/20 group-hover:translate-x-1 transition-all" />
-              </div>
-            </button>
+              </button>
+            </div>
           )}
 
           {/* Wallet Balance Section */}
@@ -131,7 +131,7 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
             </div>
           )}
 
-          {/* Grid Navigation */}
+          {/* Grid Navigation Section */}
           <div className="grid grid-cols-2 gap-3 mb-6">
             <NavGridItem icon={<LayoutGrid size={20}/>} label="Arena" onClick={() => handleNav('/')} />
             {isLoggedIn && (
@@ -143,7 +143,7 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
             <NavGridItem icon={<UserCircle size={20}/>} label="Account" onClick={() => handleNav('/profile')} />
           </div>
 
-          {/* List Navigation */}
+          {/* List Navigation Section */}
           <div className="space-y-2 mb-8">
             {isLoggedIn && (
               <>
@@ -155,7 +155,7 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
             <MenuLink icon={<Shield size={18} />} label="Security & Legal" onClick={() => handleNav('/legal')} />
           </div>
 
-          {/* Auth Section */}
+          {/* Bottom Auth Section */}
           <div className="mt-auto pt-4 pb-10">
             {!isLoggedIn ? (
               <button 
@@ -180,7 +180,7 @@ export function MobileMenu({ isLoggedIn, onLogin, onLogout, balance = "0.00", pi
   );
 }
 
-// Components Helper
+// Helpers
 function NavGridItem({ icon, label, onClick }: any) {
   return (
     <button onClick={onClick} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2 active:bg-gold/10 transition-all group">

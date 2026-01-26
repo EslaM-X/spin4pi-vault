@@ -25,13 +25,22 @@ import { LegalConsentModal } from "@/components/LegalConsentModal";
 
 // Hooks
 import { useGameData } from "@/hooks/useGameData";
-import { useSpin } from "@/hooks/useSpin"; // تأكد أن التصدير في الملف الأصلي هو useSpin
+import { useSpin } from "@/hooks/useSpin"; 
 import { usePiAuth } from "@/hooks/usePiAuth";
 import { useWallet } from "@/hooks/useWallet";
 
 const Index = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  // نظام حماية وشاشة توقف للأخطاء المفاجئة
+  const [runtimeError, setRuntimeError] = useState<string | null>(null);
+
+  useEffect(() => {
+    window.onerror = (msg) => {
+      setRuntimeError(String(msg));
+    };
+  }, []);
 
   const {
     user,
@@ -47,8 +56,9 @@ const Index = () => {
   const { jackpot, leaderboard, isLoading: isGameLoading, refreshData } = useGameData();
   const { wallet, profileId, fetchWalletData, applyReferral, updateBalance, setWallet } = useWallet();
   
-  // تصحيح: الدالة spin لا تحتاج لبارامترات في التعريف هنا
-  const { spin, isSpinning, targetResult, setTargetResult } = useSpin();
+  // تصحيح: استدعاء useSpin بدون بارامترات لأننا قمنا بدمجها داخلياً
+  const spinContext = useSpin();
+  const { spin, isSpinning, targetResult, setTargetResult } = spinContext || {};
 
   const [isLoading, setIsLoading] = useState(true);
   const [freeSpinTimer, setFreeSpinTimer] = useState("Available");
@@ -62,19 +72,16 @@ const Index = () => {
     return () => clearInterval(interval);
   }, [getNextFreeSpinTime]);
 
-  // إدارة حالة التحميل الشاملة
   useEffect(() => {
+    // تقليل وقت التحميل لضمان الاستجابة
     if (!isAuthLoading && !isGameLoading) {
-      const timer = setTimeout(() => setIsLoading(false), 800);
+      const timer = setTimeout(() => setIsLoading(false), 300);
       return () => clearTimeout(timer);
     }
   }, [isAuthLoading, isGameLoading]);
 
-  // إظهار مودال النتيجة عند تحديد targetResult
   useEffect(() => {
-    if (targetResult) {
-      setShowResultModal(true);
-    }
+    if (targetResult) setShowResultModal(true);
   }, [targetResult]);
 
   const handleLoginAttempt = async () => {
@@ -87,14 +94,12 @@ const Index = () => {
       const result = await authenticate();
       if (result?.username) {
         localStorage.setItem("pi_username", result.username);
-        // تنفيذ العمليات بالتوالي لضمان الاستقرار من الموبايل
         await applyReferral(result.username, searchParams.get("ref"));
         await fetchWalletData(result.username);
         await refreshData();
         toast.success(`Welcome, ${result.username}!`);
       }
     } catch (error) {
-      console.error("Login error:", error);
       toast.error("Imperial sync failed.");
     }
   };
@@ -112,25 +117,31 @@ const Index = () => {
       return;
     }
     if (isSpinning) return;
-    
     if (spinType === "free" && !canFreeSpin()) {
       toast.info(`Available in: ${freeSpinTimer}`);
       return;
     }
-
-    try {
-      const result = await spin(spinType, cost);
-      if (result) {
-        await refreshData();
-        await refreshProfile();
-        await fetchWalletData(user.username);
-      }
-    } catch (error) {
-      console.error("Spin error:", error);
+    
+    if (spin) {
+      await spin(spinType, cost);
+      refreshData();
+      await refreshProfile();
+      await fetchWalletData(user.username);
     }
   };
 
-  // شاشة التحميل تمنع ظهور الشاشة السوداء
+  // إذا حدث خطأ، اعرضه بدلاً من الشاشة السوداء
+  if (runtimeError) {
+    return (
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-10 text-center">
+        <ShieldAlert className="text-red-500 mb-4" size={50} />
+        <h2 className="text-xl font-bold mb-2">Internal Runtime Error</h2>
+        <p className="text-xs text-gray-500 font-mono bg-gray-900 p-4 rounded">{runtimeError}</p>
+        <button onClick={() => window.location.reload()} className="mt-5 bg-gold text-black px-6 py-2 rounded-full font-bold">Retry</button>
+      </div>
+    );
+  }
+
   if (isLoading) return <GlobalLoading isVisible={true} />;
 
   return (
@@ -172,10 +183,9 @@ const Index = () => {
               <div className="absolute -inset-4 bg-gold/10 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
               <SpinWheel 
                 isSpinning={isSpinning} 
+                setIsSpinning={() => {}} 
                 targetResult={targetResult} 
-                onSpinComplete={() => {
-                   // لا نقوم بتصفير النتيجة هنا فوراً للسماح للمودال بالظهور
-                }} 
+                onSpinComplete={() => setTargetResult(null)} 
               />
             </div>
             {user && <ActiveBoostsIndicator piUsername={user.username} isSpinning={isSpinning} />}
@@ -223,10 +233,7 @@ const Index = () => {
         {showResultModal && (
           <ResultModal 
             isOpen={showResultModal} 
-            onClose={() => { 
-              setShowResultModal(false); 
-              setTargetResult(null); // الآن نصفر النتيجة بعد إغلاق المودال
-            }} 
+            onClose={() => { setShowResultModal(false); setTargetResult(null); }} 
             result={targetResult} 
           />
         )}

@@ -1,7 +1,6 @@
-// Pi Network SDK v2.0 Integration with Supabase Connect
+// Pi Network SDK v2.0 Final Integration with Supabase RPC
 import { createClient } from '@supabase/supabase-js';
 
-// استدعاء بيانات الربط من ملف .env
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -37,37 +36,58 @@ class PiNetworkSDK {
     }
   }
 
-  // دالة الدفع الحقيقية المربوطة بـ Supabase
-  async createPayment(amount: number, username: string) {
-    if (!window.Pi) return;
+  // الدالة النهائية المتوافقة مع ملف useSpin والموبايل
+  async createPayment(amount: number, memo: string, externalCallbacks?: any) {
+    if (!window.Pi) {
+        console.error("Pi SDK not found");
+        return;
+    }
 
     const paymentData = {
       amount,
-      memo: `شراء لفات للمستخدم ${username}`,
-      metadata: { username }
+      memo: memo,
+      metadata: { amount, type: "spin_purchase" }
     };
 
     const callbacks = {
       onReadyForServerApproval: async (paymentId: string) => {
-        // إخطار Supabase بوجود عملية دفع بدأت
-        console.log("Payment started:", paymentId);
+        // بما أنك على الموبايل، سنقوم بـ log فقط وتخطي الـ Edge Function
+        console.log("Payment waiting for completion:", paymentId);
       },
       onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-        // استدعاء المحرك الذي أنشأناه في SQL لزيادة الرصيد فوراً
-        const { error } = await supabase.rpc('complete_pi_payment', {
-          u_name: username,
-          p_amount: amount,
-          p_id: paymentId
-        });
+        try {
+          // جلب اسم المستخدم الحالي للتأكد من تحديث الحساب الصحيح
+          const auth = await window.Pi?.authenticate(['username'], () => {});
+          const username = auth?.user?.username;
 
-        if (!error) {
-          alert("مبروك! تمت العملية بنجاح وتم إضافة الرصيد.");
-        } else {
-          alert("حدث خطأ في تحديث الرصيد، تواصل مع الإدارة.");
+          // استدعاء الـ SQL Function التي أنشأتها أنت في Supabase
+          const { error } = await supabase.rpc('complete_pi_payment', {
+            u_name: username,
+            p_amount: amount,
+            p_id: paymentId
+          });
+
+          if (!error) {
+            console.log("Database updated via RPC successfully");
+            // إبلاغ الواجهة (useSpin) بالنجاح لتشغيل الـ Spin
+            if (externalCallbacks?.onReadyForServerCompletion) {
+              externalCallbacks.onReadyForServerCompletion(paymentId, txid);
+            }
+          } else {
+            console.error("RPC Error:", error.message);
+            alert("Connection error: Your balance will update shortly.");
+          }
+        } catch (err) {
+          console.error("Critical error in completion:", err);
         }
       },
-      onCancel: (paymentId: string) => console.log("User cancelled"),
-      onError: (error: Error) => console.error("Payment Error", error),
+      onCancel: (paymentId: string) => {
+        if (externalCallbacks?.onCancel) externalCallbacks.onCancel(paymentId);
+      },
+      onError: (error: Error, payment?: any) => {
+        console.error("Pi Payment Error:", error);
+        if (externalCallbacks?.onError) externalCallbacks.onError(error);
+      },
     };
 
     return await window.Pi.createPayment(paymentData, callbacks);

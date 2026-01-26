@@ -33,16 +33,15 @@ export function useSpinUnified() {
       setIsSpinning(true);
 
       try {
-        // 1. إذا كانت اللفة مدفوعة، نستخدم الـ SDK
+        // 1. معالجة الدفع إذا كانت اللفة مدفوعة
         if (cost > 0) {
           const paymentSuccess = await new Promise<boolean>((resolve) => {
             const callbacks = {
               onReadyForServerApproval: (paymentId: string) => {
-                // الموافقة التلقائية في مرحلة التجربة
                 console.log("Payment Approval:", paymentId);
               },
               onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-                // استدعاء المحرك الذي أنشأناه في SQL مباشرة
+                // الربط مع وظيفة قاعدة البيانات مباشرة
                 const { error } = await supabase.rpc('complete_pi_payment', {
                   u_name: user.username,
                   p_amount: cost,
@@ -60,7 +59,7 @@ export function useSpinUnified() {
               onError: () => resolve(false),
             };
 
-            piSDK.createPayment(cost, user.username).catch(() => resolve(false));
+            piSDK.createPayment(cost, `Spin ${spinType}`).catch(() => resolve(false));
           });
 
           if (!paymentSuccess) {
@@ -70,7 +69,7 @@ export function useSpinUnified() {
           }
         }
 
-        // 2. تحديد النتيجة (هنا نضع منطق عشوائي بسيط حتى تبرمج الـ Edge Function)
+        // 2. منطق النتيجة (عشوائي مؤقتاً)
         const possibleResults = ["WIN_0.1", "WIN_0.5", "LOSE", "WIN_1", "JACKPOT_ENTRY"];
         const randomResult = possibleResults[Math.floor(Math.random() * possibleResults.length)];
         let reward = 0;
@@ -109,6 +108,11 @@ export function useSpinUnified() {
     setIsSpinning,
     lastResult,
     targetResult,
+    setTargetResult, // أضفنا هذا السطر لضمان توافق الواجهة
     completeAnimation: () => setIsSpinning(false),
   };
 }
+
+// السطر السحري لحل مشكلة Vercel:
+export const useSpin = useSpinUnified;
+export default useSpinUnified;

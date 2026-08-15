@@ -1,5 +1,7 @@
 # Spin4Pi · Vault
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![CI](https://github.com/EslaM-X/spin4pi-vault/actions/workflows/ci.yml/badge.svg)](https://github.com/EslaM-X/spin4pi-vault/actions)
+
 Gamified Pi Network gaming companion: spin-to-win gameplay, leaderboards,
 achievements, VIP tiers, and a marketplace — built around the Pi Network
 ecosystem.
